@@ -1,8 +1,9 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(84)
-    real(wp) :: para(84), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(129)
+    real(wp) :: para(129), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+                targetv(10), & ! target vector
                 rhoy = 0.715, & ! 5 year
                 vary = 0.52, & ! 5 year
                 rhoyh = 0.677, & ! 5 year
@@ -85,7 +86,8 @@ module variable
                 fnadim = 15, & ! fnadim: number of grids in the finer grid 
                 fnhdim = 10, &
                 kdim = 4, &
-                ndim = 100, &
+                ndim = 10, & ! number of targets
+                nsbq = 10000, & ! total number of raw sobol sequence's rows
                 length = 5, &
                 iterasvmax = 10, &
                 sdim   = 5, &
@@ -129,7 +131,8 @@ module variable
     real(wp) :: pertgov = 0.04_wp
     real(wp) :: rbarimplied
     
-    ! real(wp) :: penalty = -1e+7    
+    ! real(wp) :: penalty = -1e+7 
+    real(wp) :: inf
     
     integer ::  t, inv_dist_counter, szperiod1 
     real(wp) :: staxbase, staxwbase, staxebase, kndata, avgincw, govbalance, govbal, benefit
@@ -152,6 +155,7 @@ module variable
     real(wp), dimension(:), allocatable :: hv, av, rhv, rav
     !real(wp), dimension(:), allocatable :: afv ! asset refined grid ! 4.1.2017
     real(wp), dimension(:,:), allocatable :: py, pyh, pz2, pka, pyb ! wint ! wint, aint: interpolated weight and coarse grids ! pt18
+    real(wp), dimension(:,:), allocatable :: range_guess
     integer,  dimension(:,:), allocatable :: xl14, bl1014, bd14, xl1013, xl9, xl18, bd9, bd18 ! 4.1.2017 afint
     integer,  dimension(:,:), allocatable :: bldum, bd1013
     integer,  dimension(:,:), allocatable :: s1c, s3c ! s2c is removed 3.31.2017
@@ -220,8 +224,15 @@ module variable
 	integer :: szt1013vec1, szt1013vec24, szt1013vec56, szt1013vec7
     integer :: szt14vec1, szt14vec24, szt14vec56, szt14vec7
     
+    ! amoeba 
+    integer, dimension(:), allocatable :: indexseries    
+    integer :: mpi_exercise_mode, trylen, sblno1, nrow, amoitrcrt, amoiniswitch
+    real(wp) :: stepsize, reinifac, amoalp, amogam, amobet, amotau, amoerrcrt, amoconvex
+    real(wp), dimension(:,:), allocatable :: sobolm
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10 !, tausvflag
-
+    character(len=40) :: node_string, trylen_string
+    character(:), allocatable :: solution_string, io_string
+    
 contains  
     subroutine read_parameter_model( para, input_file )
         implicit none
@@ -680,7 +691,232 @@ contains
                        i = i + 1
                        read( value_string,*) taubp
                        labstr(i) = 'taubp'
-                       para(i) = taubp                                
+                       para(i) = taubp   
+                   case('target1') ! 85
+                       i = i + 1
+                       read( value_string,*) targetv(1) 
+                       labstr(i) = 'capital in corporate'                         
+                       para(i) = targetv(1)
+                   case('target2') ! 86
+                       i = i + 1
+                       read( value_string,*) targetv(2) 
+                       labstr(i) = 'small biz projects  '
+                       para(i) = targetv(2)
+                   case('target3') ! 87
+                       i = i + 1
+                       read( value_string,*) targetv(3) 
+                       labstr(i) = 'median biz projects '                                                
+                       para(i) = targetv(3)
+                   case('target4') ! 88
+                       i = i + 1
+                       read( value_string,*) targetv(4) 
+                       labstr(i) = 'large biz projects  '                                                
+                       para(i) = targetv(4)
+                   case('target5') ! 89
+                       i = i + 1
+                       read( value_string,*) targetv(5) 
+                       labstr(i) = 'bizmen size         '                                                
+                       para(i) = targetv(5)
+                   case('target6') ! 90
+                       i = i + 1
+                       read( value_string,*) targetv(6) 
+                       labstr(i) = 'financial capital   '                                                
+                       para(i) = targetv(6)
+                   case('target7') ! 91
+                       i = i + 1
+                       read( value_string,*) targetv(7) 
+                       labstr(i) = 'housing capital     '
+                       para(i) = targetv(7)
+                   case('target8') ! 92
+                       i = i + 1
+                       read( value_string,*) targetv(8) 
+                       labstr(i) = 'bizmen capital      '
+                       para(i) = targetv(8)
+                   case('target9') ! 93
+                       i = i + 1
+                       read( value_string,*) targetv(9) 
+                       labstr(i) = 'bizmen income       '
+                       para(i) = targetv(9)
+                   case('target10') ! 94
+                       i = i + 1
+                       read( value_string,*) targetv(10) 
+                       labstr(i) = 'ratio of med assets '                       
+                       para(i) = targetv(10)
+                   case('lower1') ! 95
+                       i = i + 1
+                       read( value_string,*) range_guess(2,1) 
+                       labstr(i) = 'lower size of the smallest project'                         
+                       para(i) = range_guess(2,1)
+                   case('upper1') ! 96
+                       i = i + 1
+                       read( value_string,*) range_guess(1,2) 
+                       labstr(i) = 'upper size of the smallest project'                         
+                       para(i) = range_guess(1,2)                       
+                   case('lower2') ! 97
+                       i = i + 1
+                       read( value_string,*) range_guess(2,1) 
+                       labstr(i) = 'lower prtk0 prob of new ideas'                         
+                       para(i) = range_guess(2,1)
+                   case('upper2') ! 98
+                       i = i + 1
+                       read( value_string,*) range_guess(2,2) 
+                       labstr(i) = 'upper prtk0 prob of new ideas'                         
+                       para(i) = range_guess(2,2)       
+                   case('lower3') ! 99
+                       i = i + 1
+                       read( value_string,*) range_guess(3,1) 
+                       labstr(i) = 'lower prtk1 prob of new ideas'                         
+                       para(i) = range_guess(3,1)
+                   case('upper3') ! 100
+                       i = i + 1
+                       read( value_string,*) range_guess(3,2) 
+                       labstr(i) = 'upper prtk1 prob of new ideas'                         
+                       para(i) = range_guess(3,2)   
+                   case('lower4') ! 101
+                       i = i + 1
+                       read( value_string,*) range_guess(4,1) 
+                       labstr(i) = 'lower prtk2 prob of new ideas'                         
+                       para(i) = range_guess(4,1)
+                   case('upper4') ! 102
+                       i = i + 1
+                       read( value_string,*) range_guess(4,2) 
+                       labstr(i) = 'upper prtk2 prob of new ideas'                         
+                       para(i) = range_guess(4,2)   
+                   case('lower5') ! 103
+                       i = i + 1
+                       read( value_string,*) range_guess(5,1) 
+                       labstr(i) = 'lower average tech shock'                         
+                       para(i) = range_guess(5,1)
+                   case('upper5') ! 104
+                       i = i + 1
+                       read( value_string,*) range_guess(5,2) 
+                       labstr(i) = 'upper average tech shock'                         
+                       para(i) = range_guess(5,2)   
+                   case('lower6') ! 105
+                       i = i + 1
+                       read( value_string,*) range_guess(6,1) 
+                       labstr(i) = 'lower discount factor'                         
+                       para(i) = range_guess(6,1)
+                   case('upper6') ! 106
+                       i = i + 1
+                       read( value_string,*) range_guess(6,2) 
+                       labstr(i) = 'upper discount factor'                         
+                       para(i) = range_guess(6,2)   
+                   case('lower7') ! 107
+                       i = i + 1
+                       read( value_string,*) range_guess(7,1) 
+                       labstr(i) = 'lower housing utility parameter'                         
+                       para(i) = range_guess(7,1)
+                   case('upper7') ! 108
+                       i = i + 1
+                       read( value_string,*) range_guess(7,2) 
+                       labstr(i) = 'upper housing utility parameter'                         
+                       para(i) = range_guess(7,2)   
+                   case('lower8') ! 109
+                       i = i + 1
+                       read( value_string,*) range_guess(8,1) 
+                       labstr(i) = 'lower phi1'                         
+                       para(i) = range_guess(8,1)
+                   case('upper8') ! 110
+                       i = i + 1
+                       read( value_string,*) range_guess(8,2) 
+                       labstr(i) = 'upper phi1'                         
+                       para(i) = range_guess(8,2)   
+                   case('lower9') ! 111
+                       i = i + 1
+                       read( value_string,*) range_guess(9,1) 
+                       labstr(i) = 'lower phi2'                         
+                       para(i) = range_guess(9,1)
+                   case('upper9') ! 112
+                       i = i + 1
+                       read( value_string,*) range_guess(9,2) 
+                       labstr(i) = 'upper phi2'                         
+                       para(i) = range_guess(9,2)   
+                   case('lower10') ! 113
+                       i = i + 1
+                       read( value_string,*) range_guess(10,1) 
+                       labstr(i) = 'lower phi3'                         
+                       para(i) = range_guess(10,1)
+                   case('upper10') ! 114
+                       i = i + 1
+                       read( value_string,*) range_guess(10,2) 
+                       labstr(i) = 'upper phi3'                         
+                       para(i) = range_guess(10,2) 
+                   case('mpi_exercise_mode') ! 115
+                       i = i + 1
+                       read( value_string,*) mpi_exercise_mode 
+                       labstr(i) = 'mpi_exercise_mode'                         
+                       para(i) = mpi_exercise_mode 
+                   case('trylen') ! 116
+                       i = i + 1
+                       read( value_string,*) trylen 
+                       labstr(i) = 'trylen'                         
+                       para(i) = trylen    
+                   case('sblno1') ! 117
+                       i = i + 1
+                       read( value_string,*) sblno1 
+                       labstr(i) = 'sblno1'                         
+                       para(i) = sblno1 
+                   case('nrow') ! 118
+                       i = i + 1
+                       read( value_string,*) nrow 
+                       labstr(i) = 'nrow'                         
+                       para(i) = nrow 
+                   case('stepsize') ! 119
+                       i = i + 1
+                       read( value_string,*) stepsize 
+                       labstr(i) = 'stepsize'                         
+                       para(i) = stepsize 
+                   case('reinifac') ! 120
+                       i = i + 1
+                       read( value_string,*) reinifac 
+                       labstr(i) = 'reinifac'                         
+                       para(i) = reinifac 
+                   case('amoalp') ! 121
+                       i = i + 1
+                       read( value_string,*) amoalp 
+                       labstr(i) = 'amoalp'                         
+                       para(i) = amoalp 
+                   case('amogam') ! 122
+                       i = i + 1
+                       read( value_string,*) amogam 
+                       labstr(i) = 'amogam'                         
+                       para(i) = amogam 
+                   case('amobet') ! 123
+                       i = i + 1
+                       read( value_string,*) amobet 
+                       labstr(i) = 'amobet'                         
+                       para(i) = amobet 
+                   case('amotau') ! 124
+                       i = i + 1
+                       read( value_string,*) amotau 
+                       labstr(i) = 'amotau'                         
+                       para(i) = amotau 
+                   case('amoerrcrt') ! 125
+                       i = i + 1
+                       read( value_string,*) amoerrcrt 
+                       labstr(i) = 'amoerrcrt'                         
+                       para(i) = amoerrcrt 
+                   case('amoitrcrt') ! 126
+                       i = i + 1
+                       read( value_string,*) amoitrcrt  
+                       labstr(i) = 'amoitrcrt'                         
+                       para(i) = amoitrcrt 
+                   case('amoconvex') ! 127
+                       i = i + 1
+                       read( value_string,*) amoconvex 
+                       labstr(i) = 'amoconvex'                         
+                       para(i) = amoconvex 
+                   case('amoiniswitch') ! 128
+                       i = i + 1
+                       read( value_string,*) amoiniswitch  
+                       labstr(i) = 'amoiniswitch'                         
+                       para(i) = amoiniswitch  
+                   case('nsbq') ! 129
+                       i = i + 1
+                       read( value_string,*) nsbq  
+                       labstr(i) = 'nsbq'                         
+                       para(i) = nsbq                         
                 end select
             enddo
         else

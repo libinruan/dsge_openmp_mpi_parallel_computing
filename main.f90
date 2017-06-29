@@ -8,19 +8,46 @@
     
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
+    
+    !call start_files_for_writing() ! open files
+    
+    call fmpi_init() ! USER-DEFINED SUBROUTINE IN TOOLBOX.F90 <------------------------
+    call infinity_setting(inf)
+    if( MY_ID == 0 .and. MPI_PROVIDED<MPI_THREAD_FUNNELED ) write(*,'(a,/)') '! [ WARNING ] The Only-Master-makes-MPI-calls setup fails.' 
+    
+    allocate(range_guess(ndim,2))
     call read_parameter_model(para,'_1parameter.txt')
+    if(my_id==0) write(*,'(a,f20.8)') (labstr(i),para(i),i=1,128) ! works. 
     
-    call start_files_for_writing() ! open files
+    ! <---- here --->
+    allocate(indexseries(trylen),sobolm(nsbq, ndim))
+    indexseries = [(i,i=1,trylen)]
+    !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) ! works. 
+    !if(my_id==0) write(*,'(a,/)') ' '
     
-    !call fmpi_init() ! USER-DEFINED SUBROUTINE IN TOOLBOX.F90 <------------------------
-    !call solve_model() ! obsolete. no use any more.
-    call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one.
-    !call mpi_finalize( MPI_ERR ) !! TO BE MOVED TO THE END OF THE MAIN PROGRAM <-------  
+    indexseries = indexseries + sblno1 -1 ! USED FOR OUTPUT    
+    !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen)
+    
+    write(node_string,'(i2.2)') my_id
+    solution_string = trim(node_string)//'.txt'       
+    open(unit=my_id+1001, file=solution_string, action='write')
+    
+    write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
+    io_string = 'outputinput_'//trim(trylen_string) 
+    
+    ! MPI BLOCK
+    call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim )  
+    !call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled )    
+    !mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1)    
+    
+    deallocate(range_guess, indexseries)
+    !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one.
+    call mpi_finalize( MPI_ERR ) !! TO BE MOVED TO THE END OF THE MAIN PROGRAM <-------  
     
     call system_clock(tend) 
-    write(*,fmt='(/,a,f12.4,a)') 'total time: ',real(tend-tstart,wp)/real(trate,wp), ' seconds'   
+    if(my_id==0) write(*,fmt='(/,a,f12.4,a,x,i3)') 'total time: ',real(tend-tstart,wp)/real(trate,wp), ' seconds', my_id
     
-    call end_files_for_writing() ! close files  
+    !call end_files_for_writing() ! close files  
         
     !! experiment good. ===========================================
     !! 3.8.2017 Brent can handle all types of tricky probelms I faces, and the user-defined subroutine brent_localizer is good. 
@@ -31,8 +58,7 @@
     !call grid(xvec,xi,xo,1._wp)
     !call brent_localizer(ftest,xi,xo,xmax,ymax) ! func,xa,xc,xs,ys
     !print*, xmax, ymax
-    
-    
+    !
     !real(wp), dimension(:,:), allocatable :: mat
     !real(wp), dimension(:), allocatable :: xvec, yvec, f4
     !integer :: i,j
@@ -52,11 +78,12 @@
     !
     !write(*,*) binterpII(yvec,xvec,mat,1979._wp,12.7_wp,penalty,msg,f4)
     !deallocate( mat, xvec, yvec )
-    
+    !
     !integer :: i
     !real(wp) :: vec(4)
     !vec = [(i,i=1,4)]
     !print*, count(vec==2)
+    !! =============================================================
     
 contains    
     !function ftest(x) 

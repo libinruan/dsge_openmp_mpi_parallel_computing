@@ -13,7 +13,7 @@ subroutine fmpi_init
     use fmpi_header
     use fmpi_variable
     implicit none
-    call MPI_INIT_THREAD( MPI_THREAD_FUNNELED, MPI_PROVIDED, MPI_ERR ) ! ALL MPI CALLS MADE BY MASTER THREAD
+    call MPI_INIT_THREAD( MPI_THREAD_FUNNELED, MPI_PROVIDED, MPI_ERR ) ! ALL MPI CALLS MADE BY MASTER THREAD; whenever your program uses threading, you should use MPI_Init_thread().
     call MPI_COMM_RANK( MPI_COMM_WORLD, MY_ID, MPI_ERR ) ! MPI_COMM_WORLD is declared in "mpif.h"
     call MPI_COMM_SIZE( MPI_COMM_WORLD, NUM_PROCS, MPI_ERR )
     call MPI_COMM_GROUP( MPI_COMM_WORLD, GROUP_ALL, MPI_ERR ) ! get the base group from MPI_comm_world
@@ -1538,6 +1538,11 @@ contains
     
     ! See http://math.nju.edu.cn/help/mathhpc/doc/intel/mkl/vslnotes.pdf page 32 for generating 100 3-dimensional quasi-random vectors in the (2,3)^3 hypercube using Sobol BRNG.
     ! Be sure to add the command "include 'mkl_vsl.f90'" in the beginning of module toolbox(.f90)
+    ! Reference: 
+    ! See how to set up a module for mkl_vsl https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/515066
+    ! See "brng" parameter selection https://software.intel.com/en-us/mkl-developer-reference-c-brng-parameter-definition#TBL10-2
+    ! Check the error code which should be 0 if it worked. https://goparallel.sourceforge.net/mastering-intel-mkl-support-functions/ 
+    ! How to include "errcheck.inc" https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/292173
     subroutine get_sobol_sequence( sobolm, lbnd, ubnd, nsbq, ndim )
         implicit none
         integer, intent(in) :: nsbq, ndim
@@ -1548,7 +1553,9 @@ contains
         brng    = VSL_BRNG_SOBOL             ! The sobol sequence generator's parameters.
         method  = VSL_RNG_METHOD_UNIFORM_STD ! The sobol sequence generator's parameters.    
         errcode = vslnewstream( stream, brng, ndim )
+        if(errcode/=0) write(*,*) errcode, ' something wrong with get_sobol_sequence [1] '
         errcode = vdrnguniform( method, stream, nsbq*ndim, sobolm, lbnd, ubnd )
+        if(errcode/=0) write(*,*) errcode, ' something wrong with get_sobol_sequence [2] '
     end subroutine get_sobol_sequence
     
     real(wp) function linint(x,y,xi) ! LINEAR INTERPOLATION, SINGLE POINT
