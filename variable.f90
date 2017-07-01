@@ -228,7 +228,7 @@ module variable
     integer, dimension(:), allocatable :: indexseries    
     integer :: mpi_exercise_mode, trylen, sblno1, nrow, amoitrcrt, amoiniswitch
     real(wp) :: stepsize, reinifac, amoalp, amogam, amobet, amotau, amoerrcrt, amoconvex
-    real(wp), dimension(:,:), allocatable :: sobolm
+    real(wp), dimension(:,:), allocatable :: sobolm, sobolm_scaled, mpi_sobol_scaled ! sobolm: scaled for ranges; mpi_sobol_scaled: adjusted for the starting point.
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10 !, tausvflag
     character(len=40) :: node_string, trylen_string
     character(:), allocatable :: solution_string, io_string
@@ -744,9 +744,9 @@ contains
                        para(i) = targetv(10)
                    case('lower1') ! 95
                        i = i + 1
-                       read( value_string,*) range_guess(2,1) 
+                       read( value_string,*) range_guess(1,1) 
                        labstr(i) = 'lower size of the smallest project'                         
-                       para(i) = range_guess(2,1)
+                       para(i) = range_guess(1,1)
                    case('upper1') ! 96
                        i = i + 1
                        read( value_string,*) range_guess(1,2) 

@@ -1,25 +1,18 @@
-========================================================================
-    Fortran Console Application : "MPI_sandbox" Project Overview
-========================================================================
+Fortran files:
 
-The Intel Fortran Console Application Wizard has created this 
-"MPI_sandbox" project for you as a starting point.
+	(1) main.f90 focuses on the implementation of the Nelder-Mead simplex method on 10 dimensional parameter space.
+	(2) equilibrium.f90 solves for the steady state of the economy.
+	(3) model.f90 solves the Bellman equations for saving and consumption decisions across generations.
+	(4) variable.f90 initializes most variables to be used in the program.
+	(5) toolbox.f90 contains all the subroutines that executes evoked numerical methods.
+	
+Input files:
+	
+	(1) _survival_probability.txt
+	(2) _efficiency_units.txt
+	(3) _1parameter.txt
+	
+Supplemental files:
 
-This file contains a summary of what you will find in each of the files 
-that make up your project.
-
-MPI_sandbox.vfproj
-    This is the main project file for Fortran projects generated using an 
-    Application Wizard.  It contains information about the version of 
-    Intel Fortran that generated the file, and information about the 
-    platforms, configurations, and project features selected with the 
-    Application Wizard.
-
-MPI_sandbox.f90
-    This is the main source file for the Fortran Console application. 
-    It contains the program entry point.
-
-/////////////////////////////////////////////////////////////////////////////
-Other notes:
-
-/////////////////////////////////////////////////////////////////////////////
+	(1) zv1.pbs: the PBS script with the specification of HPC resources to be submitted to MSI's work queue.
+	(2) makefile: the script with the commands for compiling the Fortran files 

@@ -1,4 +1,10 @@
-﻿program MPI_sandbox
+﻿! (1) main.f90 focuses on the implementation of the Nelder-Mead simplex method on 10 dimensional parameter space.
+! (2) equilibrium.f90 solves for the steady state of the economy.
+! (3) model.f90 solves the Bellman equations for saving and consumption decisions across generations.
+! (4) variable.f90 initializes most variables to be used in the program.
+! (5) toolbox.f90 contains all the subroutines that executes evoked numerical methods.
+    
+program MPI_sandbox
     !use universe ! test on reversion. Should shown.
     use equilibrium
     implicit none
@@ -17,10 +23,11 @@
     
     allocate(range_guess(ndim,2))
     call read_parameter_model(para,'_1parameter.txt')
-    if(my_id==0) write(*,'(a,f20.8)') (labstr(i),para(i),i=1,128) ! works. 
+    if(my_id==0) write(*,'(a,f20.8)') (labstr(i),para(i),i=1,129) ! works. 
     
     ! <---- here --->
-    allocate(indexseries(trylen),sobolm(nsbq, ndim))
+    allocate(indexseries(trylen),sobolm(nsbq, ndim),sobolm_scaled(ndim,nsbq),mpi_sobol_scaled(ndim,trylen))
+    !allocate(indexseries(trylen),sobolm(ndim,nsbq))
     indexseries = [(i,i=1,trylen)]
     !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) ! works. 
     !if(my_id==0) write(*,'(a,/)') ' '
@@ -35,12 +42,24 @@
     write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
     io_string = 'outputinput_'//trim(trylen_string) 
     
-    ! MPI BLOCK
-    call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim )  
-    !call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled )    
-    !mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1)    
+    ! quasi-random Sobol sequence block
+    call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim ) ! Generate ndim dimensional sobol sequence of length nsbq.
+    !if(my_id==0) call sm(sobolm,'sobolm') ! checked 2017-Jul-1
+    call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) 
+    !if(my_id==0) write(*,'(2f12.8,/)') [(range_guess(i,1),range_guess(i,2),i=1,10)]
+    mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1)   
+    !if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled') ! checked 2017-Jul-1 
     
-    deallocate(range_guess, indexseries)
+    if(mpi_exercise_mode==0)then
+        
+    endif
+    
+    
+    
+    
+    
+    
+    deallocate(range_guess, indexseries, sobolm, sobolm_scaled, mpi_sobol_scaled)
     !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one.
     call mpi_finalize( MPI_ERR ) !! TO BE MOVED TO THE END OF THE MAIN PROGRAM <-------  
     

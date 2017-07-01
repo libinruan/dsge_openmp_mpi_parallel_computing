@@ -1550,12 +1550,21 @@ contains
         real(wp), intent(out) :: sobolm(nsbq, ndim)
         real(wp) :: lbnd, ubnd
         type(vsl_stream_state) :: stream 
+        real(wp) :: sobvec(ndim)
+        integer :: i
         brng    = VSL_BRNG_SOBOL             ! The sobol sequence generator's parameters.
         method  = VSL_RNG_METHOD_UNIFORM_STD ! The sobol sequence generator's parameters.    
         errcode = vslnewstream( stream, brng, ndim )
-        if(errcode/=0) write(*,*) errcode, ' something wrong with get_sobol_sequence [1] '
-        errcode = vdrnguniform( method, stream, nsbq*ndim, sobolm, lbnd, ubnd )
-        if(errcode/=0) write(*,*) errcode, ' something wrong with get_sobol_sequence [2] '
+        !if(errcode/=0) write(*,*) errcode, ' something wrong with get_sobol_sequence [1] '
+        !errcode = vdrnguniform( method, stream, nsbq*ndim, sobolm, lbnd, ubnd )
+        !if(errcode/=0) write(*,*) errcode, ' something wrong with get_sobol_sequence [2] '
+        do i = 1, nsbq
+            errcode = vdrnguniform(method, stream, ndim, sobvec, lbnd, ubnd)    
+            if(errcode/=0) write(*,*) errcode, ' something wrong with get_sobol_sequence [1] '
+            !write(*,*) sobvec
+            !write(*,'(/,a)') ' --- ' 
+            sobolm(i,:) = sobvec(:)
+        enddo        
     end subroutine get_sobol_sequence
     
     real(wp) function linint(x,y,xi) ! LINEAR INTERPOLATION, SINGLE POINT
