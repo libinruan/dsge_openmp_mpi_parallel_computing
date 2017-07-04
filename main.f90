@@ -24,43 +24,172 @@ program MPI_sandbox
     allocate(range_guess(ndim,2))
     call read_parameter_model(para,'_1parameter.txt')
     if(my_id==0) write(*,'(a,f20.8)') (labstr(i),para(i),i=1,129) ! works. 
-    
-    ! <---- here --->
-    allocate(indexseries(trylen),sobolm(nsbq, ndim),sobolm_scaled(ndim,nsbq),mpi_sobol_scaled(ndim,trylen))
-    !allocate(indexseries(trylen),sobolm(ndim,nsbq))
-    indexseries = [(i,i=1,trylen)]
-    !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) ! works. 
-    !if(my_id==0) write(*,'(a,/)') ' '
-    
-    indexseries = indexseries + sblno1 -1 ! USED FOR OUTPUT    
-    !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen)
-    
-    write(node_string,'(i2.2)') my_id
-    solution_string = trim(node_string)//'.txt'       
-    open(unit=my_id+1001, file=solution_string, action='write')
-    
-    write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-    io_string = 'outputinput_'//trim(trylen_string) 
-    
-    ! quasi-random Sobol sequence block
-    call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim ) ! Generate ndim dimensional sobol sequence of length nsbq.
-    !if(my_id==0) call sm(sobolm,'sobolm') ! checked 2017-Jul-1
-    call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) 
     !if(my_id==0) write(*,'(2f12.8,/)') [(range_guess(i,1),range_guess(i,2),i=1,10)]
-    mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1)   
-    !if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled') ! checked 2017-Jul-1 
+    
+    ! Filename for storing individual node's outcome
+    !write(node_string,'(i3.3)') my_id
+    !solution_string = trim(node_string)//'.txt'       
+    !open(unit=my_id+1001, file=solution_string, action='write') ! Inside the mpi_exercise_mode block. 7-3-2017
     
     if(mpi_exercise_mode==0)then
+        solution_string = 'SingleNodeMPI.txt'         
+        open(unit=my_id+1001, file=solution_string, action='write', position='append')
         
-    endif
+        ! Directly use the parameter setting in _1parameter.txt
+        guessv(1) = kv1   
+        guessv(2) = prtk0 
+        guessv(3) = prtk1 
+        guessv(4) = prtk2 
+        guessv(5) = zbar  
+        guessv(6) = beta  
+        guessv(7) = theta 
+        guessv(8) = phi1  
+        guessv(9) = phi2  
+        guessv(10)= phi3      
+        modelmsg = 0
+        momvec = inf
+        obj_val_1st = inf
+        
+        call search_equilibrium( guessv, momvec, obj_val_1st, my_id, my_id, modelmsg )
+        if( modelmsg == 0 )then
+            write(my_id+1001, '(a,<ndim>f15.7)') 'guess  : ', guessv
+            write(my_id+1001, '(a,<ndim>f15.7)') 'moment : ', momvec
+            write(my_id+1001, '(a,f15.7)') 'penalty: ', obj_val_1st 
+        else ! fail to solve the model
+            write(my_id+1001, '(a,<ndim>f15.7,a)') 'guess  : ', guessv, ' === Failure === '
+        endif ! modelmsg
+        close(my_id+1001)        
+    elseif(mpi_exercise_mode==1)then
+        ! Used for all invoked nodes in the MPI implementation. 
+        write(node_string,'(i3.3)') my_id
+        solution_string = trim(node_string)//'.txt'         
+        open(unit=my_id+1001, file=solution_string, action='write') ! Moved here. 7-3-201
+        
+        ! # 1 move inside the MPI_exercise_mode == 1!?
+        allocate(indexseries(trylen),sobolm(nsbq, ndim),sobolm_scaled(ndim,nsbq),mpi_sobol_scaled(ndim,trylen))
+        allocate(mpi_simmom_matrix(ndim,trylen))
+        !allocate(indexseries(trylen),sobolm(ndim,nsbq))
+        indexseries = [(i,i=1,trylen)]
+        !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) ! works. 
+        !if(my_id==0) write(*,'(a,/)') ' '
+        indexseries = indexseries + sblno1 -1 ! Shifted; USED FOR OUTPUT    
+        !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) 
+        
+        ! Quasi-random Sobol sequence block # 2 move inside the MPI_exercise_mode == 1!?
+        call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim ) ! Generate ndim dimensional sobol sequence of length nsbq.
+        call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) 
+        mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1)    
+        !if(my_id==0) call sm(sobolm,'sobolm') ! checked 2017-Jul-1
+        !if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled') ! checked 2017-Jul-1         
+        
+        allocate( parcel(ndim), result(ndim), outputinput1(trylen,2*ndim+2), obj_val_vec(trylen) )        
+        nslaves = num_procs - 1 ! The root processor (my_id==0) is in charge of sending out new trial and receiving the corresponding result.
+
+        if( my_id == 0)then
+            write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
+            io_string = 'IO_CompMat_'//trim(trylen_string) 
+            
+            ! [The Root, case 1] Send Initial Messages to Slave Nodes (indices ranges from 1 to nslaves)
+            do i = 1, nslaves
+                trial = i ! the index of the basic loop: 1,...,trylen; Not the indices of the adjusted Sobol sequence.
+                slave = i
+                parcel = mpi_sobol_scaled(:,i)
+                call sendjob(trial,slave,parcel) ! send from root to slave the trial parameter combination                
+            enddo
+            
+            ! [The Root, case 1] Hear Responses from Slave Nodes
+            do i = 1, trylen ! The range is correct!! 7-3-2017
+                do
+                    msgtype = 2 ! tag 1 for parameter passing; tag 2 for communicating the result between slave nodes and root. 
+                    ! Non-blocking test for a message
+                    call mpi_iprobe( mpi_any_source, msgtype, mpi_comm_world, &
+                        & receiving, status, ierr)
+                    if(receiving)then
+                        ! which member node is sending the result?
+                        call mpi_recv( slave, 1, mpi_integer, mpi_any_source, &
+                            & msgtype, mpi_comm_world, status, ierr)
+                        ! what's the returned trial index in the basic assignment loop?
+                        call mpi_recv( trial, 1, mpi_integer, slave, & ! Note: trial falls in [1,trylen], rather than the shifted interval.
+                            & msgtype, mpi_comm_world, status, ierr)
+                        ! the feedback of simulated moments 
+                        call mpi_recv( result, ndim, mpi_double_precision, slave, &
+                            & msgtype, mpi_comm_world, status, ierr)
+                        ! the value of penalty corresponds to the given trial
+                        call mpi_recv( obj_val_1st, 1, mpi_double_precision, slave, &
+                            & msgtype, mpi_comm_world, status, ierr)
+                        
+                        mpi_simmom_matrix(:,trial) = result
+                        obj_val_vec(trial) = obj_val_1st
+                        
+                        ! Results That Are Collected by Individual Nodes
+                        write(my_id+1001,'(a,i3,i5,<ndim>e16.7,<ndim>e16.7,e16.7)') 'assignment: ', slave, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_scaled(:,trial), obj_val_1st
+                        
+                        ! Check to see if one more new trial is available to be assigned to the responding slave node.
+                        if(i<=trylen-nslaves)then
+                            parcel = mpi_sobol_scaled(:,i+nslaves) ! Correct. 7-3-2017 
+                            trial = i + nslaves
+                            call sendjob( trial, slave, parcel )
+                        endif
+                        exit
+                    endif 
+                enddo ! (unconditional)
+            enddo ! i 
+            
+            ! [The Root, case 1] Tell All The Slave Nodes Stopping Waiting for New Trial Assignment
+            do i = 1, nslaves
+                trial = -1 ! the value that triggers an exit
+                slave = i
+                parcel = 0._wp ! a redundant place holder for new trial
+                call sendjob( trial, slave, parcel )
+            enddo
+            
+            ! [The Root, case 1] Save the overall intput and output
+            outputinput1(:,1) = real(indexseries,wp) 
+            outputinput1(:,2:ndim+1) = transpose(mpi_sobol_scaled) ! Input
+            outputinput1(:,ndim+2:2*ndim+1) = transpose(mpi_simmom_matrix) ! Output
+            outputinput1(:,2*ndim+2) = obj_val_vec
+            call sm( outputinput1, io_string, 15, 8) ! Only the root deals with the storage of complete output.
+            
+        else ! [The Slaves, case 1] my_id /= 0 The Block Used for Defining the Message Passing from Slave Nodes
+            do
+                msgtype = 1
+                ! (Integer): indexi of the passed trial
+                call mpi_recv( trial, 1, mpi_integer, 0, &
+                    & msgtype, mpi_comm_world, status, ierr )
+                if( trial == -1 ) exit
+                ! (Real): the content of the passed trial; the content is determined by the root according to the value of variable 'trial'.
+                call mpi_recv( parcel, ndim, mpi_double_precision, 0, &
+                    & msgtype, mpi_comm_world, status, ierr )
+                
+                modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
+                
+                call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
+                
+                msgtype = 2 ! tag 2 is used for sending feedback.
+                ! Sending the info about the ID of the Slave Node ('my_id').
+                call mpi_send( my_id, 1, mpi_integer, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+                ! Sending the index of the corresponding trial.
+                call mpi_send( trial, 1, mpi_integer, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+                ! Sending the simulated moments.
+                call mpi_send( result, ndim, mpi_double_precision, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+                ! Sending the level of penalty to the root.
+                call mpi_send( obj_val_1st, 1, mpi_double_precision, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+            enddo                
+        endif ! [The Root and Slaves, case 1]       
+        
+        deallocate(parcel,result,outputinput1,obj_val_vec)
+        ! # 3 move inside the MPI_exercise_mode == 1!?
+        deallocate(range_guess, indexseries, sobolm, sobolm_scaled, mpi_sobol_scaled) 
+        deallocate(mpi_simmom_matrix)        
+        close(my_id+1001) ! 7-3-2017
+    endif ! mpi_exercise_model
     
+    !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one. Obsolete, 7-3-2017.
     
-    
-    
-    
-    
-    deallocate(range_guess, indexseries, sobolm, sobolm_scaled, mpi_sobol_scaled)
-    !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one.
     call mpi_finalize( MPI_ERR ) !! TO BE MOVED TO THE END OF THE MAIN PROGRAM <-------  
     
     call system_clock(tend) 
@@ -105,6 +234,20 @@ program MPI_sandbox
     !! =============================================================
     
 contains    
+    ! The root sends trial parameter combination to slaves
+    subroutine sendjob(trial,slave,parcel)
+        implicit none
+        integer, intent(in) :: trial, slave
+        real(wp), dimension(:), intent(in) :: parcel
+        integer :: msgtype, n
+        n = size(parcel)
+        msgtype = 1 ! tag 1 is used for the communication of model parameter passing. tag 2 is used for result passing from slave.
+        call mpi_send( trial, 1, mpi_integer, slave, &
+            & msgtype, mpi_comm_world, ierr)
+        call mpi_send( parcel, ndim, mpi_double_precision, slave, &
+            & msgtype, mpi_comm_world, ierr)
+    end subroutine sendjob
+    
     !function ftest(x) 
     !    implicit none
     !    real(wp) :: ftest

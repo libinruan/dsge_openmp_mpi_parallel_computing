@@ -1070,7 +1070,8 @@ contains
         if( n1/=n2 ) stop 'program terminated by linterp.'
         i=max(min(locate(pt,x),n1-1),1)
         d=pt(i+1)-pt(i)
-        if( d==0.0 ) stop 'bad x input in linterp.'
+        !if( d==0.0 ) stop 'bad x input in linterp.'
+        if( pt(i+1)==pt(i) ) stop 'bad x input in linterp.'
         a=(pt(i+1)-x)/d ! lower part's weight
         b=(x-pt(i))/d ! upper part's weight
         linterp= a*val(i) + b*val(i+1)
@@ -1449,29 +1450,7 @@ contains
         ! dev = merge( fac*cp, 0._wp, cp == bp )
         dev = merge( fac*incr, 0._wp, cp == bp )
         deallocate( cp, bp, incr ) 
-    end subroutine avoid_stalemate
-    
-    subroutine avoid_stalemate2(cmat,b,dev,fac,nth)
-        implicit none
-        real(wp), dimension(:,:), intent(in) :: cmat
-        real(wp), dimension(:), intent(in) :: b
-        real(wp), dimension(:), intent(out) :: dev
-        real(wp), intent(in) :: fac
-        integer, intent(in) :: nth
-        real(wp), dimension(:), allocatable :: bp
-        real(wp), dimension(:,:), allocatable :: cmatp
-        integer :: n,m
-        m = size(cmat,1)
-        n = size(cmat,2)
-        allocate( cmatp(m,n), bp(n))
-        cmatp = cmat
-        bp = b
-        !cmatp = nint(cmatp*10._wp**nth)/(10._wp**nth)
-        !bp = nint(bp*10._wp**nth)/(10._wp**nth)
-        cmatp = cmatp - spread(bp,1,m)
-        dev = merge( fac*bp, 0._wp, sum(cmatp,1)==0._wp )
-        deallocate( cmatp, bp ) 
-    end subroutine avoid_stalemate2     
+    end subroutine avoid_stalemate    
     
     ! INPUT: 
     !   ray: the serires of which we would like to know the average.

@@ -4,6 +4,8 @@ module variable
     character(len=30) :: labstr(129)
     real(wp) :: para(129), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
+                guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
+                momvec(10), & ! simulated moment vector
                 rhoy = 0.715, & ! 5 year
                 vary = 0.52, & ! 5 year
                 rhoyh = 0.677, & ! 5 year
@@ -20,8 +22,8 @@ module variable
                 prtk0 = 0.024, & ! to be calibrated #
                 prtk1 = 0.110, & ! to be calibrated #           
                 prtk2 = 0.075, & ! to be calibrated #
-                prtk3 = 0.000, & ! No innovation 
-                phi0 = 0.5, & ! L: my idea; seems u          
+                prtk3 = 0.000, & ! No innovation. Wired. Don't change it.  
+                phi0 = 0.5, & ! L: my idea; seems useless        
                 phi1 = 0.75, & ! Set 
                 phi2 = 0.92, & ! Set as in Meh (2005)
                 phi3 = 0.97, & ! Set 
@@ -132,7 +134,7 @@ module variable
     real(wp) :: rbarimplied
     
     ! real(wp) :: penalty = -1e+7 
-    real(wp) :: inf
+    real(wp) :: inf ! defined in toolbox.f90's function 'infinity_setting'.
     
     integer ::  t, inv_dist_counter, szperiod1 
     real(wp) :: staxbase, staxwbase, staxebase, kndata, avgincw, govbalance, govbal, benefit
@@ -226,10 +228,17 @@ module variable
     
     ! amoeba 
     integer, dimension(:), allocatable :: indexseries    
-    integer :: mpi_exercise_mode, trylen, sblno1, nrow, amoitrcrt, amoiniswitch
+    integer :: mpi_exercise_mode, trylen, sblno1, nrow, amoitrcrt, amoiniswitch, nslaves
+    integer :: trial, slave, ierr, msgtype, modelmsg
+    
     real(wp) :: stepsize, reinifac, amoalp, amogam, amobet, amotau, amoerrcrt, amoconvex
+    real(wp) :: obj_val_1st
+    real(wp), dimension(:), allocatable :: parcel, result, obj_val_vec
     real(wp), dimension(:,:), allocatable :: sobolm, sobolm_scaled, mpi_sobol_scaled ! sobolm: scaled for ranges; mpi_sobol_scaled: adjusted for the starting point.
+    real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1
+    
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10 !, tausvflag
+    logical :: receiving, status(mpi_status_size)
     character(len=40) :: node_string, trylen_string
     character(:), allocatable :: solution_string, io_string
     

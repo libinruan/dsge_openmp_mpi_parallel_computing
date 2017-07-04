@@ -2878,7 +2878,8 @@ contains
                     cycle ! 3.17.2017 skip if the combination is not valid.
                 endif
                 
-                if(cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t)==0._wp)then
+                !if(cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t)==0._wp)then
+                if(abs(cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t))<1.e-10_wp)then
                     cycle ! 3.17.2017 skip if the combination has no mass at all.
                 endif
                 
@@ -3415,7 +3416,8 @@ contains
             opx = s3c(q,8)
             t   = s3c(q,9)
             !if(cww(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)/=-99) cycle
-            if(cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)==0._wp) cycle        
+            !if(cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)==0._wp) cycle 
+            if(abs(cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t))<1.e-10_wp) cycle 
             sum2 = sum2 + cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)*(1._wp-survprob(t))*((1._wp+rd)*cwa(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)+(1._wp-deltah)*cwh(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t))
         enddo ! q
         !$omp end parallel do
@@ -3425,12 +3427,13 @@ contains
         !write(*,fmt='(a,f12.4,a,f12.4)') ' lump sum transfer time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds. transbeqimplied: ', transbeqimplied          
     end subroutine lump_sum_transfer
     
-    subroutine macro_statistics(idxr,idxg,idxt,exit_log1,msg)
+    subroutine macro_statistics(momvec,idxr,idxg,idxt,exit_log1,msg)
         implicit none
         integer :: sz, q, idx, lsz, i, j
         real(wp) :: inc, capgain, intfund, sumsstax, bgp
         logical, dimension(:), allocatable :: lvece, lvecw, tvec
         real(wp), dimension(:), allocatable :: svec, rvec
+        real(wp), dimension(:), intent(out) :: momvec
         integer, intent(in) :: idxr, idxg, idxt
         integer :: szwok, szent
         logical, intent(inout) :: exit_log1
@@ -3599,9 +3602,9 @@ contains
         !!if(printout6) write(unit=120,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
         !if(printout6) write(*,fmt='(a,f12.4,a)') 'solve macro statistic time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'    
         
-        tvec = (abs(sw_buzcap_notuse-0._wp)<1.e-10_wp).and.s3c(:,3)>0.and.s3c(:,4)==1 ! 5.9.2017
+        tvec = (abs(sw_buzcap_notuse-0._wp)<1.e-10_wp).and.s3c(:,3)>0.and.s3c(:,4)==1 ! 5.9.2017 Note: s3c(:,3): k; s3c(:,4): z.
         ! 4.16.2017 12:05pm stop here.
-        totast = dot_product(sef,sw_ini_asset) ! 4.16.2017
+        totast = dot_product(sef,sw_ini_asset) ! 4.16.2017 Actually, total financial assets.
         
         svec   = sef*sw_ini_asset
         !wokfin = sum(svec,s3c(:,3)==0.and.s3c(:,9)<=9) ! retirees are included into the working class household hereafter.
@@ -3610,7 +3613,7 @@ contains
         
         svec   = sef*sw_ini_house
         !wokhom = sum(svec,s3c(:,3)==0.and.s3c(:,9)<=9)
-        wokhom = sum(svec,tvec==.false.) ! 3.27.2017 added s3c condition.
+        wokhom = sum(svec,tvec==.false.) ! 3.27.2017 added s3c condition. 7-2-2017 Including retired people.
         enthom = sum(svec,tvec==.true.) ! 3.27.2017 added s3c condition.
         
         svec   = sef*sw_bizinvestment
@@ -3810,6 +3813,27 @@ contains
             exit_log1 = .true.
             msg = ' entcap NaN '
         endif           
+        
+        if(exit_log1==.false.)then ! the steady state is obtained successfully.
+            momvec(1)  = crpcap/(crpcap+entcap)
+            momvec(2)  = sml_inv_per
+            momvec(3)  = med_inv_per
+            momvec(4)  = hug_inv_per
+            momvec(5)  = entsize
+            momvec(6)  = (crpcap+entcap)/gdp
+            momvec(7)  = (enthom+wokhom)/gdp
+            momvec(8)  = (entfin+enthom)/(entfin+enthom+wokfin+wokhom) ! 7-2-2017, including the amount belonging to retired people.
+            momvec(9)  = ent_inc_per
+            momvec(10) = medentwel/medwokwel
+            
+            ! Inspect whether all elements of momvec are available.
+            do i = 1, size(momvec)
+                if(momvec(i)/=momvec(i)) exit_log1 = .true.
+            enddo
+            
+        else ! Divergence happends. Bad input. No sensible result is obtained.
+            momvec = penalty    
+        endif
         
         if(printout10)then
             !write(unit=127,fmt='((3x,a),3(x,a),(3x,a),(2x,a),(3x,a),(3x,a))') 'NO.', 'Rloop', 'Gloop', 'Tloop', 'rd(5y)', 'implied', 'taubal', 'errgov' 

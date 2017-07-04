@@ -4,36 +4,72 @@ module equilibrium
     !use universe
     use model
     implicit none ! August 27, 2016
-contains
-    subroutine search_equilibrium(exit_log1)
+    contains
+    !subroutine search_equilibrium(exit_log1)
+    subroutine search_equilibrium( guessv, momvec, obj_val, node_id, trial_id, model_msg)
         implicit none
+        real(wp), intent(out) :: obj_val
+        real(wp), dimension(:), intent(in) :: guessv
+        real(wp), dimension(:), intent(out) :: momvec
+        integer, intent(in) :: node_id, trial_id
+        integer, intent(inout) :: model_msg
         integer :: i
-        logical, intent(out) :: exit_log1
+        !logical, intent(out) :: exit_log1
+        logical :: exit_log1
         character(len=100) :: msg
         
-        exit_log1 = .false. ! initialize exit flag
+        !if(my_id==0)then
+        !    do i = 1, size(para)
+        !        write(unit=120,fmt='(i4,e12.4,2x,a)') i, para(i), labstr(i)
+        !    enddo
+        !enddo
         
-        do i = 1, size(para)
-            write(unit=120,fmt='(i4,e12.4,2x,a)') i, para(i), labstr(i)
-        enddo
+        model_msg = 0 ! default value set before calling the subroutine 'solve_model'.
+        exit_log1 = .false. ! Initializing Exit Flag. If successful, .False.; Otherwise, .True.
+        call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
         
-        call solve_model(exit_log1,msg) ! defined in this module
-        
-        if(exit_log1==.true.) write(*,fmt='(2/,a,a,a,/)'), ' Something wrong [', trim(adjustl(msg)), '] ' ! 4.23.2017 It needs to be turned off in production mode.
-    
+        if(exit_log1==.true.)then ! Failure to solve the model with the given parameter setting.
+            !write(*,fmt='(2/,a,a,a,/)'), ' Something wrong [', trim(adjustl(msg)), '] ' ! 4.23.2017 It needs to be turned off in production mode.
+            model_msg = 1 ! Fail to solve the model.  
+            momvec = inf
+            obj_val = inf
+        else
+            obj_val = objective_value(momvec,targetv) ! momvec: simulatd moments    
+        endif
     end subroutine search_equilibrium
     
-    subroutine solve_model(exit_log1,msg)
+    function objective_value( mom, tar )
+        real(wp) :: objective_value
+        real(wp), dimension(:), intent(in) :: mom, tar
+        objective_value = sum(((mom-tar)/tar)**2._wp)
+    end function objective_value    
+    
+    subroutine solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg)
         implicit none
         integer :: i, j, m, n, ti, hi, ki, yi, kpi, int1
         real(wp) :: sar, tar ! THESE DUMMY VARIABLES USED FOR MULTIPLE TESTING BLOCKS, SO DON'T UNCOMMENT MORE THAN ONE BLOCKS AT THE SAME TIME.
         real(wp), dimension(:), allocatable :: yvtemp
         integer :: colbnd1, colbnd2 ! FOR ILLUSTRATION
+        
+        real(wp), dimension(:), intent(in) :: guessv
+        real(wp), dimension(:), intent(out) :: momvec
+        integer, intent(in) :: node_id, trial_id
         logical, intent(inout) :: exit_log1 ! EXIT "SOLVE MODEL" SUBROUTINE
         character(len=*), intent(out) :: msg ! MESSAGE FOR EXIT THIS SUBROUTINE
         integer :: tstart, tend, trate, tmax
         
-        exit_log1 = .false.
+        !exit_log1 = .false. ! Redundant. Was initialized in the evoking subroutine 'search_equilibrium' 
+        
+        kv1   = guessv(1)
+        prtk0 = guessv(2)
+        prtk1 = guessv(3)
+        prtk2 = guessv(4)
+        zbar  = guessv(5)
+        beta  = guessv(6)
+        theta = guessv(7)
+        phi1  = guessv(8)
+        phi2  = guessv(9)
+        phi3  = guessv(10)
         
         ! 4.1.2017 fnadim, fnhdim, adim, hdim all need to keep. Hard to disentangle these variables, although their functions are overlapping each other's.
         fnadim = adim ! 3.16.2017 Hardwired for preventing program complexity. 
@@ -578,7 +614,7 @@ contains
                 if(printout9) call print_2d_end_of_period_dist_mat(iterar,iteragov,iteratot)
                 
                     call convert_2d_distribution_into_1d() ! DON'T COMMENTED OUT. USED IN MACRO_STATISTICS SUBROUTINE.
-                    call macro_statistics( iterar, iteragov, iteratot, exit_log1, msg) ! 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
+                    call macro_statistics( momvec, iterar, iteragov, iteratot, exit_log1, msg) ! 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
                     
                 if(exit_log1==.false..and.printout10)then             
                     call compute_lorenz() 
