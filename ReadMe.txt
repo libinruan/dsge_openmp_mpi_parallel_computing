@@ -1,8 +1,10 @@
+ !! Hybrid MPI with OpenMP version !!
+
 Fortran files:
 
-	(1) main.f90 focuses on the implementation of the Nelder-Mead simplex method on 10 dimensional parameter space.
+	(1) main.f90 focuses on the implementation of the Nelder-Mead simplex method on 10 dimensional parameter space. (MPI)
 	(2) equilibrium.f90 solves for the steady state of the economy.
-	(3) model.f90 solves the Bellman equations for saving and consumption decisions across generations.
+	(3) model.f90 solves the Bellman equations for saving and consumption decisions across generations. (OpenMP)
 	(4) variable.f90 initializes most variables to be used in the program.
 	(5) toolbox.f90 contains all the subroutines that executes evoked numerical methods.
 	

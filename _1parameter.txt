@@ -127,14 +127,14 @@ amoitrcrt    	  400   ! (integer)
 amoconvex    	  0.2   ! (real) weight on the best single point 
 amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combination with one best parameter inputs.
 nsbq 		    10000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
-printout1		 true   ! model fundamental matrices saving ! #################################################################################
-printout2		 false  ! only WF and CWF ! Successful development version: True in 1, 3, 5, 6, and 7.	
-printout3        true   ! no function assigned. 4.22.2017
-printout4        false  ! no function assigned. 10052016
-printout5        true   ! STATA lifecycle data generation.
-printout6        true   ! Individual bellman solution timer
-printout7		 false  ! print_coarse_2d_brent_mat. SHOULD BE TURNED OFF IN PRODUCTION MODE.
-printout8        ture   ! track of mass transition per iteration [file.128.]
-printout9        true   ! [debug] end-of-period distribution of 1) mass & 2) nonlinear tax. [file129.cef; file30.nonlineartax]
-printout10       true   ! aggregate stats [file127]
+printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
+printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage ! Successful development version: True in 1, 3, 5, 6, and 7.	
+printout3        flase  ! no function assigned. 4.22.2017
+printout4        false  ! no function assigned. 10.05.2016
+printout5        false  ! life-cycle plot [121]; debug with process mark for convergence [104]
+printout6        false  ! no function assigned. 7-3-2017
+printout7		 false  ! print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. SHOULD BE TURNED OFF IN PRODUCTION MODE.
+printout8        false  ! trace of mass transition across generations [128]
+printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].
+printout10       true   ! aggregate stats [127]
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not. 

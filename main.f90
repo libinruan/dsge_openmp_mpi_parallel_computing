@@ -32,7 +32,7 @@ program MPI_sandbox
     !open(unit=my_id+1001, file=solution_string, action='write') ! Inside the mpi_exercise_mode block. 7-3-2017
     
     if(mpi_exercise_mode==0)then
-        solution_string = 'SingleNodeMPI.txt'         
+        solution_string = '_SingleNodeMPI.txt'         
         open(unit=my_id+1001, file=solution_string, action='write', position='append')
         
         ! Directly use the parameter setting in _1parameter.txt
@@ -362,7 +362,7 @@ contains
         !open(unit=106,file="output_106_debug.txt",status="replace",action="write")
         !open(unit=107,file="output_107_profitcompare.txt",status="replace",action="write")
         !open(unit=108,file="output_108_labor.txt",status="replace",action="write")
-        open(unit=109,file="output_109_profit_mat.txt",status="replace",action="write")
+        !open(unit=109,file="output_109_profit_mat.txt",status="replace",action="write")
         open(unit=110,file="output_110_detail_business_mat.txt",status="replace",action="write")
         open(unit=111,file="output_111_detail_housing_mat.txt",status="replace",action="write")
         open(unit=112,file="output_112_detail_investment_mat.txt",status="replace",action="write")
@@ -374,7 +374,7 @@ contains
         open(unit=118,file="output_118_coarse_cwh.txt",status="replace",action="write")
         open(unit=119,file="output_119_coarse_cwk.txt",status="replace",action="write")
         open(unit=120,file="output_120_output.txt",status="replace",action="write")        
-        open(unit=121,file="output_121_stata.txt",status="replace",action="write")
+        open(unit=121,file="121_AssetsAgeProfile.txt",status="replace",action="write")
         open(unit=122,file="output_122_mass.txt",status="replace",action="write")
         open(unit=123,file="output_123_coarse_cwc.txt",status="replace",action="write")
         open(unit=124,file="output_124_coarse_cef.txt",status="replace",action="write")
@@ -493,7 +493,7 @@ contains
         !close(106)
         !close(107)
         !close(108)
-        close(109)
+        !close(109)
         close(110)
         close(111)
         close(112)

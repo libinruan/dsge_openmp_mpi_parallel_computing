@@ -3255,7 +3255,6 @@ contains
             deallocate( nvec )  
             if(printout8)then
                 write(unit=128,fmt='(a,i3,(a,e25.15))'),   ' t+1 ', tdx+1, ' Expected arrival (sum2) ', sum2*survprob(tdx)
-                !write(unit=128,fmt='(a,i3,(a,e25.15))'),   ' t+1 ', tdx+1, ' Useless          (sum5) ', sum5
                 write(unit=128,fmt='(a,i3,(a,e25.15))'),   ' t+1 ', tdx+1, ' Total mass transferred  ', sum3
                 write(unit=128,fmt='(a,i3,(a,e25.15))'),   ' t+1 ', tdx+1, ' Result of transferred   ', sum(cef(:,:,:,:,:,:,:,:,tdx+1))
                 write(unit=128,fmt='(a,i3,(a,e25.15),/)'), ' t+1 ', tdx+1, ' Mass target             ', popfrac(tdx+1)
@@ -3854,7 +3853,6 @@ contains
             write(unit=127,fmt='(7f12.6)') dfrac, crpcap, entcap, hmin, hmax, govbal, govbal2gdp
             write(unit=127,fmt='(7(2x,a))') 'sumsstax  ','benefit   ', 'medwokinc ', 'taubal    ', 'taubalmax ', 'taubalmin ', 'rimplied  '
             write(unit=127,fmt='(7f12.6)') sumsstax, benefit, medwokinc, taubal, taubalmax, taubalmin, rimplied
-            
         endif ! printout10            
         !endif ! exit_log1  
         

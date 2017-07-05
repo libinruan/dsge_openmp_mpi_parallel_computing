@@ -1412,7 +1412,7 @@ contains
                 quant = ssorded(n)
             else
                 if(abs((pvec(m+1)-pvec(m)))<1.e-11)then
-                    write(*,fmt='(a,2(f20.15))'), "##### ZERO ######", pvec(m+1), pvec(m)
+                    write(*,fmt='(a,2(f20.15))'), " Error appears in subroutine weighted percentile", pvec(m+1), pvec(m)
                     write(*,fmt='(2f25.12)') sum(ssorded), sum(wsorded)
                     write(*,fmt='(4f25.12)') csum(m), csum(m+1), wsorded(m), wsorded(m+1) 
                 endif

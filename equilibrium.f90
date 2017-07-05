@@ -613,8 +613,8 @@ module equilibrium
                 
                 if(printout9) call print_2d_end_of_period_dist_mat(iterar,iteragov,iteratot)
                 
-                    call convert_2d_distribution_into_1d() ! DON'T COMMENTED OUT. USED IN MACRO_STATISTICS SUBROUTINE.
-                    call macro_statistics( momvec, iterar, iteragov, iteratot, exit_log1, msg) ! 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
+                call convert_2d_distribution_into_1d() ! DON'T COMMENTED OUT. USED IN MACRO_STATISTICS SUBROUTINE.
+                call macro_statistics( momvec, iterar, iteragov, iteratot, exit_log1, msg) ! 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
                     
                 if(exit_log1==.false..and.printout10)then             
                     call compute_lorenz() 
