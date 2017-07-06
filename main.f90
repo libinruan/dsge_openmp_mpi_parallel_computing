@@ -19,6 +19,7 @@ program MPI_sandbox
     
     call fmpi_init() ! USER-DEFINED SUBROUTINE IN TOOLBOX.F90 <------------------------
     call infinity_setting(inf)
+    
     if( MY_ID == 0 .and. MPI_PROVIDED<MPI_THREAD_FUNNELED ) write(*,'(a,/)') '! [ WARNING ] The Only-Master-makes-MPI-calls setup fails.' 
     
     allocate(range_guess(ndim,2))
@@ -34,6 +35,7 @@ program MPI_sandbox
     if(mpi_exercise_mode==0)then
         solution_string = '_SingleNodeMPI.txt'         
         open(unit=my_id+1001, file=solution_string, action='write', position='append')
+        if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
         
         ! Directly use the parameter setting in _1parameter.txt
         guessv(1) = kv1   
@@ -53,17 +55,29 @@ program MPI_sandbox
         call search_equilibrium( guessv, momvec, obj_val_1st, my_id, my_id, modelmsg )
         if( modelmsg == 0 )then
             write(my_id+1001, '(a,<ndim>f15.7)') 'guess  : ', guessv
+            write(my_id+1001, '(a,<ndim>f15.7)') 'targetv: ', targetv
             write(my_id+1001, '(a,<ndim>f15.7)') 'moment : ', momvec
             write(my_id+1001, '(a,f15.7)') 'penalty: ', obj_val_1st 
         else ! fail to solve the model
             write(my_id+1001, '(a,<ndim>f15.7,a)') 'guess  : ', guessv, ' === Failure === '
         endif ! modelmsg
+        
         close(my_id+1001)        
     elseif(mpi_exercise_mode==1)then
         ! Used for all invoked nodes in the MPI implementation. 
         write(node_string,'(i3.3)') my_id
-        solution_string = trim(node_string)//'.txt'         
+        
+        if(my_id/=0)then
+            solution_string = 'CoarseSlaveFeedback_'//trim(node_string)//'.txt'         
+            concisesolution_string = 'SlaveFeedback_'//trim(node_string)//'.txt'         
+        else
+            write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
+            solution_string = 'CoarseRootFeedback_'//trim(trylen_string)//'.txt'         
+            concisesolution_string = 'RootFeedback_'//trim(trylen_string)//'.txt'         
+            ! add concise solution
+        endif
         open(unit=my_id+1001, file=solution_string, action='write') ! Moved here. 7-3-201
+        open(unit=my_id+2001, file=concisesolution_string, action='write') ! Moved here. 7-5-201
         
         ! # 1 move inside the MPI_exercise_mode == 1!?
         allocate(indexseries(trylen),sobolm(nsbq, ndim),sobolm_scaled(ndim,nsbq),mpi_sobol_scaled(ndim,trylen))
@@ -121,8 +135,8 @@ program MPI_sandbox
                         mpi_simmom_matrix(:,trial) = result
                         obj_val_vec(trial) = obj_val_1st
                         
-                        ! Results That Are Collected by Individual Nodes
-                        write(my_id+1001,'(a,i3,i5,<ndim>e16.7,<ndim>e16.7,e16.7)') 'assignment: ', slave, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_scaled(:,trial), obj_val_1st
+                        ! Results That Are Collected by Individual Nodes (we are now in the my_id == 0 zone)
+                        write(my_id+1001,'(a,i4,x,e16.7,x,i5,x,<ndim>e16.7,x,<ndim>e16.7)') 'assignment: ', slave, obj_val_1st, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_scaled(:,trial)
                         
                         ! Check to see if one more new trial is available to be assigned to the responding slave node.
                         if(i<=trylen-nslaves)then
@@ -130,7 +144,7 @@ program MPI_sandbox
                             trial = i + nslaves
                             call sendjob( trial, slave, parcel )
                         endif
-                        exit
+                        exit ! leave the current loop 
                     endif 
                 enddo ! (unconditional)
             enddo ! i 
@@ -186,6 +200,7 @@ program MPI_sandbox
         deallocate(range_guess, indexseries, sobolm, sobolm_scaled, mpi_sobol_scaled) 
         deallocate(mpi_simmom_matrix)        
         close(my_id+1001) ! 7-3-2017
+        close(my_id+2001) ! 7-4-2017
     endif ! mpi_exercise_model
     
     !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one. Obsolete, 7-3-2017.
@@ -355,7 +370,7 @@ contains
         !open(unit=098,file="output_98_particular_missing.txt",status="replace",action="write") 
         !open(unit=099,file="output_99_nafv.txt",status="replace",action="write") 
         open(unit=101,file="output_101_missing_housing.txt",status="replace",action="write") 
-        open(unit=102,file="output_102_convergence.txt",status="replace",action="write") 
+        open(unit=102,file="102_ConvergenceInfo.txt",status="replace",action="write") 
         open(unit=103,file="output_103_macro.txt",status="replace",action="write") 
         open(unit=104,file="output_104_debug.txt",status="replace",action="write") 
         open(unit=105,file="output_105_debug.txt",status="replace",action="write")

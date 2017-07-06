@@ -1,0 +1,2 @@
+For running the case where mpi_exercise_mode == 0
+	$ mpirun -perhost 1 -np 1 ./main

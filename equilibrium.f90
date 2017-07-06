@@ -478,14 +478,16 @@ module equilibrium
                     ! if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 2 '
                 endif ! iteragov
                 
-                !if(iterar==1.and.iteragov==1) write(unit=127,fmt='(a)') ' '
-                write(unit=127,fmt='(a)') ' '
-                write(unit=127,fmt='((3x,a),3(x,a),(3x,a))') 'NO.', 'Rloop', 'Gloop', 'Tloop', 'rd(5y)'
-                write(unit=127,fmt='(6x,3(i6),f9.4)') iterar, iteragov, iteratot, rd
-                write(unit=127,fmt='(2x,9(x,a))') 'transbeq   ', 'avgincw    ', 'benefit    ', 'hmin       ', 'hmax       ', 'benefit    ', 'transbeq   ', 'avgincw    ', 'taubal     '
-                write(unit=127,fmt='(2x,9(f12.6))') transbeq, avgincw, benefit, hmin, hmax, benefit, transbeq, avgincw, taubal
-                write(unit=127,fmt='(2x,4(x,a))') 'bracketr    ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
-                write(unit=127,fmt='(2x,i12,3(f12.6))') bracketr, fundiffnow, taubalmax, taubalmin
+                if(iterar==1.and.iteragov==1)then
+                    write(unit=my_id+1001,fmt='(a)') ' ----------------------------------------------------- '
+                    write(unit=my_id+1001,fmt='(i5,<ndim>f16.7)') trial_id, guessv ! Note: trial_id falls in [1,trylen], not used directly for the list of "indexseries"
+                    write(unit=my_id+1001,fmt='((3x,a),3(x,a),(3x,a))') 'NO.', 'Rloop', 'Gloop', 'Tloop', 'rd(5y)'
+                    write(unit=my_id+1001,fmt='(6x,3(i6),f9.4)') iterar, iteragov, iteratot, rd
+                    write(unit=my_id+1001,fmt='(2x,9(x,a))') 'transbeq   ', 'avgincw    ', 'benefit    ', 'hmin       ', 'hmax       ', 'benefit    ', 'transbeq   ', 'avgincw    ', 'taubal     '
+                    write(unit=my_id+1001,fmt='(2x,9(f12.6))') transbeq, avgincw, benefit, hmin, hmax, benefit, transbeq, avgincw, taubal
+                    write(unit=my_id+1001,fmt='(2x,4(x,a))') 'bracketr    ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
+                    write(unit=my_id+1001,fmt='(2x,i12,3(f12.6))') bracketr, fundiffnow, taubalmax, taubalmin
+                endif
                 
                 staxw = staxwbase*avgincw**(-ptaxw) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
                 staxe = staxebase*avgincw**(-ptaxe) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
@@ -596,41 +598,39 @@ module equilibrium
                     
                     !write(*,fmt='(a,i4,a,i4)') 'round: ', inv_dist_counter, ', flag: ', exit_log1
                     
-                    call convert_2d_distribution_into_1d() ! 3.25.2017 Don't comment out.-->Subroutine intergenerational_transfer uses it. ! The stationary distribution is stored in the matrix "sef" rather than "sef1" (defined in model.f90 and line 4679)
+                    call convert_2d_distribution_into_1d() ! 3.25.2017 Don't comment out!! because Subroutine intergenerational_transfer uses it. ! The stationary distribution is stored in the matrix "sef" rather than "sef1" (defined in model.f90 and line 4679)
                     call intergenerational_transfer() ! 4.14.2017 move errdist to mass_transition.
+                    
                     !call intergenerational_transfer(errdist) ! 3.23.2017 3.24.2017 done ! 4.14.2017 remove errdist, replace it in subroutine mass_transition.
                     ! call ability_transition(errdist) ! 10102016
                     !call lump_sum_transfer() ! 3.25.2017 Be moved outside the loop. New lump sum transfer. should be used only for the outer R, gov loop, I think (because it affects policy function, not the balance of government budget). Should add errdist to measure distance. 10102016
+                    
                     if(inv_dist_counter>=2) write(*,fmt='(i4,a,f20.12,a,f20.12)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1)
                     inv_dist_counter = inv_dist_counter + 1
                 enddo
                 
                 call system_clock(tend)
-                write(*,fmt='(a,f12.4,a)') ' mass dist convergence time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'                  
-                
-                call lump_sum_transfer() ! 3.25.2017 moved from the distribution do loop. 4.17.2017 This subroutine includes the update of `transbeq`.
-                deallocate( sef1, sef2, sef3 ) ! Both of the matrices are allocated in subroutine ability_transition of model.f90.
-                
-                if(printout9) call print_2d_end_of_period_dist_mat(iterar,iteragov,iteratot)
-                
-                call convert_2d_distribution_into_1d() ! DON'T COMMENTED OUT. USED IN MACRO_STATISTICS SUBROUTINE.
-                call macro_statistics( momvec, iterar, iteragov, iteratot, exit_log1, msg) ! 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
-                    
-                if(exit_log1==.false..and.printout10)then             
-                    call compute_lorenz() 
-                    write(unit=127,fmt='(3(2x,a))') 'csp_gini', 'axw_gini', 'xbi_gini'
-                    write(unit=127,fmt='(3(2x,f8.4))') csp_gini, axw_gini, xbi_gini
-                endif ! exit_log1
-                
-                !call convert_2d_macro_statistics_into_1d() ! SHOULD BE COMMENTED OUT IN PRODUCTION MODE
-                
-                !if(printout7) call print_coarse_2d_brent_mat(iterar,iteragov,iteratot) ! 4.2.2017    
-                if(printout5) call printout_for_stata_lifecycle_plotting() ! SHOULD BE TURNED OFF WHEN IN PRODUCTION MODE E:\GoogleDrive\Stata\Research\dissertation\Model_lifecycle_plot.do
-                
-                !call macro_stat_and_reinitialization(iterar,iteragov,iteratot,exit_log1,msg)   
+                !write(*,fmt='(a,f12.4,a)') ' mass dist convergence time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'                  
                 
                 if(exit_log1==.false.)then
+                    call lump_sum_transfer() ! 3.25.2017 moved from the distribution do loop. 4.17.2017 This subroutine includes the update of `transbeq`.
+                    
+                    if(printout9) call print_2d_end_of_period_dist_mat(iterar,iteragov,iteratot)
+                    
+                    call convert_2d_distribution_into_1d() ! DON'T COMMENTED OUT. USED IN MACRO_STATISTICS SUBROUTINE.
+                    call macro_statistics( momvec, iterar, iteragov, iteratot, exit_log1, msg) ! 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
+                    
+                    !call convert_2d_macro_statistics_into_1d() ! SHOULD BE COMMENTED OUT IN PRODUCTION MODE
+                    
+                    !if(printout7) call print_coarse_2d_brent_mat(iterar,iteragov,iteratot) ! 4.2.2017    
+                    if(printout4) call printout_for_stata_lifecycle_plotting() ! SHOULD BE TURNED OFF WHEN IN PRODUCTION MODE E:\GoogleDrive\Stata\Research\dissertation\Model_lifecycle_plot.do
+                endif
+                !call macro_stat_and_reinitialization(iterar,iteragov,iteratot,exit_log1,msg)   
                 
+                deallocate( sef1, sef2, sef3 ) ! 7-5-2017. Used in 'intergenerational_transfer' defined in model.f90. 
+                
+                ! ##### The major code block that deals with the associated boundary parameter setting with the convergence of govbal ########
+                if(exit_log1==.false.)then
                     !write(*,fmt='(3(a,i4))') ' iterar ', iterar, ' iteragov ', iteragov, ' iteratot ', iteratot
                     
                     ! ###### Note: govbal2gdp is the outcome of solving the model, see model.f90 around line 5429. ######
@@ -706,7 +706,7 @@ module equilibrium
                     
                     ! keep track ###
                     
-                    write(unit=102,fmt='("#",i4,i5,2(a,f12.8),(a,i4))') iteratot, iteragov, ' taubal ', taubal, ' epsigov ', epsigov,' iteragov ', iteragov                
+                    if(printout3) write(unit=my_id+1001,fmt='("#",i4,i5,2(a,f12.8),(a,i4))') iteratot, iteragov, ' taubal ', taubal, ' epsigov ', epsigov,' iteragov ', iteragov                
                     iteragov = iteragov + 1
                     iteratot = iteratot + 1
                 else ! exit_log1==.true.
@@ -716,14 +716,14 @@ module equilibrium
             
             if(exit_log1==.false.)then
             
-                write(unit=102,fmt='(a)') ' '
-                write(unit=102,fmt='((a,i4),(a,f7.4),3(a,f7.4))') '-iterar ', iterar, ' epsir ', epsir, ' input.rbar ', rbar, ' impld.rbar ', rbarimplied, ' diff.rbar ', fundiffnow            
+                !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
+                if(printout3) write(unit=my_id+1001,fmt='((a,i4),(a,f7.4),3(a,f7.4))') '-iterar ', iterar, ' epsir ', epsir, ' input.rbar ', rbar, ' impld.rbar ', rbarimplied, ' diff.rbar ', fundiffnow            
                 
 		        ! using bisection algorithm to update rbar
 	            ! bisection algorithm: in the current case they try to minimize the difference of rbar and rimplied	 
 
-                write(unit=102,fmt='(a,a,i3,3(a,f8.4))') '-old- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar     
-                write(unit=102,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
+                if(printout3) write(unit=my_id+1001,fmt='(a,a,i3,3(a,f8.4))') '-old- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar     
+                if(printout3) write(unit=my_id+1001,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
                 
 		        if(epsir>epsirmin)then 
                     if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 15 '
@@ -856,8 +856,8 @@ module equilibrium
 		        		endif
                     endif
                     !write(unit=102,fmt='("-----",(a,f8.4),(a,i4),3(a,f8.4))') ' epsir   ', epsir, ' iterar   ', iterar, ' rbar ', rbar, ' rimp ', rbarimplied, ' diff ', fundiffnow            
-                    write(unit=102,fmt='(a,a,i3,3(a,f8.4))') '-new- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar
-                    write(unit=102,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
+                    if(printout3) write(unit=my_id+1001,fmt='(a,a,i3,3(a,f8.4))') '-new- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar
+                    if(printout3) write(unit=my_id+1001,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
                 endif
                 if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 30 '
                 iterar = iterar + 1
@@ -865,6 +865,31 @@ module equilibrium
                 exit
             endif
         end do ! do while loop on rbar ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [1]
+        
+        if(.not.exit_log1.and.printout10)then
+            !write(unit=127,fmt='((3x,a),3(x,a),(3x,a),(2x,a),(3x,a),(3x,a))') 'NO.', 'Rloop', 'Gloop', 'Tloop', 'rd(5y)', 'implied', 'taubal', 'errgov' 
+            !write(unit=127,fmt='(6x,3(i6),4f9.4)') iterar, iteragov, iteratot, rd, rimplied, taubal, epsigov            
+            write(unit=my_id+2001,fmt='(6(2x,a))') 'TotalAsset', ' WokFinAst', ' EntFinAst', 'Captal.CRP', '  LaborCRP', '  exLabEnt'
+            write(unit=my_id+2001,fmt='(6f12.6)') totast, wokfin, entfin, crpcap, crplab, entlab
+            write(unit=my_id+2001,fmt='(6(2x,a))') 'Captal.SME', '  Wokhouse', '  Enthouse', 'TotalTaxes', ' OutputCRP', ' OutputEnt'
+            write(unit=my_id+2001,fmt='(6f12.6)') entcap, wokhom, enthom, tottax, crpprd, entprd 
+            !write(unit=127,fmt='(6(2x,a))') 'avg.entcsp', 'avg.wokcsp', 'avg.entfin', 'avg.wokfin', 'avg.enthom', 'avg.wokhom'
+            !write(unit=127,fmt='(6f12.4)') mean_entcsp, mean_wokcsp, mean_entfin, mean_wokfin, mean_enthom, mean_wokhom        
+            !write(unit=127,fmt='(6(2x,a))') 'avg.entinc', 'avg.wokinc', 'avg.entaxw', 'avg.wokaxw', 'GovBalance', 'govbal2Gdp'
+            !write(unit=127,fmt='(6f12.4)') mean_entinc, mean_wokinc, mean_entaxw, mean_wokaxw, govbal, govbal2gdp    
+            write(unit=my_id+2001,fmt='(6(2x,a))') 'e2wrat    ', 'w2erat    ', 'entrat    ', 'wokrat   ', 'retiree   ', 'medwokinc '
+            write(unit=my_id+2001,fmt='(6f12.6)')  e2wrat, w2erat, entsize, woksize, (1._wp-entsize-woksize), medwokinc 
+            write(unit=my_id+2001,fmt='(7(2x,a))') 'totsvt    ', 'tottax    ', 'gfrac*gdp ', 'gfrac     ', 'gdp       ', 'poor20%wok', 'taubal    '
+            write(unit=my_id+2001,fmt='(7f12.6)')  totsvt, tottax, gfrac*gdp, gfrac, gdp, lowest_quintile_wokinc,taubal
+            write(unit=my_id+2001,fmt='(7(2x,a))') 'dfrac     ','crpcap    ','entcap    ', 'hmin      ', 'hmax      ', 'GovBalance', 'govbal2Gdp'
+            write(unit=my_id+2001,fmt='(7f12.6)') dfrac, crpcap, entcap, hmin, hmax, govbal, govbal2gdp
+            write(unit=my_id+2001,fmt='(7(2x,a))') 'sumsstax  ','benefit   ', 'medwokinc ', 'taubal    ', 'taubalmax ', 'taubalmin ', 'rimplied  '
+            write(unit=my_id+2001,fmt='(7f12.6)') sumsstax, benefit, medwokinc, taubal, taubalmax, taubalmin, rimplied          
+            
+            call compute_lorenz() 
+            write(unit=my_id+2001,fmt='(3(2x,a))') 'csp_gini', 'axw_gini', 'xbi_gini'
+            write(unit=my_id+2001,fmt='(3(2x,f8.4))') csp_gini, axw_gini, xbi_gini
+        endif ! printout10                  
         
         ! 5-9-2017 feed back added here. 
         ! such as if(exit_log1 == .false.)then

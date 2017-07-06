@@ -3429,7 +3429,7 @@ contains
     subroutine macro_statistics(momvec,idxr,idxg,idxt,exit_log1,msg)
         implicit none
         integer :: sz, q, idx, lsz, i, j
-        real(wp) :: inc, capgain, intfund, sumsstax, bgp
+        real(wp) :: inc, capgain, intfund, bgp
         logical, dimension(:), allocatable :: lvece, lvecw, tvec
         real(wp), dimension(:), allocatable :: svec, rvec
         real(wp), dimension(:), intent(out) :: momvec
@@ -3832,29 +3832,7 @@ contains
             
         else ! Divergence happends. Bad input. No sensible result is obtained.
             momvec = penalty    
-        endif
-        
-        if(printout10)then
-            !write(unit=127,fmt='((3x,a),3(x,a),(3x,a),(2x,a),(3x,a),(3x,a))') 'NO.', 'Rloop', 'Gloop', 'Tloop', 'rd(5y)', 'implied', 'taubal', 'errgov' 
-            !write(unit=127,fmt='(6x,3(i6),4f9.4)') iterar, iteragov, iteratot, rd, rimplied, taubal, epsigov            
-            write(unit=127,fmt='(6(2x,a))') 'TotalAsset', ' WokFinAst', ' EntFinAst', 'Captal.CRP', '  LaborCRP', '  exLabEnt'
-            write(unit=127,fmt='(6f12.6)') totast, wokfin, entfin, crpcap, crplab, entlab
-            write(unit=127,fmt='(6(2x,a))') 'Captal.SME', '  Wokhouse', '  Enthouse', 'TotalTaxes', ' OutputCRP', ' OutputEnt'
-            write(unit=127,fmt='(6f12.6)') entcap, wokhom, enthom, tottax, crpprd, entprd 
-            !write(unit=127,fmt='(6(2x,a))') 'avg.entcsp', 'avg.wokcsp', 'avg.entfin', 'avg.wokfin', 'avg.enthom', 'avg.wokhom'
-            !write(unit=127,fmt='(6f12.4)') mean_entcsp, mean_wokcsp, mean_entfin, mean_wokfin, mean_enthom, mean_wokhom        
-            !write(unit=127,fmt='(6(2x,a))') 'avg.entinc', 'avg.wokinc', 'avg.entaxw', 'avg.wokaxw', 'GovBalance', 'govbal2Gdp'
-            !write(unit=127,fmt='(6f12.4)') mean_entinc, mean_wokinc, mean_entaxw, mean_wokaxw, govbal, govbal2gdp    
-            write(unit=127,fmt='(6(2x,a))') 'e2wrat    ', 'w2erat    ', 'entrat    ', 'wokrat   ', 'retiree   ', 'medwokinc '
-            write(unit=127,fmt='(6f12.6)')  e2wrat, w2erat, entsize, woksize, (1._wp-entsize-woksize), medwokinc 
-            write(unit=127,fmt='(7(2x,a))') 'totsvt    ', 'tottax    ', 'gfrac*gdp ', 'gfrac     ', 'gdp       ', 'poor20%wok', 'taubal    '
-            write(unit=127,fmt='(7f12.6)')  totsvt, tottax, gfrac*gdp, gfrac, gdp, lowest_quintile_wokinc,taubal
-            write(unit=127,fmt='(7(2x,a))') 'dfrac     ','crpcap    ','entcap    ', 'hmin      ', 'hmax      ', 'GovBalance', 'govbal2Gdp'
-            write(unit=127,fmt='(7f12.6)') dfrac, crpcap, entcap, hmin, hmax, govbal, govbal2gdp
-            write(unit=127,fmt='(7(2x,a))') 'sumsstax  ','benefit   ', 'medwokinc ', 'taubal    ', 'taubalmax ', 'taubalmin ', 'rimplied  '
-            write(unit=127,fmt='(7f12.6)') sumsstax, benefit, medwokinc, taubal, taubalmax, taubalmin, rimplied
-        endif ! printout10            
-        !endif ! exit_log1  
+        endif 
         
     end subroutine macro_statistics  
     

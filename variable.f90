@@ -137,7 +137,7 @@ module variable
     real(wp) :: inf ! defined in toolbox.f90's function 'infinity_setting'.
     
     integer ::  t, inv_dist_counter, szperiod1 
-    real(wp) :: staxbase, staxwbase, staxebase, kndata, avgincw, govbalance, govbal, benefit
+    real(wp) :: staxbase, staxwbase, staxebase, kndata, avgincw, govbalance, govbal, benefit, sumsstax
     real(wp) :: AggEffLab, AggCorpLab, AggCorpCap, AggCorpOut, AggOut, AggTax, AggAst, AggInc
     real(wp) :: totast, entcap, crpcap, labsup, entlab, crplab, crpprd, entprd, totsvt, totbpt
     real(wp) :: chge2w, entsize, entinc, enttax, enthom, statax, entaxw ! ___axw: after tax wealth
@@ -240,7 +240,7 @@ module variable
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10 !, tausvflag
     logical :: receiving, status(mpi_status_size)
     character(len=40) :: node_string, trylen_string
-    character(:), allocatable :: solution_string, io_string
+    character(:), allocatable :: solution_string, io_string, concisesolution_string
     
 contains  
     subroutine read_parameter_model( para, input_file )
