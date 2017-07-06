@@ -33,9 +33,11 @@ program MPI_sandbox
     !open(unit=my_id+1001, file=solution_string, action='write') ! Inside the mpi_exercise_mode block. 7-3-2017
     
     if(mpi_exercise_mode==0)then
-        solution_string = '_SingleNodeMPI.txt'         
+        solution_string = '_SingleNodeInputs.txt'   
+        concisesolution_string = '_SingleNodeDetails.txt'
         open(unit=my_id+1001, file=solution_string, action='write', position='append')
-        if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
+        open(unit=my_id+2001, file=concisesolution_string, action='write', position='append')
+        !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
         
         ! Directly use the parameter setting in _1parameter.txt
         guessv(1) = kv1   
@@ -62,18 +64,19 @@ program MPI_sandbox
             write(my_id+1001, '(a,<ndim>f15.7,a)') 'guess  : ', guessv, ' === Failure === '
         endif ! modelmsg
         
-        close(my_id+1001)        
+        close(my_id+1001)  
+        close(my_id+2001)
     elseif(mpi_exercise_mode==1)then
         ! Used for all invoked nodes in the MPI implementation. 
         write(node_string,'(i3.3)') my_id
         
         if(my_id/=0)then
-            solution_string = 'CoarseSlaveFeedback_'//trim(node_string)//'.txt'         
-            concisesolution_string = 'SlaveFeedback_'//trim(node_string)//'.txt'         
+            solution_string = '_CoarseSlaveFeedback_'//trim(node_string)//'.txt'         
+            concisesolution_string = '_SlaveFeedback_'//trim(node_string)//'.txt'         
         else
             write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-            solution_string = 'CoarseRootFeedback_'//trim(trylen_string)//'.txt'         
-            concisesolution_string = 'RootFeedback_'//trim(trylen_string)//'.txt'         
+            solution_string = '_CoarseRootFeedback_'//trim(trylen_string)//'.txt'         
+            concisesolution_string = '_RootFeedback_'//trim(trylen_string)//'.txt'         
             ! add concise solution
         endif
         open(unit=my_id+1001, file=solution_string, action='write') ! Moved here. 7-3-201
