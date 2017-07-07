@@ -1,9 +1,9 @@
 #!/bin/bash -l
-#PBS -l walltime=01:00:00,nodes=1:ppn=24,pmem=2000mb
+#PBS -l walltime=00:40:00,nodes=1:ppn=24,pmem=2000mb
 #PBS -m abe
 #PBS -M juanx002@umn.edu
-#PBS -o output.txt
-#PBS -e error.txt
+#PBS -o _output.txt
+#PBS -e _error.txt
 
 cd $PBS_O_WORKDIR 
 mpirun -hostfile $PBS_NODEFILE -perhost 1 -np 1 \

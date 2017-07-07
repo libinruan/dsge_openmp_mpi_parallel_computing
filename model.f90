@@ -2210,7 +2210,7 @@ contains
         !character(len=3) :: str1, str2
         m = 1 ! 3.17.2017
         write(str1,fmt='(i3)') hdim
-        call smi(tvector,'tvector')
+        !call smi(tvector,'tvector')
         do t = 1, 14
             do n = 1, 7
                 kx = tvector(n,1)
@@ -2390,12 +2390,12 @@ contains
                     swk(idx) = cwk(a,h,k,z,y,kp,yp,op,t)
                     swc(idx) = cwc(a,h,k,z,y,kp,yp,op,t)
                 enddo
-                call ss(swf,'swf',20,7)
-                call ss(swa,'swa',20,7)
-                call ss(swh,'swh',20,7)
-                call ss(swc,'swc',20,7)
-                call ssi(sww,'sww')
-                call ssi(swk,'swk')
+                !call ss(swf,'swf',20,7)
+                !call ss(swa,'swa',20,7)
+                !call ss(swh,'swh',20,7)
+                !call ss(swc,'swc',20,7)
+                !call ssi(sww,'sww')
+                !call ssi(swk,'swk')
             case('test') ! used to see if the backup works normally. 3.15.2017
                 m = size(s3c(:,1))
                 do i = 1, m
@@ -2416,12 +2416,12 @@ contains
                     swk2(idx) = cwk2(a,h,k,z,y,kp,yp,op,t)
                     swc2(idx) = cwc2(a,h,k,z,y,kp,yp,op,t)
                 enddo
-                call ss(swa2,'swa2',20,7)
-                call ss(swf2,'swf2',20,7)
-                call ss(swh2,'swh2',20,7)
-                call ss(swc2,'swc2',20,7)
-                call ssi(sww2,'sww2')
-                call ssi(swk2,'swk2')
+                !call ss(swa2,'swa2',20,7)
+                !call ss(swf2,'swf2',20,7)
+                !call ss(swh2,'swh2',20,7)
+                !call ss(swc2,'swc2',20,7)
+                !call ssi(sww2,'sww2')
+                !call ssi(swk2,'swk2')
             case('distribution-stage-test')
                 m = size(s3c(:,1))
                 do i = 1, m
@@ -2442,12 +2442,12 @@ contains
                     swk2(idx) = cwk(a,h,k,z,y,kp,yp,op,t)
                     swc2(idx) = cwc(a,h,k,z,y,kp,yp,op,t)
                 enddo
-                call  ss(swa2,'swa2',20,7)
-                call ssi(sww2,'sww2')
-                call  ss(swf2,'swf2',20,7)
-                call  ss(swh2,'swh2',20,7)
-                call  ss(swc2,'swc2',20,7)
-                call ssi(swk2,'swk2')                
+                !call  ss(swa2,'swa2',20,7)
+                !call ssi(sww2,'sww2')
+                !call  ss(swf2,'swf2',20,7)
+                !call  ss(swh2,'swh2',20,7)
+                !call  ss(swc2,'swc2',20,7)
+                !call ssi(swk2,'swk2')                
         end select
     end subroutine convert_2d_outcome_into_series
     

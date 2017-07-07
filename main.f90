@@ -61,7 +61,7 @@ program MPI_sandbox
             write(my_id+1001, '(a,<ndim>f15.7)') 'moment : ', momvec
             write(my_id+1001, '(a,f15.7)') 'penalty: ', obj_val_1st 
         else ! fail to solve the model
-            write(my_id+1001, '(a,<ndim>f15.7,a)') 'guess  : ', guessv, ' === Failure === '
+            write(my_id+1001, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv 
         endif ! modelmsg
         
         close(my_id+1001)  

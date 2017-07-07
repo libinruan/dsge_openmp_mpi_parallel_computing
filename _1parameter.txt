@@ -10,7 +10,7 @@ lambda           0.2
 theta            0.14 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
 sigma            1.5 ! 1.5 Yang. 2.0 ! the larger the sigma, the flatter the curve becomes when the abscissa is away from the origin.  
 nu               0.88 
-kv1              0.05 ! 1.0 ! the smaller the more largest scale project. <------------------------- (1)
+kv1              0.05 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
 prtk0            0.024 ! <-------------------------------------------------------------------------- (2-4)
 prtk1            0.110
 prtk2            0.075
@@ -19,7 +19,7 @@ phi1             0.75 ! <-------------------------- (8-10)
 phi2             0.92 
 phi3             0.97 
 beta             0.97 ! 0.93 might be too low. <---------------------------------------------------- (6)
-zbar             1.2 ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
+zbar             1.8 ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
 zlow             0.0 ! hard wired. Don't change it. 
 hmin             0 
 hmax             16 ! 25; 120.0

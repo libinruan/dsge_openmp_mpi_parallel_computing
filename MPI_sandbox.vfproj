@@ -35,8 +35,8 @@
 				<Tool Name="VFPostBuildEventTool"/>
 				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
 		<Configuration Name="Release|x64">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" RuntimeLibrary="rtMultiThreadedDLL"/>
-				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" AdditionalIncludeDirectories="C:\Program Files\Microsoft MPI\Inc;C:\Program Files\Microsoft MPI\Inc\amd64;C:\Program Files (x86)\Intel\Composer XE 2015\mkl\include\intel64\lp64" OpenMP="OpenMPParallelCode" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="C:\Program Files\Microsoft MPI\Lib\amd64;C:\Program Files (x86)\Intel\Composer XE 2015\mkl\lib\intel64" SubSystem="subSystemConsole" AdditionalDependencies="mkl_blas95_lp64.lib mkl_lapack95_lp64.lib mkl_scalapack_lp64.lib mkl_cdft_core.lib mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib mkl_blacs_msmpi_lp64.lib msmpi.lib msmpifec.lib"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>

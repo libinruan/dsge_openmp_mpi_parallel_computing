@@ -958,12 +958,12 @@ contains
         y = exp(y) 
         yh = exp(yh)
         
-        call ss(y,'y')
-        call ss(yh,'yh')
-        call sm(py,'py')
-        call sm(pyh,'pyh')
-        call ss(sy,'sy')
-        call ss(syh,'syh')  
+        !call ss(y,'y')
+        !call ss(yh,'yh')
+        !call sm(py,'py')
+        !call sm(pyh,'pyh')
+        !call ss(sy,'sy')
+        !call ss(syh,'syh')  
     end subroutine set_markov_matrix        
     
     subroutine set_survival_vector( survprob, input_file ) ! V021515 
