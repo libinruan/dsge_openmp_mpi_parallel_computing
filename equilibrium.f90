@@ -465,6 +465,7 @@ module equilibrium
                     avgincw  = mean_wokinc/5._wp ! 10102016 annual income. 4.17.2017 `mean_wokinc` is computed in subroutine `macro_statistic`. Note: `avgincw` is on annual basis.
                     ! `benefit` is updated also in subroutine `macro_statistic`. 4.17.2017 
                     !benefit  = tauss*wage*poppaysstaximplied/sum(popfrac(10:14)) ! ---- needs to be revised Feb 5, 2017 ! 4.17.2017 comment out. The exact update takes place in line 3681 of model.f90.
+                    benefit  = benefitimplied ! 7-6-2017 Good. Faster in convergence. (27 mins vs 32 mins)
                     
                     ! 4.21.2017 moved from the block outside the interest rate loop.
                     hmin = 0.5_wp*lowest_quintile_wokinc

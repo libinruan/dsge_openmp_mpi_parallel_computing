@@ -19,7 +19,7 @@ phi1             0.75 ! <-------------------------- (8-10)
 phi2             0.92 
 phi3             0.97 
 beta             0.97 ! 0.93 might be too low. <---------------------------------------------------- (6)
-zbar             1.8 ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
+zbar             1.2 ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
 zlow             0.0 ! hard wired. Don't change it. 
 hmin             0 
 hmax             16 ! 25; 120.0

@@ -3772,7 +3772,8 @@ contains
         sumsstax = dot_product(sef,sw_laborsupply)*wage*tauss ! 4.17.2017 tauss/2._wp*wage*sw_laborsupply(idx)
         ! 4.17.2017 stop here 4:09 pm.
         !poppaysstaximplied = sumsstax/(tauss*wage) ! 3.25.2017 May need to be revised!! the base that determines the total amount of social security benefits. ! 4.17.2017 comment out.
-        benefit  = sumsstax/sum(popfrac(10:14)) ! 4.17.2017 update benefit.
+        !benefit  = sumsstax/sum(popfrac(10:14)) ! 4.17.2017 update benefit.
+        benefitimplied  = sumsstax/sum(popfrac(10:14)) ! 7-6-2017 On Mesabi, the update of longer interval is faster in terms of convergence. So I use beenfitimplied and update only 
         
         deallocate(lvece,lvecw)
         
