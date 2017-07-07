@@ -112,9 +112,9 @@ lower9           0.87   ! phi2: tech shock
 upper9           0.97   ! phi2: tech shock
 lower10          0.95   ! phi3: tech shock
 upper10          0.99   ! phi3: tech shock
-mpi_exercise_mode   0   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
+mpi_exercise_mode   1   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
 trylen              6   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
-sblno1              1   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
+sblno1              2   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   16   ! (integer) the total number of nodes is size_per_amoeba*number_of_amoeba + 1 (because the root needs to be added in)
 stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
 reinifac     	  0.5   ! (real) reinitialization factor determining the weights of centroid when re-initializing a bad node.
@@ -132,7 +132,7 @@ printout2		 false  ! WF and CWF (value function @ beginning & end of period); us
 printout3        true   ! Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. !!SHOULD LET IT TRUE IN PRODUCTIVE MODE.
 printout4        false  ! printout_for_stata_lifecycle_plotting() [121]
 printout5        false  ! debug with process mark for convergence [104]
-printout6        false  ! no function assigned. 7-3-2017
+printout6        false  ! True, 'solve_model'; False, 'Random_generator_model', 7-7-2017
 printout7		 false  ! print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. SHOULD BE TURNED OFF IN PRODUCTION MODE.
 printout8        false  ! trace of mass transition across generations [128] SHOULD ONLY BE USED IN SINGLE NODE DEBUG MODE.
 printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].

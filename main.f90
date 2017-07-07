@@ -8,9 +8,15 @@ program MPI_sandbox
     !use universe ! test on reversion. Should shown.
     use equilibrium
     implicit none
-    
     integer :: tstart, tend, trate, tmax, i, j      
+    
+    ! The mpi_exercise_mode == 1 case: Coarse search
     logical :: exit_log1
+    
+    ! The mpi_exercise_mode == -1 case: MKL experiment of random generators
+    integer :: generator,erridx, approach, tmiddle
+    type(vsl_stream_state) :: river
+    real(wp) :: stoch(1)
     
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
@@ -32,7 +38,16 @@ program MPI_sandbox
     !solution_string = trim(node_string)//'.txt'       
     !open(unit=my_id+1001, file=solution_string, action='write') ! Inside the mpi_exercise_mode block. 7-3-2017
     
-    if(mpi_exercise_mode==0)then
+    if(mpi_exercise_mode==-1)then ! MKL experiment (random number generator)
+        generator = VSL_BRNG_MCG31
+        approach  = VSL_RNG_METHOD_UNIFORM_STD
+        call system_clock(tmiddle)
+        erridx    = vslnewstream(river,generator,tmiddle)
+        do i = 1, 20         
+            erridx = vdrnguniform(approach,river,1,stoch,0._wp,1000._wp)
+            write(*,*) 'my_id = ', my_id, ' random number = ', stoch
+        enddo
+    elseif(mpi_exercise_mode==0)then ! Stage 0. Building Stage with only a single node.
         solution_string = '_SingleNodeInputs.txt'   
         concisesolution_string = '_SingleNodeDetails.txt'
         open(unit=my_id+1001, file=solution_string, action='write', position='append')
@@ -66,17 +81,17 @@ program MPI_sandbox
         
         close(my_id+1001)  
         close(my_id+2001)
-    elseif(mpi_exercise_mode==1)then
+    elseif(mpi_exercise_mode==1)then ! Stage 1. Search for the optimal parameter setting on the global parameter space without the Nelder-Mead algorithm
         ! Used for all invoked nodes in the MPI implementation. 
         write(node_string,'(i3.3)') my_id
         
         if(my_id/=0)then
-            solution_string = '_CoarseSlaveFeedback_'//trim(node_string)//'.txt'         
-            concisesolution_string = '_SlaveFeedback_'//trim(node_string)//'.txt'         
+            solution_string = '_CoarseSlaveFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Intermediate outcome of individual slave node.         
+            concisesolution_string = '_SlaveFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Macro stat of individual slave node.        
         else
             write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-            solution_string = '_CoarseRootFeedback_'//trim(trylen_string)//'.txt'         
-            concisesolution_string = '_RootFeedback_'//trim(trylen_string)//'.txt'         
+            solution_string = '_CoarseRootFeedback_'//trim(trylen_string)//'.txt' ! 7-7-2017 Real-time feedback from the slaves.        
+            concisesolution_string = '_RootFeedback_'//trim(trylen_string)//'.txt' ! 7-7-2017 Useless for the root node.        
             ! add concise solution
         endif
         open(unit=my_id+1001, file=solution_string, action='write') ! Moved here. 7-3-201
@@ -139,7 +154,8 @@ program MPI_sandbox
                         obj_val_vec(trial) = obj_val_1st
                         
                         ! Results That Are Collected by Individual Nodes (we are now in the my_id == 0 zone)
-                        write(my_id+1001,'(a,i4,x,e16.7,x,i5,x,<ndim>e16.7,x,<ndim>e16.7)') 'assignment: ', slave, obj_val_1st, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_scaled(:,trial)
+                        if(i==1) write(my_id+1001,'(a,12x,a,x,a,(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"),(10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"),(11x,"input1"),(11x,"input2"),(11x,"input3"),(11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') "MyID","error","#trial"
+                        write(my_id+1001,'(i4,x,f16.7,2x,i5.5,<ndim>(x,f16.7),<ndim>(x,f16.7))') slave, obj_val_1st, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_scaled(:,trial)
                         
                         ! Check to see if one more new trial is available to be assigned to the responding slave node.
                         if(i<=trylen-nslaves)then
@@ -180,6 +196,7 @@ program MPI_sandbox
                 
                 modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
                 
+                write(*,*) ' mpi_exercise_mode: ', mpi_exercise_mode, ' printout6: ', printout6
                 call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
                 
                 msgtype = 2 ! tag 2 is used for sending feedback.

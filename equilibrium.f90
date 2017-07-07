@@ -26,7 +26,13 @@ module equilibrium
         
         model_msg = 0 ! default value set before calling the subroutine 'solve_model'.
         exit_log1 = .false. ! Initializing Exit Flag. If successful, .False.; Otherwise, .True.
-        call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
+        
+        if(printout6)then ! .true. for running the real quantitative model
+            call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
+        else ! .false. for testing the communication of the coarse search.
+            call test_model( guessv, momvec, node_id, trial_id, exit_log1, msg) 
+            if(momvec(1)<=0.5_wp) exit_log1 = .true. ! Just make the test more interesting by making some trial randomly equivalent to a bad case.
+        endif
         
         if(exit_log1==.true.)then ! Failure to solve the model with the given parameter setting.
             !write(*,fmt='(2/,a,a,a,/)'), ' Something wrong [', trim(adjustl(msg)), '] ' ! 4.23.2017 It needs to be turned off in production mode.
@@ -42,7 +48,31 @@ module equilibrium
         real(wp) :: objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
         objective_value = sum(((mom-tar)/tar)**2._wp)
-    end function objective_value    
+    end function objective_value   
+    
+    subroutine test_model( guessv, momvec, node_id, trial_id, exit_log1, msg )
+        implicit none
+        real(wp), dimension(:), intent(in) :: guessv
+        real(wp), dimension(:), intent(out) :: momvec
+        integer, intent(in) :: node_id, trial_id
+        logical, intent(inout) :: exit_log1
+        character(len=*), intent(out) :: msg
+        !integer :: generator, erridx, approach, tmiddle, tstart, tend, trate, tmax
+        !type(vsl_stream_state) :: river
+        !real(wp) :: stoch(10)
+        !call system_clock(tstart,trate,tmax)
+        !generator = VSL_BRNG_MCG31
+        !approach = VSL_RNG_METHOD_UNIFORM_STD
+        !call system_clock(tmiddle)
+        !erridx = vslnewstream(river, generator, tmiddle)
+        !write(*,*) ' tmiddle ', my_id, tmiddle
+        !erridx = vdrnguniform(approach, river, 10, stoch, 0._wp, 1._wp)
+        !momvec = stoch
+        momvec = guessv**2._wp
+        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' guessv ', guessv
+        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' momvec ', momvec
+        msg = 'random number'
+    endsubroutine test_model
     
     subroutine solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg)
         implicit none
@@ -461,11 +491,18 @@ module equilibrium
                     benefit  = tauss*wage*AggEffLab/sum(popfrac(10:14))
                     !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 1 '
                 elseif((iterar/=1.and.iteragov==1))then ! iteragov 5.10.2017
+                    
+                    ! experiment for speed up
                     transbeq = transbeqimplied ! 4.17.2017 `transbeqimplied` is updated in subroutine `lump_sum_transfer`.
                     avgincw  = mean_wokinc/5._wp ! 10102016 annual income. 4.17.2017 `mean_wokinc` is computed in subroutine `macro_statistic`. Note: `avgincw` is on annual basis.
                     ! `benefit` is updated also in subroutine `macro_statistic`. 4.17.2017 
                     !benefit  = tauss*wage*poppaysstaximplied/sum(popfrac(10:14)) ! ---- needs to be revised Feb 5, 2017 ! 4.17.2017 comment out. The exact update takes place in line 3681 of model.f90.
                     benefit  = benefitimplied ! 7-6-2017 Good. Faster in convergence. (27 mins vs 32 mins)
+                    
+                    !! Secant method doesn't help. It took more time to complete an expected convergence (37 mins vs the best history record 27 mins) 7-7-2017  
+                    !transbeq = 0.5_wp*(transbeq + transbeqimplied)
+                    !avgincw = 0.5_wp*(avgincw + mean_wokinc/5._wp)
+                    !benefit = 0.5_wp*(benefit + benefitimplied) 
                     
                     ! 4.21.2017 moved from the block outside the interest rate loop.
                     hmin = 0.5_wp*lowest_quintile_wokinc
