@@ -119,7 +119,7 @@ program MPI_sandbox
 
         if( my_id == 0)then
             write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-            io_string = 'IO_CompMat_'//trim(trylen_string) 
+            io_string = '_IOMat_'//trim(trylen_string) 
             
             ! [The Root, case 1] Send Initial Messages to Slave Nodes (indices ranges from 1 to nslaves)
             do i = 1, nslaves
