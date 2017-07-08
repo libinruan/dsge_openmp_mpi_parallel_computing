@@ -1,0 +1,20 @@
+ !! Hybrid MPI with OpenMP version !!
+
+Fortran files:
+
+	(1) main.f90 focuses on the implementation of the Nelder-Mead simplex method on 10 dimensional parameter space. (MPI)
+	(2) equilibrium.f90 solves for the steady state of the economy.
+	(3) model.f90 solves the Bellman equations for saving and consumption decisions across generations. (OpenMP)
+	(4) variable.f90 initializes most variables to be used in the program.
+	(5) toolbox.f90 contains all the subroutines that executes evoked numerical methods.
+	
+Input files:
+	
+	(1) _survival_probability.txt
+	(2) _efficiency_units.txt
+	(3) _1parameter.txt
+	
+Supplemental files:
+
+	(1) zv1.pbs: the PBS script with the specification of HPC resources to be submitted to MSI's work queue.
+	(2) makefile: the script with the commands for compiling the Fortran files 
