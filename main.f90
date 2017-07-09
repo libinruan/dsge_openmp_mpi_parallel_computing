@@ -8,7 +8,8 @@ program MPI_sandbox
     !use universe ! test on reversion. Should shown.
     use equilibrium
     implicit none
-    integer :: tstart, tend, trate, tmax, i, j      
+    integer :: tstart, tend, trate, tmax, i, j
+    character(len=200) :: msg
     
     ! The mpi_exercise_mode == 1 case: Coarse search
     logical :: exit_log1
@@ -30,7 +31,24 @@ program MPI_sandbox
     
     allocate(range_guess(ndim,2))
     call read_parameter_model(para,'_1parameter.txt')
-    if(my_id==0) write(*,'(a,f20.8)') (labstr(i),para(i),i=1,129) ! works. 
+    
+    if(my_id==0)then ! General Operation Messages
+        write(*,'(a,f20.8)') (labstr(i),para(i),i=1,129) ! works. 
+        write(*,*) ' '
+        if(mpi_exercise_mode==1)then
+            msg = 'Starting point search'
+        else
+            msg = ' -- not yet --'    
+        endif
+        if(mpi_exercise_mode/=0) write(*,*) ' mpi_exercise_mode: ', msg
+        if(printout6)then
+            msg = 'Quantitative model'
+        else
+            msg = 'Test model'
+        endif
+        write(*,*) ' printout6: ', msg
+    endif
+    
     !if(my_id==0) write(*,'(2f12.8,/)') [(range_guess(i,1),range_guess(i,2),i=1,10)]
     
     ! Filename for storing individual node's outcome
@@ -86,12 +104,12 @@ program MPI_sandbox
         write(node_string,'(i3.3)') my_id
         
         if(my_id/=0)then
-            solution_string = '_CoarseSlaveFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Intermediate outcome of individual slave node.         
-            concisesolution_string = '_SlaveFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Macro stat of individual slave node.        
+            solution_string = '_SlaveIntermFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Intermediate outcome of individual slave node.         
+            concisesolution_string = '_SlaveMacrostat_'//trim(node_string)//'.txt' ! 7-7-2017 Macro stat of individual slave node.        
         else
             write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-            solution_string = '_CoarseRootFeedback_'//trim(trylen_string)//'.txt' ! 7-7-2017 Real-time feedback from the slaves.        
-            concisesolution_string = '_RootFeedback_'//trim(trylen_string)//'.txt' ! 7-7-2017 Useless for the root node.        
+            solution_string = '_RootIntermCollect_'//trim(trylen_string)//'.txt' ! 7-7-2017 Real-time feedback from the slaves.        
+            concisesolution_string = '_RootUseless_'//trim(trylen_string)//'.txt' ! 7-7-2017 Useless for the root node.        
             ! add concise solution
         endif
         open(unit=my_id+1001, file=solution_string, action='write') ! Moved here. 7-3-201
@@ -111,8 +129,8 @@ program MPI_sandbox
         call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim ) ! Generate ndim dimensional sobol sequence of length nsbq.
         call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) 
         mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1)    
-        !if(my_id==0) call sm(sobolm,'sobolm') ! checked 2017-Jul-1
-        !if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled') ! checked 2017-Jul-1         
+        if(my_id==0) call sm(sobolm,'sobolm'//trim(trylen_string)) ! checked 2017-Jul-1
+        if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled'//trim(trylen_string)) ! checked 2017-Jul-1         
         
         allocate( parcel(ndim), result(ndim), outputinput1(trylen,2*ndim+2), obj_val_vec(trylen) )        
         nslaves = num_procs - 1 ! The root processor (my_id==0) is in charge of sending out new trial and receiving the corresponding result.
@@ -196,7 +214,6 @@ program MPI_sandbox
                 
                 modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
                 
-                write(*,*) ' mpi_exercise_mode: ', mpi_exercise_mode, ' printout6: ', printout6
                 call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
                 
                 msgtype = 2 ! tag 2 is used for sending feedback.

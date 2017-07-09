@@ -27,7 +27,7 @@ module equilibrium
         model_msg = 0 ! default value set before calling the subroutine 'solve_model'.
         exit_log1 = .false. ! Initializing Exit Flag. If successful, .False.; Otherwise, .True.
         
-        if(printout6)then ! .true. for running the real quantitative model
+        if(printout11)then ! .true. for running the real quantitative model
             call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
         else ! .false. for testing the communication of the coarse search.
             call test_model( guessv, momvec, node_id, trial_id, exit_log1, msg) 
@@ -69,8 +69,8 @@ module equilibrium
         !erridx = vdrnguniform(approach, river, 10, stoch, 0._wp, 1._wp)
         !momvec = stoch
         momvec = guessv**2._wp
-        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' guessv ', guessv
-        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' momvec ', momvec
+        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' guessv ', guessv ! test model
+        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' momvec ', momvec ! test model
         msg = 'random number'
     endsubroutine test_model
     
@@ -518,13 +518,14 @@ module equilibrium
                 
                 if(iterar==1.and.iteragov==1)then
                     write(unit=my_id+1001,fmt='(a)') ' ----------------------------------------------------- '
-                    write(unit=my_id+1001,fmt='(i5,<ndim>f16.7)') trial_id, guessv ! Note: trial_id falls in [1,trylen], not used directly for the list of "indexseries"
-                    write(unit=my_id+1001,fmt='((3x,a),3(x,a),(3x,a))') 'NO.', 'Rloop', 'Gloop', 'Tloop', 'rd(5y)'
-                    write(unit=my_id+1001,fmt='(6x,3(i6),f9.4)') iterar, iteragov, iteratot, rd
-                    write(unit=my_id+1001,fmt='(2x,9(x,a))') 'transbeq   ', 'avgincw    ', 'benefit    ', 'hmin       ', 'hmax       ', 'benefit    ', 'transbeq   ', 'avgincw    ', 'taubal     '
-                    write(unit=my_id+1001,fmt='(2x,9(f12.6))') transbeq, avgincw, benefit, hmin, hmax, benefit, transbeq, avgincw, taubal
-                    write(unit=my_id+1001,fmt='(2x,4(x,a))') 'bracketr    ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
-                    write(unit=my_id+1001,fmt='(2x,i12,3(f12.6))') bracketr, fundiffnow, taubalmax, taubalmin
+                    write(unit=my_id+1001,fmt='(a,i7.7,x,a,<ndim>f16.7)') 'No.',trial_id,'Inputs: ',guessv ! Note: trial_id falls in [1,trylen], not used directly for the list of "indexseries"
+                    write(unit=my_id+1001,fmt='(3x,a)') 'rd(5y)'
+                    write(unit=my_id+1001,fmt='(f9.4)') rd
+                    
+                    write(unit=my_id+1001,fmt='(2x,a,6(x,a))') 'TRANSFER(S): ', 'transbeq   ', 'avgincw    ', 'benefit    ', 'taubal     ', 'hmin       ', 'hmax       '
+                    write(unit=my_id+1001,fmt='(15x,6(f12.6))') transbeq, avgincw, benefit, taubal, hmin, hmax
+                    write(unit=my_id+1001,fmt='(2x,a,3(x,a))') 'CONVERGENCE: ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
+                    write(unit=my_id+1001,fmt='(15x,3(f12.6))') fundiffnow, taubalmax, taubalmin
                 endif
                 
                 staxw = staxwbase*avgincw**(-ptaxw) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
@@ -596,6 +597,7 @@ module equilibrium
                 cvv  = 0._wp ! default 1 means bad point. -99 indicates a good point. model.f90, ln.3316.
                 dcef = 0._wp
                 
+                if(num_procs==2) write(*,*) ' '
                 !!!!!!! ---- kernel ----- Option I 4.8.2017 fix the wrong indexing of parallel liss (0)
                 call solve_bellman_1014() ! 072516 one more time 09122016 3.15-17.2017
                 call solve_bellman_9()    ! 072516 one more time 09122016 3.15-17.2017
@@ -631,8 +633,12 @@ module equilibrium
                     !dcef = cef ! 3.16.2017 ! move it inside the mass_transition.
                     call mass_transition(exit_log1,errdist) ! 3.16.2017 "inv_dist_counter" is initialized in modelf.f90, ln.4725 ! 3.20.2017 Not yet only inv_dist_counter == 1. <----
                     
-                    if(inv_dist_counter==1) allocate(sef1(szperiod1),sef2(szperiod1), sef3(szperiod1) ) ! szperiod1 is set up in subroutine mass_transition.                         
-                    if(exit_log1==.true.) exit ! 20132016. Should I comment out this statement?? <----------------------------------------------------------------------------
+                    if(inv_dist_counter==1) allocate(sef1(szperiod1),sef2(szperiod1), sef3(szperiod1) ) ! szperiod1 is set up in subroutine mass_transition. 
+                    
+                    if(exit_log1==.true.)then
+                        if(printout3) write(unit=my_id+1001,fmt='(/,a,/)') ' Distribution error. Exit. '
+                        exit ! 20132016. Should I comment out this statement?? <----------------------------------------------------------------------------
+                    endif
                     
                     !write(*,fmt='(a,i4,a,i4)') 'round: ', inv_dist_counter, ', flag: ', exit_log1
                     
@@ -643,7 +649,7 @@ module equilibrium
                     ! call ability_transition(errdist) ! 10102016
                     !call lump_sum_transfer() ! 3.25.2017 Be moved outside the loop. New lump sum transfer. should be used only for the outer R, gov loop, I think (because it affects policy function, not the balance of government budget). Should add errdist to measure distance. 10102016
                     
-                    if(inv_dist_counter>=2) write(*,fmt='(i4,a,f20.12,a,f20.12)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1)
+                    if(inv_dist_counter>=2.and.num_procs==2) write(*,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1
                     inv_dist_counter = inv_dist_counter + 1
                 enddo
                 
@@ -744,10 +750,12 @@ module equilibrium
                     
                     ! keep track ###
                     
-                    if(printout3) write(unit=my_id+1001,fmt='("#",i4,i5,2(a,f12.8),(a,i4))') iteratot, iteragov, ' taubal ', taubal, ' epsigov ', epsigov,' iteragov ', iteragov                
+                    if(printout3) write(unit=my_id+1001,fmt='(" # of Tot Rnds: ",i4,", # of GovRnds: ",i5,2(a,f12.8),(a,i4))') iteratot, iteragov, ', taubal ', taubal, ', epsigov ', epsigov,', iteragov ', iteragov                
                     iteragov = iteragov + 1
                     iteratot = iteratot + 1
-                else ! exit_log1==.true.
+                else ! exit_log1==.true. ! Macrostat issued an error message.
+                    write(unit=my_id+1001,fmt='(" Macrostat exit message:",x,a)') msg 
+                    write(unit=my_id+1001,fmt='(" Gov Loop Fails!",/)')                     
                     exit
                 endif ! exit_log1
             enddo ! loop on epsigov and iteragov ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [2]
@@ -755,13 +763,19 @@ module equilibrium
             if(exit_log1==.false.)then
             
                 !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
-                if(printout3) write(unit=my_id+1001,fmt='((a,i4),(a,f7.4),3(a,f7.4))') '-iterar ', iterar, ' epsir ', epsir, ' input.rbar ', rbar, ' impld.rbar ', rbarimplied, ' diff.rbar ', fundiffnow            
+                
+                !if(printout3) write(unit=my_id+1001,fmt='((a,i4),(a,f7.4),3(a,f7.4))') '-iterar ', iterar, ' epsir ', epsir, ' input.rbar ', rbar, ' impld.rbar ', rbarimplied, ' diff.rbar ', fundiffnow            
+                if(printout3) write(unit=my_id+1001,fmt='(     a,(11x,a), (8x,a), (8x,a),     (x,a))') 'Start: # iterar', 'epsir','new.rbar','imp.rbar','diff.rbar(fundiffnow)'
+                if(printout3) write(unit=my_id+1001,fmt='(11x,i4,(f16.8),(f16.8),(f16.8),(6x,f16.8))') iterar,epsir,rbar,rbarimplied,fundiffnow
                 
 		        ! using bisection algorithm to update rbar
 	            ! bisection algorithm: in the current case they try to minimize the difference of rbar and rimplied	 
 
-                if(printout3) write(unit=my_id+1001,fmt='(a,a,i3,3(a,f8.4))') '-old- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar     
-                if(printout3) write(unit=my_id+1001,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
+                !if(printout3) write(unit=my_id+1001,fmt='(a,a,i3,3(a,f8.4))') '-old- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar     
+                !if(printout3) write(unit=my_id+1001,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
+                
+                if(printout3) write(unit=my_id+1001,fmt='(a,6(10x,a))') 'previous: bracketr', 'rbarmax', 'rbarmin', 'fundmax', 'fundmin', 'tbalmax', 'tablmin'
+                if(printout3) write(unit=my_id+1001,fmt='((2x,f16.8),6(x,f16.8))')   bracketr, rbarmax, rbarmin, fundiffmax, fundiffmin, taubalmax, taubalmin
                 
 		        if(epsir>epsirmin)then 
                     if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 15 '
@@ -894,8 +908,10 @@ module equilibrium
 		        		endif
                     endif
                     !write(unit=102,fmt='("-----",(a,f8.4),(a,i4),3(a,f8.4))') ' epsir   ', epsir, ' iterar   ', iterar, ' rbar ', rbar, ' rimp ', rbarimplied, ' diff ', fundiffnow            
-                    if(printout3) write(unit=my_id+1001,fmt='(a,a,i3,3(a,f8.4))') '-new- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar
-                    if(printout3) write(unit=my_id+1001,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
+                    if(printout3) write(unit=my_id+1001,fmt='(2x,a,(8x,a),(8x,a),(8x,a))') 'Update: bracketr', 'rbarmax', 'rbarmin', 'newrbar'
+                    if(printout3) write(unit=my_id+1001,fmt='(14x,i4,3(f15.7))') bracketr, rbarmax, rbarmin, rbar 
+                    if(printout3) write(unit=my_id+1001,fmt='(11x,a,3(11x,a))') 'fundmax','fundmin','tbalmax','tbalmin'
+                    if(printout3) write(unit=my_id+1001,fmt='(3x,f15.7,3(3x,f15.7))') fundiffmax, fundiffmin, taubalmax, taubalmin
                 endif
                 if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 30 '
                 iterar = iterar + 1
@@ -1020,6 +1036,7 @@ module equilibrium
         deallocate( py, yv, yvtemp, sy, pyh, yhv, syh, survprob, popfrac, kv, probtk, phi )
         deallocate( delzh, delzl, efflab, hv, bizmat, z2, delmeh, av, collbdmat, pka, ppldie, sid ) ! pt18
         deallocate( ide, p_homvec ) ! ww, sww wint, afv, nafv, afint
+        deallocate( t14vec1, t14vec24, t14vec56, t14vec7 )
         deallocate( c_prf_mat, c_lab_mat )
         !deallocate( ppldie_sum )
         deallocate( t18vec1, t18vec24, t18vec56, t18vec7, t9vec1, t9vec24, t9vec56, t9vec7 )
@@ -1033,6 +1050,7 @@ module equilibrium
         deallocate( sw_worker_turned, sw_boss_turned, sw_aftertaxwealth, sw_taxableincome, sw_socialsecurity, sw_buzcap_notuse, sw_consumption ) ! csp_lorenz, xbi_lorenz
         deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax) ! 3.27.2017
         deallocate( cww2, cwf2, cwc2, cwa2, cwh2, cwk2, rhv, rav, c_lab_vec, c_opt_vec, cwc, cef, ced, cvv, dcef, sef, def ) ! remeber to bring it back 10042016
+        deallocate( s3c, c3s, swc2, id1 )
 
 0004    format (a,':',4(f8.3))        
 0101    format (a,':',f8.3)        

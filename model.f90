@@ -3828,9 +3828,11 @@ contains
             
             ! Inspect whether all elements of momvec are available.
             do i = 1, size(momvec)
-                if(momvec(i)/=momvec(i)) exit_log1 = .true.
+                if(momvec(i)/=momvec(i))then
+                    exit_log1 = .true.
+                    msg = 'at least one momvec is not available'
+                endif
             enddo
-            
         else ! Divergence happends. Bad input. No sensible result is obtained.
             momvec = penalty    
         endif 

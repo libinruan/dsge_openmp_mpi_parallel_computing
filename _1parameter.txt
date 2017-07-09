@@ -129,12 +129,13 @@ amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combinatio
 nsbq 		    10000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
 printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
 printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage ! Successful development version: True in 1, 3, 5, 6, and 7.	
-printout3        true   ! Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. !!SHOULD LET IT TRUE IN PRODUCTIVE MODE.
-printout4        false  ! printout_for_stata_lifecycle_plotting() [121]
+printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
+printout4        false  ! !##!OFF IN PRODUCTIVE MODE. printout_for_stata_lifecycle_plotting() [121]
 printout5        false  ! debug with process mark for convergence [104]
-printout6        true   ! True, 'solve_model'; False, 'Random_generator_model', 7-7-2017
-printout7		 false  ! print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. SHOULD BE TURNED OFF IN PRODUCTION MODE.
-printout8        false  ! trace of mass transition across generations [128] SHOULD ONLY BE USED IN SINGLE NODE DEBUG MODE.
+printout6        true   ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round. 
+printout7		 false  ! !##!OFF IN PRODUCTION MODE. Print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. 
+printout8        false  ! !##!ONLY USED IN SINGLE NODE DEBUG MODE. trace of mass transition across generations [128] 
 printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].
-printout10       true   ! Unit: my_id+2001. Final aggregate stat results. SHOULD LET IT TRUE IN PRODUCTIVE MODE.
+printout10       true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+2001. Final aggregate stat results. 
+printout11       true   ! !##!True, 'solve_model'; False, 'Random_generator_model', 7-8-2017
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not. 

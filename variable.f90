@@ -237,7 +237,7 @@ module variable
     real(wp), dimension(:,:), allocatable :: sobolm, sobolm_scaled, mpi_sobol_scaled ! sobolm: scaled for ranges; mpi_sobol_scaled: adjusted for the starting point.
     real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1
     
-    logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10 !, tausvflag
+    logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11 !, tausvflag
     logical :: receiving, status(mpi_status_size)
     character(len=40) :: node_string, trylen_string
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -278,7 +278,9 @@ contains
                    case ('printout9') 
                         read( value_string, * ) printout9   
                    case ('printout10') 
-                        read( value_string, * ) printout10                        
+                        read( value_string, * ) printout10   
+                   case ('printout11') 
+                        read( value_string, * ) printout11                          
                    !case ('tausvflag')
                    !     read( value_string, * ) tausvflag
                    case('rhoy') ! 1
