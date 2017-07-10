@@ -238,8 +238,8 @@ module variable
     real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1
     
     ! amoeba - break_list
-    real(wp), dimension(2) :: weight_list = [0.0_wp,1.0_wp]
-    integer, dimension(2) :: breaks_list = [1,2]
+    real(wp), dimension(10) :: weight_list = [0.95_wp,0.9_wp,0.85_wp,0.8_wp,0.75_wp,0.7_wp,0.65_wp,0.6_wp,0.55_wp,0.5_wp]
+    integer, dimension(10) :: breaks_list = [1,101,201,301,401,501,601,701,801,901]
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11 !, tausvflag
     logical :: receiving, status(mpi_status_size)

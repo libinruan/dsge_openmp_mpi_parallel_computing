@@ -113,8 +113,8 @@ upper9           0.97   ! phi2: tech shock
 lower10          0.95   ! phi3: tech shock
 upper10          0.99   ! phi3: tech shock
 mpi_exercise_mode   1   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
-trylen             	5   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
-sblno1              2   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
+trylen           1000   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
+sblno1              1   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   16   ! (integer) the total number of nodes is size_per_amoeba*number_of_amoeba + 1 (because the root needs to be added in)
 stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
 reinifac     	  0.5   ! (real) reinitialization factor determining the weights of centroid when re-initializing a bad node.
