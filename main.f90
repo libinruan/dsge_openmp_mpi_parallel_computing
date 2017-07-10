@@ -33,6 +33,7 @@ program MPI_sandbox
     call read_parameter_model(para,'_1parameter.txt')
     
     if(my_id==0)then ! General Operation Messages
+        
         write(*,'(a,f20.8)') (labstr(i),para(i),i=1,129) ! works. 
         write(*,*) ' '
         if(mpi_exercise_mode==1)then
@@ -48,15 +49,14 @@ program MPI_sandbox
         endif
         write(*,*) ' printout6: ', msg
     endif
-    
-    !if(my_id==0) write(*,'(2f12.8,/)') [(range_guess(i,1),range_guess(i,2),i=1,10)]
-    
-    ! Filename for storing individual node's outcome
-    !write(node_string,'(i3.3)') my_id
-    !solution_string = trim(node_string)//'.txt'       
-    !open(unit=my_id+1001, file=solution_string, action='write') ! Inside the mpi_exercise_mode block. 7-3-2017
-    
-    if(mpi_exercise_mode==-1)then ! MKL experiment (random number generator)
+
+    if(mpi_exercise_mode == -2)then ! experiment zone
+        
+        write(*,*) locate(real(breaks_list,wp),1.5_wp,1)
+        write(*,*) locate(real(breaks_list,wp),50._wp,1)
+        
+    elseif(mpi_exercise_mode==-1)then ! MKL experiment (random number generator)
+        
         generator = VSL_BRNG_MCG31
         approach  = VSL_RNG_METHOD_UNIFORM_STD
         call system_clock(tmiddle)
@@ -65,7 +65,9 @@ program MPI_sandbox
             erridx = vdrnguniform(approach,river,1,stoch,0._wp,1000._wp)
             write(*,*) 'my_id = ', my_id, ' random number = ', stoch
         enddo
+        
     elseif(mpi_exercise_mode==0)then ! Stage 0. Building Stage with only a single node.
+        
         solution_string = '_SingleNodeInputs.txt'   
         concisesolution_string = '_SingleNodeDetails.txt'
         open(unit=my_id+1001, file=solution_string, action='write', position='append')
@@ -99,6 +101,7 @@ program MPI_sandbox
         
         close(my_id+1001)  
         close(my_id+2001)
+        
     elseif(mpi_exercise_mode==1)then ! Stage 1. Search for the optimal parameter setting on the global parameter space without the Nelder-Mead algorithm
         ! Used for all invoked nodes in the MPI implementation. 
         write(node_string,'(i3.3)') my_id
@@ -117,7 +120,7 @@ program MPI_sandbox
         
         ! # 1 move inside the MPI_exercise_mode == 1!?
         allocate(indexseries(trylen),sobolm(nsbq, ndim),sobolm_scaled(ndim,nsbq),mpi_sobol_scaled(ndim,trylen))
-        allocate(mpi_simmom_matrix(ndim,trylen))
+        allocate(mpi_simmom_matrix(ndim,trylen),origin_input(ndim),mpi_sobol_mixed(trylen,ndim))
         !allocate(indexseries(trylen),sobolm(ndim,nsbq))
         indexseries = [(i,i=1,trylen)]
         !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) ! works. 
@@ -125,12 +128,24 @@ program MPI_sandbox
         indexseries = indexseries + sblno1 -1 ! Shifted; USED FOR OUTPUT    
         !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) 
         
+        origin_input(1) = kv1   
+        origin_input(2) = prtk0 
+        origin_input(3) = prtk1 
+        origin_input(4) = prtk2 
+        origin_input(5) = zbar  
+        origin_input(6) = beta  
+        origin_input(7) = theta 
+        origin_input(8) = phi1  
+        origin_input(9) = phi2  
+        origin_input(10)= phi3           
+        
         ! Quasi-random Sobol sequence block # 2 move inside the MPI_exercise_mode == 1!?
         call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim ) ! Generate ndim dimensional sobol sequence of length nsbq.
         call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) 
         mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1)    
+        
         if(my_id==0) call sm(sobolm,'sobolm'//trim(trylen_string)) ! checked 2017-Jul-1
-        if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled'//trim(trylen_string)) ! checked 2017-Jul-1         
+        if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled'//trim(trylen_string)) ! checked 2017-Jul-1 . Used for convex combination.        
         
         allocate( parcel(ndim), result(ndim), outputinput1(trylen,2*ndim+2), obj_val_vec(trylen) )        
         nslaves = num_procs - 1 ! The root processor (my_id==0) is in charge of sending out new trial and receiving the corresponding result.
@@ -143,7 +158,8 @@ program MPI_sandbox
             do i = 1, nslaves
                 trial = i ! the index of the basic loop: 1,...,trylen; Not the indices of the adjusted Sobol sequence.
                 slave = i
-                parcel = mpi_sobol_scaled(:,i)
+                call linear_combination_sobal_sequence(parcel,trial,mpi_sobol_scaled(:,trial),origin_input,weight_list,breaks_list)   
+                mpi_sobol_mixed(trial,:) = parcel
                 call sendjob(trial,slave,parcel) ! send from root to slave the trial parameter combination                
             enddo
             
@@ -172,13 +188,20 @@ program MPI_sandbox
                         obj_val_vec(trial) = obj_val_1st
                         
                         ! Results That Are Collected by Individual Nodes (we are now in the my_id == 0 zone)
-                        if(i==1) write(my_id+1001,'(a,12x,a,x,a,(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"),(10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"),(11x,"input1"),(11x,"input2"),(11x,"input3"),(11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') "MyID","error","#trial"
-                        write(my_id+1001,'(i4,x,f16.7,2x,i5.5,<ndim>(x,f16.7),<ndim>(x,f16.7))') slave, obj_val_1st, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_scaled(:,trial)
+                        if(i==1) write(my_id+1001,'(a,(12x,a),(x,a),(2x,a),(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"), &
+                            & (10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"),(11x,"input1"),(11x,"input2"),(11x,"input3"), &
+                            & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') &
+                            & "MyID","error", "#trial", "#list"
+                        
+                        write(my_id+1001,'(i4,(x,f16.7),(2x,i5),(2x,i5),<ndim>(x,f16.7),<ndim>(x,f16.7))') &
+                            & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_mixed(trial,:)
                         
                         ! Check to see if one more new trial is available to be assigned to the responding slave node.
                         if(i<=trylen-nslaves)then
-                            parcel = mpi_sobol_scaled(:,i+nslaves) ! Correct. 7-3-2017 
+                            !parcel = mpi_sobol_scaled(:,i+nslaves) ! Correct. 7-3-2017 
                             trial = i + nslaves
+                            call linear_combination_sobal_sequence(parcel,trial,mpi_sobol_scaled(:,trial),origin_input,weight_list,breaks_list)   
+                            mpi_sobol_mixed(trial,:) = parcel                            
                             call sendjob( trial, slave, parcel )
                         endif
                         exit ! leave the current loop 
@@ -196,7 +219,7 @@ program MPI_sandbox
             
             ! [The Root, case 1] Save the overall intput and output
             outputinput1(:,1) = real(indexseries,wp) 
-            outputinput1(:,2:ndim+1) = transpose(mpi_sobol_scaled) ! Input
+            outputinput1(:,2:ndim+1) = mpi_sobol_mixed ! Input 7-9-2017
             outputinput1(:,ndim+2:2*ndim+1) = transpose(mpi_simmom_matrix) ! Output
             outputinput1(:,2*ndim+2) = obj_val_vec
             call sm( outputinput1, io_string, 15, 8) ! Only the root deals with the storage of complete output.
@@ -214,6 +237,7 @@ program MPI_sandbox
                 
                 modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
                 
+                call read_parameter_model(para,'_1parameter.txt') ! 7-9-2017
                 call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
                 
                 msgtype = 2 ! tag 2 is used for sending feedback.
@@ -235,7 +259,7 @@ program MPI_sandbox
         deallocate(parcel,result,outputinput1,obj_val_vec)
         ! # 3 move inside the MPI_exercise_mode == 1!?
         deallocate(range_guess, indexseries, sobolm, sobolm_scaled, mpi_sobol_scaled) 
-        deallocate(mpi_simmom_matrix)        
+        deallocate(mpi_simmom_matrix,origin_input,mpi_sobol_mixed)        
         close(my_id+1001) ! 7-3-2017
         close(my_id+2001) ! 7-4-2017
     endif ! mpi_exercise_model

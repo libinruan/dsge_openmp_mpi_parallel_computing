@@ -716,7 +716,7 @@ contains
     end function splint
 
     ! Locate the LOWER BOUND of the interval that encloses the point "x"    
-    pure function locate(xx,x) 
+    pure function locate(xx,x,sobol_flag) 
     ! The code logic and the example of function "locate" below are checked. 1-29-2017
     ! vec = [1,2,3], ans(0.5)=0, ans(1)=1, ans(2)=2, ans(3)="2", ans(3.5)= 3. So when you see in this case 0 or 3, the value falls ouside the range.
    	    implicit none
@@ -724,6 +724,7 @@ contains
    	    real(wp), intent(in) :: x
    	    integer :: locate
    	    integer :: n,il,im,iu
+        integer, optional, intent(in) :: sobol_flag
    	    n  = size(xx)
    	    il = 0
    	    iu = n+1
@@ -738,8 +739,12 @@ contains
    	    enddo
    	    if ( x == xx(1) ) then
    	    	locate=1
-   	    elseif ( x == xx(n) ) then
-   	    	locate=n-1
+        elseif ( x == xx(n) ) then
+            if(present(sobol_flag))then
+                locate=n
+            else
+                locate=n-1
+            endif
    	    else
    	    	locate=il
    	    endif

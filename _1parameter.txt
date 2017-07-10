@@ -113,7 +113,7 @@ upper9           0.97   ! phi2: tech shock
 lower10          0.95   ! phi3: tech shock
 upper10          0.99   ! phi3: tech shock
 mpi_exercise_mode   1   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
-trylen             10   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
+trylen             	5   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
 sblno1              2   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   16   ! (integer) the total number of nodes is size_per_amoeba*number_of_amoeba + 1 (because the root needs to be added in)
 stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
@@ -132,7 +132,7 @@ printout2		 false  ! WF and CWF (value function @ beginning & end of period); us
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
 printout4        false  ! !##!OFF IN PRODUCTIVE MODE. printout_for_stata_lifecycle_plotting() [121]
 printout5        false  ! debug with process mark for convergence [104]
-printout6        true   ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round. 
+printout6        false  ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round and mass transition. 
 printout7		 false  ! !##!OFF IN PRODUCTION MODE. Print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. 
 printout8        false  ! !##!ONLY USED IN SINGLE NODE DEBUG MODE. trace of mass transition across generations [128] 
 printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].

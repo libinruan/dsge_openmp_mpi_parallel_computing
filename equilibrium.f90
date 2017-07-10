@@ -365,6 +365,12 @@ module equilibrium
         !    delzh(i) = 1._wp - (1._wp-delzh(i))**5._wp 
         !enddo        
         
+        !! 7-9-2017
+        !staxe = 0.42_wp
+        !ptaxe = 1.4_wp
+        !staxw = 0.2154_wp
+        !ptaxw = 0.7646_wp
+        
         ! #########################################################################################
         ! adjustment for the unit of measurement. See, ex., Nakajima (2010). 072316
         ! Done the check again on the tax parameters used by AER2009 Cagetti and De Nardi. 01-29-2017
@@ -385,7 +391,7 @@ module equilibrium
         ! call ss(efflab,'2017efflab')
         !call ss(yv,'2017yv')
         !call ss(sy,'2017sy')
-
+        
         ! 4.21.2017 comment out and moved inside the interest rate loop.
         !call set_grids_for_housing_asset(hv,9) ! ok  
         call grid(hv,hmin,hmax,2.5_wp) ! 09182016 
@@ -649,7 +655,7 @@ module equilibrium
                     ! call ability_transition(errdist) ! 10102016
                     !call lump_sum_transfer() ! 3.25.2017 Be moved outside the loop. New lump sum transfer. should be used only for the outer R, gov loop, I think (because it affects policy function, not the balance of government budget). Should add errdist to measure distance. 10102016
                     
-                    if(inv_dist_counter>=2.and.num_procs==2) write(*,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1
+                    if(printout6.and.inv_dist_counter>=2.and.num_procs==2) write(*,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1
                     inv_dist_counter = inv_dist_counter + 1
                 enddo
                 
@@ -1111,5 +1117,22 @@ module equilibrium
         !endif ! printout1            
     end subroutine print_basic_model_vectors
     
+subroutine linear_combination_sobal_sequence(linear_combination_sobol, sequence_index, sobol_scaled_input, origin_input, weight_sobol, break_sobol)    
+    implicit none
+    real(wp), dimension(:), intent(out) :: linear_combination_sobol
+    real(wp), dimension(:), intent(in) :: weight_sobol, origin_input, sobol_scaled_input
+    integer, dimension(:), intent(in) :: break_sobol
+    integer, intent(in) :: sequence_index
+    integer :: idx
+    real(wp) :: wgt
+    idx = locate(real(break_sobol,wp),real(sequence_index,wp),1)
+    wgt = weight_sobol(idx)
+    linear_combination_sobol = wgt*origin_input + (1._wp-wgt)*sobol_scaled_input 
+    !write(*,'(a,f6.3,a,i3,a,i3)') ' weight ', wgt, ' loc ', idx, ' list index ', sequence_index
+    !write(*,*) ' --------------------------------------------- '
+end subroutine linear_combination_sobal_sequence
+    
 end module equilibrium
+    
+    
     
