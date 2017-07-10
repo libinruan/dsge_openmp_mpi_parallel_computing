@@ -3351,7 +3351,7 @@ contains
                         sum0 = sum0 + wv(j)*cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)*(1._wp-survprob(t))*pyhprob ! Relative to the above eqa. for sef1, two items are absent: pyprob and pka.
                         
                         !!$omp critical ! #4$
-                        write(unit=128,fmt='(a,i4,a,8i4)') ' round: ', inv_dist_counter, ' bad combination: ', ax,hx,kx,zxi,yxi,kpx,ypx,opx
+                        !write(unit=128,fmt='(a,i4,a,8i4)') ' round: ', inv_dist_counter, ' bad combination: ', ax,hx,kx,zxi,yxi,kpx,ypx,opx
                         !!$omp end critical ! #5#
                     endif ! cvv(.)
                 enddo ! j

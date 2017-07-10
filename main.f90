@@ -42,7 +42,8 @@ program MPI_sandbox
             msg = ' -- not yet --'    
         endif
         if(mpi_exercise_mode/=0) write(*,*) ' mpi_exercise_mode: ', msg
-        if(printout6)then
+        
+        if(printout11)then
             msg = 'Quantitative model'
         else
             msg = 'Test model'
@@ -107,12 +108,12 @@ program MPI_sandbox
         write(node_string,'(i3.3)') my_id
         
         if(my_id/=0)then
-            solution_string = '_SlaveIntermFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Intermediate outcome of individual slave node.         
-            concisesolution_string = '_SlaveMacrostat_'//trim(node_string)//'.txt' ! 7-7-2017 Macro stat of individual slave node.        
+            solution_string = 'SlaveIntermFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Intermediate outcome of individual slave node.         
+            concisesolution_string = 'SlaveMacrostat_'//trim(node_string)//'.txt' ! 7-7-2017 Macro stat of individual slave node.        
         else
             write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-            solution_string = '_RootIntermCollect_'//trim(trylen_string)//'.txt' ! 7-7-2017 Real-time feedback from the slaves.        
-            concisesolution_string = '_RootUseless_'//trim(trylen_string)//'.txt' ! 7-7-2017 Useless for the root node.        
+            solution_string = 'RootIntermCollect_'//trim(trylen_string)//'.txt' ! 7-7-2017 Real-time feedback from the slaves.        
+            concisesolution_string = 'RootUseless_'//trim(trylen_string)//'.txt' ! 7-7-2017 Useless for the root node.        
             ! add concise solution
         endif
         open(unit=my_id+1001, file=solution_string, action='write') ! Moved here. 7-3-201

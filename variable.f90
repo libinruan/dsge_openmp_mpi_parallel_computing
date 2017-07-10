@@ -1671,8 +1671,8 @@ contains
             enddo ! l
             deallocate(vec)                        
         enddo ! t
-        write(unit=120,fmt='(a,i10)'), ' The number of end period combinations: ', idx - 1
-        write(unit=120,fmt='(a,i10)'), ' The number of end period root combinations: ', dx2 - 1
+        !write(unit=120,fmt='(a,i10)'), ' The number of end period combinations: ', idx - 1
+        !write(unit=120,fmt='(a,i10)'), ' The number of end period root combinations: ', dx2 - 1
     end subroutine serialindices_Map2_coordinates
       
     !subroutine set_refined_zvector(zlist,zsize,msg1)

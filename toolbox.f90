@@ -1405,7 +1405,7 @@ contains
             enddo
             do i = 1, n ! COMPUTE THE "PERCENT RANK" OF THAT VALUE IN THE ORDERED LIST OF SIZE N
                 pvec(i) = 100._wp/csum(n)*(csum(i)-wsorded(i)/2._wp)   
-                write(unit=133,fmt='(i5,2x,4(x,f20.15))')  i, pvec(i), csum(i), wsorded(i), ssorded(i)
+                !write(unit=133,fmt='(i5,2x,4(x,f20.15))')  i, pvec(i), csum(i), wsorded(i), ssorded(i)
             enddo
             ! THEN WE TAKE THE OBTAINED PERCENT RANK AND LOCATE THE PERCENTILE VALUE WE ARE INTERESTED
             maxi = maxloc(pvec,pvec<=prop)
@@ -1417,9 +1417,9 @@ contains
                 quant = ssorded(n)
             else
                 if(abs((pvec(m+1)-pvec(m)))<1.e-11)then
-                    write(*,fmt='(a,2(f20.15))'), " Error appears in subroutine weighted percentile", pvec(m+1), pvec(m)
-                    write(*,fmt='(2f25.12)') sum(ssorded), sum(wsorded)
-                    write(*,fmt='(4f25.12)') csum(m), csum(m+1), wsorded(m), wsorded(m+1) 
+                    !write(*,fmt='(a,2(f20.15))'), " Error appears in subroutine weighted percentile", pvec(m+1), pvec(m)
+                    !write(*,fmt='(2f25.12)') sum(ssorded), sum(wsorded)
+                    !write(*,fmt='(4f25.12)') csum(m), csum(m+1), wsorded(m), wsorded(m+1) 
                 endif
                 quant = ssorded(m) + (prop-pvec(m))/(pvec(m+1)-pvec(m))*(ssorded(m+1)-ssorded(m))
             endif

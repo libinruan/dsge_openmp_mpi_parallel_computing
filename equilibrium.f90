@@ -532,6 +532,8 @@ module equilibrium
                     write(unit=my_id+1001,fmt='(15x,6(f12.6))') transbeq, avgincw, benefit, taubal, hmin, hmax
                     write(unit=my_id+1001,fmt='(2x,a,3(x,a))') 'CONVERGENCE: ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
                     write(unit=my_id+1001,fmt='(15x,3(f12.6))') fundiffnow, taubalmax, taubalmin
+                else
+                    write(unit=my_id+1001,fmt='(a,i4,x,a,i4)') ' iterar ', iterar, ', iteragov ', iteragov
                 endif
                 
                 staxw = staxwbase*avgincw**(-ptaxw) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
@@ -606,8 +608,11 @@ module equilibrium
                 if(num_procs==2) write(*,*) ' '
                 !!!!!!! ---- kernel ----- Option I 4.8.2017 fix the wrong indexing of parallel liss (0)
                 call solve_bellman_1014() ! 072516 one more time 09122016 3.15-17.2017
+                write(unit=my_id+1001,fmt='(a)',advance='no') ' Bellman 10-14'
                 call solve_bellman_9()    ! 072516 one more time 09122016 3.15-17.2017
+                write(unit=my_id+1001,fmt='(a)',advance='no') ', bellman 9'
                 call solve_bellman_18()   ! 072516 one more time 09122016 3.15-17.2017
+                write(unit=my_id+1001,fmt='(a)',advance='no') ', bellman 1-8'
                 
                 ! 4.8.2017 4:34 pm stop here.
                 !! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -656,11 +661,14 @@ module equilibrium
                     !call lump_sum_transfer() ! 3.25.2017 Be moved outside the loop. New lump sum transfer. should be used only for the outer R, gov loop, I think (because it affects policy function, not the balance of government budget). Should add errdist to measure distance. 10102016
                     
                     if(printout6.and.inv_dist_counter>=2.and.num_procs==2) write(*,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1
+                    write(unit=my_id+1001,fmt='(a)',advance='no') ' # ' 
+                    !write(unit=my_id+1001,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1 ! 7-10-2017
                     inv_dist_counter = inv_dist_counter + 1
                 enddo
                 
                 call system_clock(tend)
                 !write(*,fmt='(a,f12.4,a)') ' mass dist convergence time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'                  
+                write(unit=my_id+1001,fmt='(a)') ' - '
                 
                 if(exit_log1==.false.)then
                     call lump_sum_transfer() ! 3.25.2017 moved from the distribution do loop. 4.17.2017 This subroutine includes the update of `transbeq`.
@@ -771,7 +779,7 @@ module equilibrium
                 !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
                 
                 !if(printout3) write(unit=my_id+1001,fmt='((a,i4),(a,f7.4),3(a,f7.4))') '-iterar ', iterar, ' epsir ', epsir, ' input.rbar ', rbar, ' impld.rbar ', rbarimplied, ' diff.rbar ', fundiffnow            
-                if(printout3) write(unit=my_id+1001,fmt='(     a,(11x,a), (8x,a), (8x,a),     (x,a))') 'Start: # iterar', 'epsir','new.rbar','imp.rbar','diff.rbar(fundiffnow)'
+                if(printout3) write(unit=my_id+1001,fmt='(     a,(11x,a), (8x,a), (8x,a),     (x,a))') ' Start: # iterar', 'epsir','new.rbar','imp.rbar','diff.rbar(fundiffnow)'
                 if(printout3) write(unit=my_id+1001,fmt='(11x,i4,(f16.8),(f16.8),(f16.8),(6x,f16.8))') iterar,epsir,rbar,rbarimplied,fundiffnow
                 
 		        ! using bisection algorithm to update rbar
@@ -780,8 +788,8 @@ module equilibrium
                 !if(printout3) write(unit=my_id+1001,fmt='(a,a,i3,3(a,f8.4))') '-old- ', 'bracketr ', bracketr, ' rbarmax ', rbarmax, ' rbarmin ', rbarmin, ' newrbar ', rbar     
                 !if(printout3) write(unit=my_id+1001,fmt='(18x,4(a,f8.4))')    ' fundmax ', fundiffmax, ' fundmin ', fundiffmin, ' tbalmax ', taubalmax, ' tbalmin ', taubalmin
                 
-                if(printout3) write(unit=my_id+1001,fmt='(a,6(10x,a))') 'previous: bracketr', 'rbarmax', 'rbarmin', 'fundmax', 'fundmin', 'tbalmax', 'tablmin'
-                if(printout3) write(unit=my_id+1001,fmt='((2x,f16.8),6(x,f16.8))')   bracketr, rbarmax, rbarmin, fundiffmax, fundiffmin, taubalmax, taubalmin
+                if(printout3) write(unit=my_id+1001,fmt='(a,6(10x,a))') 'Previous: bracketr', 'rbarmax', 'rbarmin', 'fundmax', 'fundmin', 'tbalmax', 'tablmin'
+                if(printout3) write(unit=my_id+1001,fmt='((13x,i5),6(x,f16.8))')   bracketr, rbarmax, rbarmin, fundiffmax, fundiffmin, taubalmax, taubalmin
                 
 		        if(epsir>epsirmin)then 
                     if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 15 '
