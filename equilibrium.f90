@@ -937,6 +937,7 @@ module equilibrium
         if(.not.exit_log1.and.printout10)then
             !write(unit=127,fmt='((3x,a),3(x,a),(3x,a),(2x,a),(3x,a),(3x,a))') 'NO.', 'Rloop', 'Gloop', 'Tloop', 'rd(5y)', 'implied', 'taubal', 'errgov' 
             !write(unit=127,fmt='(6x,3(i6),4f9.4)') iterar, iteragov, iteratot, rd, rimplied, taubal, epsigov            
+            write(unit=my_id+2001,fmt='(/,a,i4,a,i4,a,12f12.7)') ' node_id ', node_id, ' trial_id ', trial_id, ' guess ', guessv
             write(unit=my_id+2001,fmt='(6(2x,a))') 'TotalAsset', ' WokFinAst', ' EntFinAst', 'Captal.CRP', '  LaborCRP', '  exLabEnt'
             write(unit=my_id+2001,fmt='(6f12.6)') totast, wokfin, entfin, crpcap, crplab, entlab
             write(unit=my_id+2001,fmt='(6(2x,a))') 'Captal.SME', '  Wokhouse', '  Enthouse', 'TotalTaxes', ' OutputCRP', ' OutputEnt'

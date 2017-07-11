@@ -7,19 +7,19 @@ deltah           0.017
 rd               0.035
 alpha            0.247 ! Following Naka, housing capital is removed from the defintiion for capital income (p.15).0.26 perfect version. 
 lambda           0.2  
-theta            0.14 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
+theta            0.1359087 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
 sigma            1.5 ! 1.5 Yang. 2.0 ! the larger the sigma, the flatter the curve becomes when the abscissa is away from the origin.  
 nu               0.88 
-kv1              0.05 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
-prtk0            0.024 ! <-------------------------------------------------------------------------- (2-4)
-prtk1            0.110
-prtk2            0.075
+kv1              0.0766807 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
+prtk0            0.0400111 ! <-------------------------------------------------------------------------- (2-4)
+prtk1            0.1155747
+prtk2            0.1164856
 phi0             0.5 ! needed for programming issue. can take any value. 
-phi1             0.75 ! <-------------------------- (8-10)
-phi2             0.92 
-phi3             0.97 
-beta             0.97 ! 0.93 might be too low. <---------------------------------------------------- (6)
-zbar             1.2 ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
+phi1             0.7701660 ! <-------------------------- (8-10)
+phi2             0.9351416 
+phi3             0.9674434 
+beta             0.9416076 ! 0.93 might be too low. <---------------------------------------------------- (6)
+zbar             1.2379053 ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
 zlow             0.0 ! hard wired. Don't change it. 
 hmin             0 
 hmax             16 ! 25; 120.0
@@ -112,7 +112,7 @@ lower9           0.87   ! phi2: tech shock
 upper9           0.97   ! phi2: tech shock
 lower10          0.95   ! phi3: tech shock
 upper10          0.99   ! phi3: tech shock
-mpi_exercise_mode   1   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
+mpi_exercise_mode   0   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
 trylen           1000   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
 sblno1              1   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   16   ! (integer) the total number of nodes is size_per_amoeba*number_of_amoeba + 1 (because the root needs to be added in)

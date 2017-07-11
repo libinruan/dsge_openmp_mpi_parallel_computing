@@ -153,7 +153,7 @@ program MPI_sandbox
 
         if( my_id == 0)then
             write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-            io_string = '_IOMat_'//trim(trylen_string) 
+            io_string = 'IOMat_'//trim(trylen_string) 
             
             ! [The Root, case 1] Send Initial Messages to Slave Nodes (indices ranges from 1 to nslaves)
             do i = 1, nslaves
@@ -263,6 +263,11 @@ program MPI_sandbox
         deallocate(mpi_simmom_matrix,origin_input,mpi_sobol_mixed)        
         close(my_id+1001) ! 7-3-2017
         close(my_id+2001) ! 7-4-2017
+        
+    elseif(mpi_exercise_mode==2)then ! Amoeba algorithm
+        
+            
+        
     endif ! mpi_exercise_model
     
     !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one. Obsolete, 7-3-2017.
