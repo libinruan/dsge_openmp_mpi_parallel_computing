@@ -219,10 +219,10 @@ program MPI_sandbox
             enddo
             
             ! [The Root, case 1] Save the overall intput and output
-            outputinput1(:,1) = real(indexseries,wp) 
-            outputinput1(:,2:ndim+1) = mpi_sobol_mixed ! Input 7-9-2017
-            outputinput1(:,ndim+2:2*ndim+1) = transpose(mpi_simmom_matrix) ! Output
-            outputinput1(:,2*ndim+2) = obj_val_vec
+            outputinput1(:,1) = real(indexseries,wp) ! Index number 
+            outputinput1(:,2:ndim+1) = mpi_sobol_mixed ! Input 7-9-2017 (amoeba guess)
+            outputinput1(:,ndim+2:2*ndim+1) = transpose(mpi_simmom_matrix) ! Output (moment)
+            outputinput1(:,2*ndim+2) = obj_val_vec ! value of objective functin 
             call sm( outputinput1, io_string, 15, 8) ! Only the root deals with the storage of complete output.
             
         else ! [The Slaves, case 1] my_id /= 0 The Block Used for Defining the Message Passing from Slave Nodes

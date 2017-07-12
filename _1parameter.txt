@@ -92,7 +92,7 @@ target7  	     1.26   ! target 7: housing capital (consumer durables) to output
 target8          0.40   ! target 8: total asset held by entrepreneurs
 target9          0.27   ! target 9: share of income held by entrepreneurs
 target10         8.0    ! target 10: ratio of median assets (entrepreneurs to workers)
-lower1           0.02   ! kv1: size of the smallest project ! ##################################################################################
+lower1           0.002  ! kv1: size of the smallest project ! ##################################################################################
 upper1           1.0    ! kv1: size of the smallest project
 lower2           0.01   ! prtk0: probability of new ideas
 upper2           0.15   ! prtk0: probability of new ideas
@@ -112,7 +112,7 @@ lower9           0.87   ! phi2: tech shock
 upper9           0.97   ! phi2: tech shock
 lower10          0.95   ! phi3: tech shock
 upper10          0.99   ! phi3: tech shock
-mpi_exercise_mode   0   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
+mpi_exercise_mode   1   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
 trylen           1000   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
 sblno1              1   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   16   ! (integer) the total number of nodes is size_per_amoeba*number_of_amoeba + 1 (because the root needs to be added in)

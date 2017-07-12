@@ -660,7 +660,8 @@ module equilibrium
                     ! call ability_transition(errdist) ! 10102016
                     !call lump_sum_transfer() ! 3.25.2017 Be moved outside the loop. New lump sum transfer. should be used only for the outer R, gov loop, I think (because it affects policy function, not the balance of government budget). Should add errdist to measure distance. 10102016
                     
-                    if(printout6.and.inv_dist_counter>=2.and.num_procs==2) write(*,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1
+                    if(printout6.and.inv_dist_counter>=2.and.(num_procs==2.or.num_procs==1)) write(*,fmt='(a)',advance='no') ' # ' 
+                    !if(printout6.and.inv_dist_counter>=2.and.(num_procs==2.or.num_procs==1)) write(*,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1
                     write(unit=my_id+1001,fmt='(a)',advance='no') ' # ' 
                     !write(unit=my_id+1001,fmt='(i4,a,f15.12,a,f15.12,x,a,i5.5,x,a,i3.3,x,a,l2)') inv_dist_counter, ' dist error ', errdist, ' sum period 1 ', sum(sef1), 'trial_id', trial_id,'iteratot',iteratot, 'exit_log1:', exit_log1 ! 7-10-2017
                     inv_dist_counter = inv_dist_counter + 1

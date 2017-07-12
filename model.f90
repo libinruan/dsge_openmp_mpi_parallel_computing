@@ -402,7 +402,7 @@ contains
         
         call system_clock(tend)
         !if(printout6) write(unit=120,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
-        if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
+        if(printout6) write(*,fmt='(/,a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
 
         !! t = 10-13 ------------------------------------------------------------------------------------------------------
         
@@ -3825,6 +3825,8 @@ contains
             momvec(8)  = (entfin+enthom)/(entfin+enthom+wokfin+wokhom) ! 7-2-2017, including the amount belonging to retired people.
             momvec(9)  = ent_inc_per
             momvec(10) = medentwel/medwokwel
+            
+            if(printout6.and.(num_procs==2.or.num_procs==1)) write(*,fmt='(a,3e15.7)') 'Distribution: ', sml_inv_per, med_inv_per, hug_inv_per
             
             ! Inspect whether all elements of momvec are available.
             do i = 1, size(momvec)
