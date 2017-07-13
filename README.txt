@@ -1,4 +1,4 @@
- !! Hybrid MPI with OpenMP version !! The implimentation of the parallel version Nelder-Mead algorithm in global optimization.
+ !! Hybrid MPI with OpenMP version !! The implementation of the parallel version Nelder-Mead algorithm in global optimization.
 
 Fortran files:
 
