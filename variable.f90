@@ -6,6 +6,7 @@ module variable
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
+                startpoint(25), & ! read starting point from the result of the first stage.
                 rhoy = 0.715, & ! 5 year
                 vary = 0.52, & ! 5 year
                 rhoyh = 0.677, & ! 5 year
@@ -95,6 +96,8 @@ module variable
                 sdim   = 5, &
                 nsdim = 100, &
                 iterainvdist = 50
+    
+    character(len=100) :: listnumber
     
     ! ## outer loop's first task: updating the estimate of rbar ##
     real(wp) :: radjust  = 0.08 ! the maximum distance allows new rbar to take rimplied.
@@ -284,7 +287,9 @@ contains
                    case ('printout10') 
                         read( value_string, * ) printout10   
                    case ('printout11') 
-                        read( value_string, * ) printout11                          
+                        read( value_string, * ) printout11  
+                   case ('listnumber')
+                        read(value_string, *  ) listnumber
                    !case ('tausvflag')
                    !     read( value_string, * ) tausvflag
                    case('rhoy') ! 1

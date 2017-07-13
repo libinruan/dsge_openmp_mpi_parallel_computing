@@ -266,8 +266,8 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==2)then ! Amoeba algorithm
         
+        call read_short_list(listnumber,startpoint)
             
-        
     endif ! mpi_exercise_model
     
     !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one. Obsolete, 7-3-2017.
@@ -337,6 +337,33 @@ contains
     !    !ftest = x**4._wp + x**3._wp - 6*x**2._wp + 4*x + 12
     !    ftest = x*sin(1._wp/x)
     !end function ftest
+    
+    subroutine read_short_list(filename,startpoint)
+        implicit none
+        real(wp), dimension(:), intent(out) :: startpoint ! length of 25
+        character(len=*), intent(in) :: filename
+        integer :: ans1, ans2, sn, n, iostat
+        
+        ! catch the serial number from given filename
+        ans1 = index(filename,'_',back=.true.)
+        ans2 = index(filename,'.')
+        read(filename(ans1+1:ans2-1),'(i)') sn
+        
+        n = 0
+        open(unit=10,file='_full_list_startingpoint.csv',status='old',action='read',iostat=iostat) ! read line by line until reach the startpoint specifid in "filename" 
+        write(*,*) filename
+        if(iostat==0)then
+            do
+                n = n + 1
+                read(10,*) startpoint
+                if(n==sn) exit
+            enddo
+        else
+            write(*,*) 'something wrong when opening read_short_list'
+        endif
+        write(*,*) startpoint
+        close(10)
+    end subroutine read_short_list
     
     subroutine start_files_for_writing()
         implicit none

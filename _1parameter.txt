@@ -112,7 +112,7 @@ lower9           0.87   ! phi2: tech shock
 upper9           0.97   ! phi2: tech shock
 lower10          0.95   ! phi3: tech shock
 upper10          0.99   ! phi3: tech shock
-mpi_exercise_mode   1   ! (integer) exploratory mode, 1; amoeba mode 2 ! ################################################################################
+mpi_exercise_mode   2   ! (integer) exploratory mode, 1; amoeba mode 2 (listnumber) ! ############################################################
 trylen           1000   ! (integer) length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq.
 sblno1              1   ! (integer) the index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   16   ! (integer) the total number of nodes is size_per_amoeba*number_of_amoeba + 1 (because the root needs to be added in)
@@ -138,4 +138,5 @@ printout8        false  ! !##!ONLY USED IN SINGLE NODE DEBUG MODE. trace of mass
 printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].
 printout10       true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+2001. Final aggregate stat results. 
 printout11       true   ! !##!True, 'solve_model'; False, 'Random_generator_model', 7-8-2017
+listnumber       _startingpoint_1.csv ! specify which starting point to read.       
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not. 
