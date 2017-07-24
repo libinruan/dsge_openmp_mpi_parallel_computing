@@ -6,7 +6,7 @@ module equilibrium
     implicit none ! August 27, 2016
     contains
     !subroutine search_equilibrium(exit_log1)
-    subroutine search_equilibrium( guessv, momvec, obj_val, node_id, trial_id, model_msg)
+    subroutine search_equilibrium( guessv, momvec, obj_val, node_id, trial_id, model_msg) ! node_id == my_id
         implicit none
         real(wp), intent(out) :: obj_val
         real(wp), dimension(:), intent(in) :: guessv
@@ -31,16 +31,20 @@ module equilibrium
             call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
         else ! .false. for testing the communication of the coarse search.
             call test_model( guessv, momvec, node_id, trial_id, exit_log1, msg) 
-            if(momvec(1)<=0.5_wp) exit_log1 = .true. ! Just make the test more interesting by making some trial randomly equivalent to a bad case.
+            if( node_id == 2 ) exit_log1 = .true. ! remove it.<------------------------
         endif
         
-        if(exit_log1==.true.)then ! Failure to solve the model with the given parameter setting.
+        if(exit_log1 == .true.)then ! Failure to solve the model with the given parameter setting.
             !write(*,fmt='(2/,a,a,a,/)'), ' Something wrong [', trim(adjustl(msg)), '] ' ! 4.23.2017 It needs to be turned off in production mode.
             model_msg = 1 ! Fail to solve the model.  
             momvec = inf
             obj_val = inf
         else
-            obj_val = objective_value(momvec,targetv) ! momvec: simulatd moments    
+            if(printout11)then
+                obj_val = objective_value(momvec,targetv) ! momvec: simulatd moments    
+            else
+                obj_val = test_objective_value(momvec,targetv)
+            endif
         endif
     end subroutine search_equilibrium
     
@@ -48,7 +52,14 @@ module equilibrium
         real(wp) :: objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
         objective_value = sum(((mom-tar)/tar)**2._wp)
+        !objective_value = sum( (mom-tar)**2._wp )
     end function objective_value   
+    
+    function test_objective_value( mom, tar )
+        real(wp) :: test_objective_value
+        real(wp), dimension(:), intent(in) :: mom, tar
+        test_objective_value = sum( (mom-tar)**2._wp )
+    end function test_objective_value       
     
     subroutine test_model( guessv, momvec, node_id, trial_id, exit_log1, msg )
         implicit none
@@ -57,6 +68,8 @@ module equilibrium
         integer, intent(in) :: node_id, trial_id
         logical, intent(inout) :: exit_log1
         character(len=*), intent(out) :: msg
+        
+        !! Random number generation
         !integer :: generator, erridx, approach, tmiddle, tstart, tend, trate, tmax
         !type(vsl_stream_state) :: river
         !real(wp) :: stoch(10)
@@ -68,13 +81,18 @@ module equilibrium
         !write(*,*) ' tmiddle ', my_id, tmiddle
         !erridx = vdrnguniform(approach, river, 10, stoch, 0._wp, 1._wp)
         !momvec = stoch
-        momvec = guessv**2._wp
-        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' guessv ', guessv ! test model
-        write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' momvec ', momvec ! test model
-        msg = 'random number'
+        
+        !momvec = guessv**2._wp
+        !write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' guessv ', guessv ! test model
+        !write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' momvec ', momvec ! test model
+        !msg = 'random number'
+        
+        momvec = guessv*(sin(guessv)+0.1_wp) ! 7-21-2017, global optimum: f(x_i) = 0 for x_i = 0 for i = 1, ..., n, in [-10,10]
+        ! 7-21-2017 Set target_i = 0, penalty function as summation of f(x_i) and let the range to be [-10,10].
+        
     endsubroutine test_model
     
-    subroutine solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg)
+    subroutine solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! node_id == my_id
         implicit none
         integer :: i, j, m, n, ti, hi, ki, yi, kpi, int1
         real(wp) :: sar, tar ! THESE DUMMY VARIABLES USED FOR MULTIPLE TESTING BLOCKS, SO DON'T UNCOMMENT MORE THAN ONE BLOCKS AT THE SAME TIME.

@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(129)
-    real(wp) :: para(129), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(132)
+    real(wp) :: para(132), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -95,7 +95,8 @@ module variable
                 iterasvmax = 10, &
                 sdim   = 5, &
                 nsdim = 100, &
-                iterainvdist = 50
+                iterainvdist = 50, &
+                noamoeba = 2
     
     character(len=100) :: listnumber
     
@@ -229,25 +230,33 @@ module variable
 	integer :: szt1013vec1, szt1013vec24, szt1013vec56, szt1013vec7
     integer :: szt14vec1, szt14vec24, szt14vec56, szt14vec7
     
-    ! amoeba 
+    ! amoeba - general
     integer, dimension(:), allocatable :: indexseries    
     integer :: mpi_exercise_mode, trylen, sblno1, nrow, amoitrcrt, amoiniswitch, nslaves
     integer :: trial, slave, ierr, msgtype, modelmsg
     
     real(wp) :: stepsize, reinifac, amoalp, amogam, amobet, amotau, amoerrcrt, amoconvex
     real(wp) :: obj_val_1st
-    real(wp), dimension(:), allocatable :: parcel, result, obj_val_vec, origin_input
+    real(wp), dimension(:), allocatable :: parcel, result, obj_val_vec, origin_input, selected_input
     real(wp), dimension(:,:), allocatable :: sobolm, sobolm_scaled, mpi_sobol_scaled, mpi_sobol_mixed ! sobolm: scaled for ranges; mpi_sobol_scaled: adjusted for the starting point.
     real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1
     
-    ! amoeba - break_list
+    ! amoeba - break_list - mpi_exercise_mode == 0
     real(wp), dimension(10) :: weight_list = [0.95_wp,0.9_wp,0.85_wp,0.8_wp,0.75_wp,0.7_wp,0.65_wp,0.6_wp,0.55_wp,0.5_wp]
     integer, dimension(10) :: breaks_list = [1,101,201,301,401,501,601,701,801,901]
     
-    logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11 !, tausvflag
+    logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
+    logical :: printout13
     logical :: receiving, status(mpi_status_size)
-    character(len=40) :: node_string, trylen_string
+    character(len=40) :: node_string, trylen_string, amoeba_x_y_string
     character(:), allocatable :: solution_string, io_string, concisesolution_string
+    
+    ! amoeba - mpi_exercise_mode == 2
+    integer :: ncol, irow, icol, AMOEBA_ID, GROUP_AMOEBA, DUMMY_WORLD, AMOEBA_WORLD, CONTRACT_ID, CONTRACT_WORLD, GROUP_CONTRACT, HEAD_ID
+    integer :: HEAD_WORLD, GROUP_HEAD, sirow, sicol, slist, elist
+    integer, dimension(:), allocatable :: id_list, refpts
+    real(wp), dimension(:), allocatable :: bestvertex
+    real(wp) :: bestobjval
     
 contains  
     subroutine read_parameter_model( para, input_file )
@@ -288,8 +297,14 @@ contains
                         read( value_string, * ) printout10   
                    case ('printout11') 
                         read( value_string, * ) printout11  
+                   case ('printout12') 
+                        read( value_string, * ) printout12         
+                   case ('printout13') 
+                        read( value_string, * ) printout13                          
                    case ('listnumber')
                         read(value_string, *  ) listnumber
+                   case('mpi_exercise_mode')
+                       read( value_string,*) mpi_exercise_mode                         
                    !case ('tausvflag')
                    !     read( value_string, * ) tausvflag
                    case('rhoy') ! 1
@@ -862,81 +877,92 @@ contains
                        read( value_string,*) range_guess(10,2) 
                        labstr(i) = 'upper phi3'                         
                        para(i) = range_guess(10,2) 
-                   case('mpi_exercise_mode') ! 115
-                       i = i + 1
-                       read( value_string,*) mpi_exercise_mode 
-                       labstr(i) = 'mpi_exercise_mode'                         
-                       para(i) = mpi_exercise_mode 
-                   case('trylen') ! 116
+
+                   case('trylen') ! 115
                        i = i + 1
                        read( value_string,*) trylen 
                        labstr(i) = 'trylen'                         
                        para(i) = trylen    
-                   case('sblno1') ! 117
+                   case('sblno1') ! 116
                        i = i + 1
                        read( value_string,*) sblno1 
                        labstr(i) = 'sblno1'                         
                        para(i) = sblno1 
-                   case('nrow') ! 118
+                   case('nrow') ! 117
                        i = i + 1
                        read( value_string,*) nrow 
                        labstr(i) = 'nrow'                         
                        para(i) = nrow 
-                   case('stepsize') ! 119
+                   case('stepsize') ! 118
                        i = i + 1
                        read( value_string,*) stepsize 
                        labstr(i) = 'stepsize'                         
                        para(i) = stepsize 
-                   case('reinifac') ! 120
+                   case('reinifac') ! 119
                        i = i + 1
                        read( value_string,*) reinifac 
                        labstr(i) = 'reinifac'                         
                        para(i) = reinifac 
-                   case('amoalp') ! 121
+                   case('amoalp') ! 120
                        i = i + 1
                        read( value_string,*) amoalp 
                        labstr(i) = 'amoalp'                         
                        para(i) = amoalp 
-                   case('amogam') ! 122
+                   case('amogam') ! 121
                        i = i + 1
                        read( value_string,*) amogam 
                        labstr(i) = 'amogam'                         
                        para(i) = amogam 
-                   case('amobet') ! 123
+                   case('amobet') ! 122
                        i = i + 1
                        read( value_string,*) amobet 
                        labstr(i) = 'amobet'                         
                        para(i) = amobet 
-                   case('amotau') ! 124
+                   case('amotau') ! 123
                        i = i + 1
                        read( value_string,*) amotau 
                        labstr(i) = 'amotau'                         
                        para(i) = amotau 
-                   case('amoerrcrt') ! 125
+                   case('amoerrcrt') ! 124
                        i = i + 1
                        read( value_string,*) amoerrcrt 
                        labstr(i) = 'amoerrcrt'                         
                        para(i) = amoerrcrt 
-                   case('amoitrcrt') ! 126
+                   case('amoitrcrt') ! 125
                        i = i + 1
                        read( value_string,*) amoitrcrt  
                        labstr(i) = 'amoitrcrt'                         
                        para(i) = amoitrcrt 
-                   case('amoconvex') ! 127
+                   case('amoconvex') ! 126
                        i = i + 1
                        read( value_string,*) amoconvex 
                        labstr(i) = 'amoconvex'                         
                        para(i) = amoconvex 
-                   case('amoiniswitch') ! 128
+                   case('amoiniswitch') ! 127
                        i = i + 1
                        read( value_string,*) amoiniswitch  
                        labstr(i) = 'amoiniswitch'                         
                        para(i) = amoiniswitch  
-                   case('nsbq') ! 129
+                   case('nsbq') ! 128
                        i = i + 1
                        read( value_string,*) nsbq  
                        labstr(i) = 'nsbq'                         
-                       para(i) = nsbq                         
+                       para(i) = nsbq       
+                   case('slist') ! 129
+                       i = i + 1
+                       read( value_string,*) slist
+                       labstr(i) = 'slist'
+                       para(i) = slist
+                   case('elist') ! 130
+                       i = i + 1
+                       read( value_string,*) elist
+                       labstr(i) = 'elist'
+                       para(i) = elist
+                   case('noamoeba') ! 131
+                       i = i + 1
+                       read( value_string,*) noamoeba
+                       labstr(i) = 'noamoeba'
+                       para(i) = noamoeba
                 end select
             enddo
         else
