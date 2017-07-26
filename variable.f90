@@ -258,6 +258,9 @@ module variable
     real(wp), dimension(:), allocatable :: bestvertex
     real(wp) :: bestobjval
     
+    ! amoeba - mpi_exercise_mode == 4
+
+    
 contains  
     subroutine read_parameter_model( para, input_file )
         implicit none

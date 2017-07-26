@@ -31,7 +31,7 @@ module equilibrium
             call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
         else ! .false. for testing the communication of the coarse search.
             call test_model( guessv, momvec, node_id, trial_id, exit_log1, msg) 
-            if( node_id == 2 ) exit_log1 = .true. ! remove it.<------------------------
+            
         endif
         
         if(exit_log1 == .true.)then ! Failure to solve the model with the given parameter setting.
