@@ -114,7 +114,7 @@ lower10          0.95   ! phi3: tech shock
 upper10          0.99   ! phi3: tech shock
 trylen           1000   ! (integer) Length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq. ! ############################################################
 sblno1              1   ! (integer) The index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
-nrow         	   11   ! !!!(integer) The number of nodes involved in an individual amoeba group, including its amoeba head, the sub-amoeba groups, each of which contains 4 nodes, and the remaining nodes that are only invloved in the contraction/evaluation stage. So, when a single amoeba with 11 vertices (including the amoeba head) should require 12 (11+1, the system root) nodes. It is fine to require arbitarily nodes within one amoeba as long as the "nrow" variable is adjusted accordingly. For example, we can require 2 subamoeba groups (which requires 8 nodes) in a single amoeba with total vertices 18 (including the amoeba head) and the complete list of nodes should be of size 18+1=19, and variable "nrow" should be 18.
+nrow         	   11   ! !!!(integer) "nrow has to be larger than or equal to (ndim+1) and 4*noamoeba," and "-np has to be nrow+1." The number of nodes involved in an individual amoeba group, including its amoeba head, the sub-amoeba groups, each of which contains 4 nodes. There are two possible scenario. One: ndim (size of target moments) plus one (the amoeba head) is smaller than total vertices in a single amoeba (i.e., 4 times noamoeba (the size of amoeba)). Two: it goes the other way around, ndim+1>=4*noamoeba. Both cases are acceptable to the program. 7-30-2017. 
 stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
 reinifac     	  0.5   ! (real) reinitialization factor determining the weights of centroid when re-initializing a bad node.
 amoalp       	  1.0   ! (real)   
@@ -122,13 +122,13 @@ amogam       	  1.0   ! (real)
 amobet       	  0.5   ! (real) 
 amotau       	  0.5   ! (real) 
 amoerrcrt    	1.E-3   ! (real) 1.E-4 
-amoitrcrt    	  400   ! (integer)
+amoitrcrt    	  100   ! (integer)
 amoconvex    	  0.2   ! (real) Weight on the best single point 
 amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combination with one best parameter inputs.
 nsbq 		    10000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
-slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (), so that the initialization stage would issue error message. 
-elist              10   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (), so that the initialization stage would issue error message.
-noamoeba            2   ! !##! noamoeba*4 must be smaller than nrow. The number of subgroups in an individual amoeba. 
+slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
+elist               3   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
+noamoeba            2   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group.
 printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
 printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage ! Successful development version: True in 1, 3, 5, 6, and 7.	
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
@@ -144,4 +144,4 @@ printout12       false  ! Show the default parameter setting
 printout13	     true   ! debug amoeba
 listnumber       _startingpoint_1.csv ! specify which starting point to read.       
 mpi_exercise_mode   2   ! (integer) Exploratory mode, 1; amoeba mode 2 (listnumber) 
-! tausvflag		 true   ! it controls whther the interest income tax is levied or not. 
+! tausvflag		 true   ! it controls whther the interest income tax is levied or not.

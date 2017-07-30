@@ -242,8 +242,8 @@ module variable
     real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1
     
     ! amoeba - break_list - mpi_exercise_mode == 0
-    real(wp), dimension(10) :: weight_list = [0.95_wp,0.9_wp,0.85_wp,0.8_wp,0.75_wp,0.7_wp,0.65_wp,0.6_wp,0.55_wp,0.5_wp]
-    integer, dimension(10) :: breaks_list = [1,101,201,301,401,501,601,701,801,901]
+    real(wp), dimension(10) :: weight_list = [0.95_wp,0.9_wp,0.85_wp,0.8_wp,0.75_wp,0.7_wp,0.65_wp,0.6_wp,0.55_wp,0.5_wp] ! used for mpi_exercise_mode==1
+    integer, dimension(10) :: breaks_list = [1,101,201,301,401,501,601,701,801,901] ! used for mpi_exercise_mode==1
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
     logical :: printout13
@@ -254,12 +254,10 @@ module variable
     ! amoeba - mpi_exercise_mode == 2
     integer :: ncol, irow, icol, AMOEBA_ID, GROUP_AMOEBA, DUMMY_WORLD, AMOEBA_WORLD, CONTRACT_ID, CONTRACT_WORLD, GROUP_CONTRACT, HEAD_ID
     integer :: HEAD_WORLD, GROUP_HEAD, sirow, sicol, slist, elist
+    integer :: ROW_WORLD, ROW_ID, GROUP_ROW
     integer, dimension(:), allocatable :: id_list, refpts
     real(wp), dimension(:), allocatable :: bestvertex
     real(wp) :: bestobjval
-    
-    ! amoeba - mpi_exercise_mode == 4
-
     
 contains  
     subroutine read_parameter_model( para, input_file )
