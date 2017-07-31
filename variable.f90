@@ -80,7 +80,8 @@ module variable
                 nmul = 5, &
                 tauk = 0.4, &
                 gsdim = 3.5, & ! the grid parameter for small region Brent optimization.	
-                trsld = -1.e3 ! expected value is reassigned as penalty level if its original value is smaller than "trsld"
+                trsld = -1.e3, & ! expected value is reassigned as penalty level if its original value is smaller than "trsld"
+                maxdist = 5.e-6
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -964,6 +965,11 @@ contains
                        read( value_string,*) noamoeba
                        labstr(i) = 'noamoeba'
                        para(i) = noamoeba
+                   case('maxdist') ! 132
+                       i = i + 1
+                       read( value_string,*) maxdist
+                       labstr(i) = 'maxdist'
+                       para(i) = maxdist                    
                 end select
             enddo
         else

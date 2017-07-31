@@ -48,6 +48,27 @@ module equilibrium
         endif
     end subroutine search_equilibrium
     
+    function maximum_distance_vertices( mat_vertices, size_of_worst_vertices ) ! 7-30-2017 checked.
+        real(wp), dimension(:,:), intent(in) :: mat_vertices
+        integer, intent(in) :: size_of_worst_vertices
+        real(wp) :: maximum_distance_vertices
+        real(wp), dimension(:), allocatable :: centroid_vec, dist_vec
+        integer :: m, n, i
+        m = size(mat_vertices,dim=1) ! row
+        n = size(mat_vertices,dim=2) ! col
+        allocate( centroid_vec(m), dist_vec(n) )
+        do i = 1, m
+            centroid_vec(i) = sum(mat_vertices(i,1:n-size_of_worst_vertices))/(n-size_of_worst_vertices)        
+        enddo ! i
+        !print*,'1 ',centroid_vec
+        do i = 1, n
+            dist_vec(i) = (sum((mat_vertices(:,i)-centroid_vec)**2._wp))**0.5_wp
+        enddo
+        !print*,'2 ',dist_vec
+        maximum_distance_vertices = maxval(dist_vec)
+        deallocate( centroid_vec, dist_vec )
+    end function maximum_distance_vertices
+    
     function objective_value( mom, tar )
         real(wp) :: objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
