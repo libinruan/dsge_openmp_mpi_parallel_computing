@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(132)
-    real(wp) :: para(132), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(134)
+    real(wp) :: para(134), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -81,7 +81,9 @@ module variable
                 tauk = 0.4, &
                 gsdim = 3.5, & ! the grid parameter for small region Brent optimization.	
                 trsld = -1.e3, & ! expected value is reassigned as penalty level if its original value is smaller than "trsld"
-                maxdist = 5.e-6
+                maxdist = 5.e-6, &
+                tinymass = 1.e-2, &
+                chunkmass = 3.e-2
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -142,6 +144,7 @@ module variable
     real(wp) :: inf ! defined in toolbox.f90's function 'infinity_setting'.
     
     integer ::  t, inv_dist_counter, szperiod1 
+    real(wp) :: new_amin, new_amax
     real(wp) :: staxbase, staxwbase, staxebase, kndata, avgincw, govbalance, govbal, benefit, sumsstax
     real(wp) :: AggEffLab, AggCorpLab, AggCorpCap, AggCorpOut, AggOut, AggTax, AggAst, AggInc
     real(wp) :: totast, entcap, crpcap, labsup, entlab, crplab, crpprd, entprd, totsvt, totbpt
@@ -159,7 +162,7 @@ module variable
     real(wp), dimension(:), allocatable :: yv, yhv, sy, syh, survprob, delmeh
     real(wp), dimension(:), allocatable :: popfrac, kv, probtk, phi
     real(wp), dimension(:), allocatable :: z2, delzl, delzh, efflab
-    real(wp), dimension(:), allocatable :: hv, av, rhv, rav
+    real(wp), dimension(:), allocatable :: hv, av, rhv, rav, mass_vec
     !real(wp), dimension(:), allocatable :: afv ! asset refined grid ! 4.1.2017
     real(wp), dimension(:,:), allocatable :: py, pyh, pz2, pka, pyb ! wint ! wint, aint: interpolated weight and coarse grids ! pt18
     real(wp), dimension(:,:), allocatable :: range_guess
@@ -970,6 +973,16 @@ contains
                        read( value_string,*) maxdist
                        labstr(i) = 'maxdist'
                        para(i) = maxdist                    
+                   case('tinymass') ! 133
+                       i = i + 1
+                       read( value_string,*) tinymass
+                       labstr(i) = 'tinymass'
+                       para(i) = tinymass  
+                   case('chunkmass') ! 134
+                       i = i + 1
+                       read( value_string,*) chunkmass
+                       labstr(i) = 'chunkmass'
+                       para(i) = chunkmass                         
                 end select
             enddo
         else

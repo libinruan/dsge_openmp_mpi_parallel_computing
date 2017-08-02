@@ -35,7 +35,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,132) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,134) ! works. 
             write(*,*) ' '
         endif
         
@@ -784,7 +784,7 @@ contains
                     if( printout13 .and. contract_id==0 )then ! 7-23-2017 checked. 
                         write(my_id+1001,'(/,a)') "[amo1] collected vertex_ist:"
                         do i = 1, ndim+1
-                            write(my_id+1001,'("nonsorted-val ", f12.7, " msg ", i3, " mom ", <ndim>f12.7, " input ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), mat_moments(:,i), vertex_list(:,i)
+                            write(my_id+1001,'("nonsorted-val ", f12.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
                         enddo
                     endif
                 
@@ -830,7 +830,7 @@ contains
                 if( printout13 .and. contract_id==0 )then ! 7-28-2017 That other vertices have the same info is checked. 7-23-2017 checked. ! 7-24-2017 Double checked with other output.
                     write(my_id+1001,'(a)') "[amo1] After broadcast, every node has been updated."
                     do i = 1, ndim+1
-                        write(my_id+1001,'("sorted-value  ", f12.7, " msg ", i3, " mom ", <ndim>f12.7, " input ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), mat_moments(:,i), vertex_list(:,i)
+                        write(my_id+1001,'("sorted-value  ", f12.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
                     enddo
                 endif                
             endif ! amo_msgtype == 1 7-28-2017 fully checked.
@@ -1098,7 +1098,7 @@ contains
                 exit
             endif
             
-            if( amo_msgtype == 10 )then ! Normal stop
+            if( amo_msgtype == 10 )then ! Normal stop: successful amoeba converge.
                 exit
             endif ! amo_msgtype == 10
             

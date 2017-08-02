@@ -130,19 +130,21 @@ slist               1   ! the start index of the list of starting points. Note: 
 elist               3   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
 noamoeba            2   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group.
 maxdist			 5e-6   ! maximum distance allowed among vertices in a single amoeba
+tinymass		 1e-2   ! the lower threshold of a valid mass grid.
+chunkmass        3e-2   ! the upper threshold of a valid mass grid. 
 printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
 printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage ! Successful development version: True in 1, 3, 5, 6, and 7.	
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
 printout4        false  ! !##!OFF IN PRODUCTIVE MODE. printout_for_stata_lifecycle_plotting() [121]
 printout5        false  ! debug with process mark for convergence [104]
-printout6        false  ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round and mass transition. 
+printout6        true   ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round and mass transition. 
 printout7		 false  ! !##!OFF IN PRODUCTION MODE. Print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. 
 printout8        false  ! !##!ONLY USED IN SINGLE NODE DEBUG MODE. trace of mass transition across generations [128] 
 printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].
 printout10       true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+2001. Final aggregate stat results. 
-printout11       false  ! !##!True, 'solve_model'; False, 'Random_generator_model', 7-8-2017
+printout11       true   ! !##!True, 'solve_model'; False, 'Random_generator_model', 7-8-2017
 printout12       true   ! Show the default parameter setting
 printout13	     true   ! debug amoeba
 listnumber       _startingpoint_1.csv ! specify which starting point to read.       
-mpi_exercise_mode   2   ! (integer) Exploratory mode, 1; amoeba mode 2 (listnumber) 
+mpi_exercise_mode   0   ! (integer) Exploratory mode, 1; amoeba mode 2 (listnumber) 
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not.

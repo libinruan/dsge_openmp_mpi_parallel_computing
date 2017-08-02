@@ -3548,12 +3548,15 @@ contains
             if(kx==0)then ! worker
                 !capgain = merge(rd*a, 0._wp, rd*a>0._wp)   
                 !inc = merge(benefit,0._wp,t>=10) + merge(0._wp,capgain,tausvflag) + wage*sw_laborsupply(idx)
+                
                 inc = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) ! 3.27.2017
                 sw_taxableincome(idx) = inc 
                 sw_nonlineartax(idx) = ttaxwok(inc)
                 sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx) ! 3.25.2017        
                 sw_worker_savtax(idx) = merge(tausv*rd*a,0._wp,a>0._wp)
+                
                 !inc = inc + a + (1._wp-tauk)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx)
+                
                 inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - sw_socialsecurity(idx) ! 3.27.2017
                 !inc = inc + a + rd*merge(0._wp, a, a>=0._wp) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx) ! 3.25.2017
                 sw_aftertaxwealth(idx) = inc
@@ -3840,6 +3843,69 @@ contains
         endif 
         
     end subroutine macro_statistics  
+    
+    subroutine grid_boundary_inspection( amin, amax, mass_vec )
+        implicit none
+        real(wp), intent(inout) :: amin, amax
+        integer :: sz_list, size_av, i
+        integer :: valid_lower_limit, valid_upper_limit
+        real(wp) :: mass_lower_limit, mass_upper_limit, temp, damin, damax
+        real(wp), dimension(:), intent(out) :: mass_vec
+        logical, dimension(:), allocatable :: tvec
+        sz_list = size(s3c(:,1))
+        size_av = size(av)
+        
+        damin = amin
+        damax = amax
+        
+        allocate( tvec(sz_list) )
+        
+        ! To aggregate the corresponding mass for a specific level of financial asset holdings.
+        do i = 1, size_av
+            tvec = .false.
+            tvec = s3c(:,1)==i
+            mass_vec(i) = sum(sef,tvec)
+        enddo
+        
+        valid_lower_limit = 1
+        valid_upper_limit = size_av
+        mass_lower_limit = mass_vec(valid_lower_limit)
+        mass_upper_limit = mass_vec(valid_upper_limit)
+        
+        ! Lower bound. Stage 1. Shrink from the bottom of the array up until the mass of the new bottom grid is larger than a predetermined threshold (tinymass).
+        do i = 1, size_av-1 ! 8-1-2017 should start here.
+            if( mass_vec(i)<tinymass .and. mass_vec(i+1)>=tinymass )then ! the case that the grid may need to shrink.
+                valid_lower_limit = i+1 ! update.
+                mass_lower_limit = mass_vec(i+1)
+                exit ! Exit the loop as long as we find the "first" grid with mass larger than a threshold and being preceeded by a grid with mass smaller than the threshold.
+            endif
+        enddo 
+        amin = av( valid_lower_limit )
+        
+        ! Lower bound. Stage 2. Extend from the bottom of the array if the current bottom grid's mass is larger than a threshold (chunkmass).
+        if( mass_lower_limit>chunkmass )then
+            temp = 0.5_wp*abs( av(valid_lower_limit+1)-av(valid_lower_limit) )            
+            amin = av(valid_lower_limit) - temp
+        endif
+
+        ! Upper bound, Stage 1. Shrink from the top of the array down until the mass of the new top grid is larger than a predetermined threshold (tinymass).
+        do i = size_av, 2, -1
+            if( mass_vec(i)<tinymass .and. mass_vec(i-1)>=tinymass )then
+                valid_upper_limit = i-1
+                mass_upper_limit = mass_vec(i-1)
+                exit
+            endif
+        enddo ! i
+        amax = av( valid_upper_limit )
+        
+        ! Upper bound , Stage 2. Extend from the top of the array if the current top grid's mass is larer than a threshold (chunkmass).
+        if( mass_upper_limit>chunkmass )then
+            temp = 0.5_wp*abs( av(valid_upper_limit)-av(valid_upper_limit-1) )
+            amax = av(valid_upper_limit) + temp
+        endif 
+        
+        deallocate( tvec )
+    end subroutine grid_boundary_inspection
     
     subroutine read_series2series(vec,fname)
         implicit none

@@ -79,7 +79,9 @@ module equilibrium
     function test_objective_value( mom, tar )
         real(wp) :: test_objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
-        test_objective_value = sum( (mom-tar)**2._wp )
+        test_objective_value = sum( (mom)**2._wp )
+        !momvec = guessv*(sin(guessv)+0.1_wp) ! 7-21-2017, global optimum: f(x_i) = 0 for x_i = 0 for i = 1, ..., n, in [-10,10]
+        !test_objective_value = sum(abs(mom*(sin(mom)+0.1_wp)))
     end function test_objective_value       
     
     subroutine test_model( guessv, momvec, node_id, trial_id, exit_log1, msg )
@@ -108,7 +110,10 @@ module equilibrium
         !write(unit=my_id+1001,fmt='(a,<ndim>f16.7)') ' momvec ', momvec ! test model
         !msg = 'random number'
         
-        momvec = guessv*(sin(guessv)+0.1_wp) ! 7-21-2017, global optimum: f(x_i) = 0 for x_i = 0 for i = 1, ..., n, in [-10,10]
+        !momvec = guessv*(sin(guessv)+0.1_wp) ! 7-21-2017, global optimum: f(x_i) = 0 for x_i = 0 for i = 1, ..., n, in [-10,10]
+        
+        momvec = guessv
+        msg = "ok"
         ! 7-21-2017 Set target_i = 0, penalty function as summation of f(x_i) and let the range to be [-10,10].
         
     endsubroutine test_model
@@ -146,7 +151,7 @@ module equilibrium
         
         allocate( py(nmc,nmc), yvtemp(nmc), yv(0:nmc), sy(nmc), pyh(nmc,nmc), yhv(nmc), syh(nmc), survprob(14) )
         allocate( popfrac(14), kv(0:kdim-1), probtk(0:kdim-1), phi(0:kdim-1), z2(0:kdim-1), delzh(0:kdim-1), delzl(0:kdim-1) )
-        allocate( efflab(14), delmeh(3), hv(hdim), av(adim), pz2(0:kdim-1,2), pka(0:kdim-1,2), rhv(fnhdim), rav(fnadim) ) ! pt18(kdim*nmc,2*nmc) ! 4.14.2017 pz2 set the index staring from 0.
+        allocate( efflab(14), delmeh(3), hv(hdim), av(adim), pz2(0:kdim-1,2), pka(0:kdim-1,2), rhv(fnhdim), rav(fnadim), mass_vec(adim) ) ! pt18(kdim*nmc,2*nmc) ! 4.14.2017 pz2 set the index staring from 0.
         allocate( collbdmat(1:hdim,1:(kdim-1),0:nmc,1:14), c_prf_mat(adim,0:(kdim-1),0:1,0:nmc,1:14), c_lab_mat(adim,0:(kdim-1),0:1,0:nmc,1:14) ) 
         allocate( c_grs_mat(adim,0:(kdim-1),0:1,0:nmc,1:14) ) ! before taxes business income
         
@@ -505,6 +510,8 @@ module equilibrium
             
             !benefit = merge( tauss*wage*AggEffLab/sum(popfrac(10:14)), tauss*wage*poppaysstaximplied/sum(popfrac(10:14)), iterar==1 ) ! 10122016.
 
+            
+            
             call coarse_SBE_profit_matrices(c_grs_mat,c_lab_vec,c_opt_vec) ! 09282016 3.4.2017   
             
             do while((epsigov>epsigovmin).and.(iteragov<=iteragovmax)) ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [2]
@@ -519,6 +526,8 @@ module equilibrium
 		        	taubal=taubalmin-(taubalmax-taubalmin)*govbal2gdpmin/(govbal2gdpmax-govbal2gdpmin)
                     !if(printout5) write(unit=104,fmt='(3i3,a,2(f8.4))') iterar, iteragov, iteratot, ' 5 ', taubal, gdp
                 endif ! bracketgov  
+                
+                write(unit=my_id+1001,fmt='(a,i4,x,a,i4,x,a)') 'iterar ', iterar, ', iteragov ', iteragov, '----------------------------------------------------------------------- '                
                 
                 ! VARIABLES THAT NEED TO RENEW
                 if(iterar==1.and.iteragov==1)then
@@ -559,10 +568,30 @@ module equilibrium
                     ! NOTE: Nakajima (2010) leaves the Social Security tax rate to be determined such that when the government is balancing the budget 
                     ! in each period, the model replicates the replacement ratio.
                     ! if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 2 '
+                    
+                    !!! 8-1-2017
+                    !new_amin = amin
+                    !new_amax = amax
+                    !call grid_boundary_inspection(new_amin,new_amax,mass_vec)
+                    !do i = 1, adim-1
+                    !    write(my_id+1001, '(4x,a,i3)', advance='no') "level",i
+                    !enddo
+                    !write(my_id+1001, '(4x,a,i3)') "level",adim
+                    !write(my_id+1001, '(<adim>f12.9)') av
+                    !write(my_id+1001, '(<adim>f12.9)') mass_vec
+                    !write(my_id+1001, '(6x,a,x,6x,a)') "  amin", "  amax"
+                    !write(my_id+1001, '(f12.7,x,f12.7)') amin, amax 
+                    !write(my_id+1001, '(6x,a,x,6x,a)') " namin", " namax"
+                    !write(my_id+1001, '(f12.7,x,f12.7,/)') new_amin, new_amax
+                    !amin = new_amin
+                    !amax = new_amax
+                    !call set_grids_for_nonhousing_asset(av,3.5_wp,'coarse')
+                    !rav = av ! Bug. 8-1-2017
+
                 endif ! iteragov
                 
                 if(iterar==1.and.iteragov==1)then
-                    write(unit=my_id+1001,fmt='(a)') ' ----------------------------------------------------- '
+
                     write(unit=my_id+1001,fmt='(a,i7.7,x,a,<ndim>f16.7)') 'No.',trial_id,'Inputs: ',guessv ! Note: trial_id falls in [1,trylen], not used directly for the list of "indexseries"
                     write(unit=my_id+1001,fmt='(3x,a)') 'rd(5y)'
                     write(unit=my_id+1001,fmt='(f9.4)') rd
@@ -570,9 +599,7 @@ module equilibrium
                     write(unit=my_id+1001,fmt='(2x,a,6(x,a))') 'TRANSFER(S): ', 'transbeq   ', 'avgincw    ', 'benefit    ', 'taubal     ', 'hmin       ', 'hmax       '
                     write(unit=my_id+1001,fmt='(15x,6(f12.6))') transbeq, avgincw, benefit, taubal, hmin, hmax
                     write(unit=my_id+1001,fmt='(2x,a,3(x,a))') 'CONVERGENCE: ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
-                    write(unit=my_id+1001,fmt='(15x,3(f12.6))') fundiffnow, taubalmax, taubalmin
-                else
-                    write(unit=my_id+1001,fmt='(a,i4,x,a,i4)') ' iterar ', iterar, ', iteragov ', iteragov
+                    write(unit=my_id+1001,fmt='(15x,3(f12.6),/)') fundiffnow, taubalmax, taubalmin
                 endif
                 
                 staxw = staxwbase*avgincw**(-ptaxw) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
@@ -717,6 +744,7 @@ module equilibrium
                     
                     call convert_2d_distribution_into_1d() ! DON'T COMMENTED OUT. USED IN MACRO_STATISTICS SUBROUTINE.
                     call macro_statistics( momvec, iterar, iteragov, iteratot, exit_log1, msg) ! 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
+                    !call grid_boundary_inspection()
                     
                     !call convert_2d_macro_statistics_into_1d() ! SHOULD BE COMMENTED OUT IN PRODUCTION MODE
                     
@@ -819,7 +847,7 @@ module equilibrium
                 !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
                 
                 !if(printout3) write(unit=my_id+1001,fmt='((a,i4),(a,f7.4),3(a,f7.4))') '-iterar ', iterar, ' epsir ', epsir, ' input.rbar ', rbar, ' impld.rbar ', rbarimplied, ' diff.rbar ', fundiffnow            
-                if(printout3) write(unit=my_id+1001,fmt='(     a,(11x,a), (8x,a), (8x,a),     (x,a))') ' Start: # iterar', 'epsir','new.rbar','imp.rbar','diff.rbar(fundiffnow)'
+                if(printout3) write(unit=my_id+1001,fmt='(   /,a,(11x,a), (8x,a), (8x,a),     (x,a))') ' Start: # iterar', 'epsir','new.rbar','imp.rbar','diff.rbar(fundiffnow)'
                 if(printout3) write(unit=my_id+1001,fmt='(11x,i4,(f16.8),(f16.8),(f16.8),(6x,f16.8))') iterar,epsir,rbar,rbarimplied,fundiffnow
                 
 		        ! using bisection algorithm to update rbar
@@ -972,6 +1000,26 @@ module equilibrium
             else ! exit_log1 == .true.
                 exit
             endif
+            
+            !! 8-1-2017
+            new_amin = amin
+            new_amax = amax
+            call grid_boundary_inspection(new_amin,new_amax,mass_vec)
+            do i = 1, adim-1
+                write(my_id+1001, '(4x,a,i3)', advance='no') "level",i
+            enddo
+            write(my_id+1001, '(10x,a,i3)') "level",adim
+            write(my_id+1001, '(<adim>(f18.9))') av
+            write(my_id+1001, '(<adim>(f18.9))') mass_vec
+            write(my_id+1001, '(6x,a,x,6x,a)') "  amin", "  amax"
+            write(my_id+1001, '(f12.7,x,f12.7)') amin, amax 
+            write(my_id+1001, '(6x,a,x,6x,a)') " namin", " namax"
+            write(my_id+1001, '(f12.7,x,f12.7,/)') new_amin, new_amax
+            amin = new_amin
+            amax = new_amax
+            call set_grids_for_nonhousing_asset(av,3.5_wp,'coarse')
+            rav = av ! Bug. 8-1-2017            
+            
         end do ! do while loop on rbar ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [1]
         
         if(.not.exit_log1.and.printout10)then
@@ -1092,7 +1140,7 @@ module equilibrium
         deallocate( delzh, delzl, efflab, hv, bizmat, z2, delmeh, av, collbdmat, pka, ppldie, sid ) ! pt18
         deallocate( ide, p_homvec ) ! ww, sww wint, afv, nafv, afint
         deallocate( t14vec1, t14vec24, t14vec56, t14vec7 )
-        deallocate( c_prf_mat, c_lab_mat )
+        deallocate( c_prf_mat, c_lab_mat, mass_vec )
         !deallocate( ppldie_sum )
         deallocate( t18vec1, t18vec24, t18vec56, t18vec7, t9vec1, t9vec24, t9vec56, t9vec7 )
 		deallocate( t1013vec1, t1013vec24, t1013vec56, t1013vec7, tvector )
