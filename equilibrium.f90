@@ -37,8 +37,8 @@ module equilibrium
         if(exit_log1 == .true.)then ! Failure to solve the model with the given parameter setting.
             !write(*,fmt='(2/,a,a,a,/)'), ' Something wrong [', trim(adjustl(msg)), '] ' ! 4.23.2017 It needs to be turned off in production mode.
             model_msg = 1 ! Fail to solve the model.  
-            momvec = inf
-            obj_val = inf
+            momvec    = inf
+            obj_val   = inf
         else
             if(printout11)then
                 obj_val = objective_value(momvec,targetv) ! momvec: simulatd moments    
@@ -48,26 +48,33 @@ module equilibrium
         endif
     end subroutine search_equilibrium
     
-    function maximum_distance_vertices( mat_vertices, size_of_worst_vertices ) ! 7-30-2017 checked.
+    subroutine maximum_distance_vertices( mat_vertices, size_of_worst_vertices, ans_vec ) ! 7-30-2017 checked.
         real(wp), dimension(:,:), intent(in) :: mat_vertices
+        real(wp), dimension(:), intent(out) :: ans_vec
         integer, intent(in) :: size_of_worst_vertices
-        real(wp) :: maximum_distance_vertices
+        !real(wp) :: maximum_distance_vertices
         real(wp), dimension(:), allocatable :: centroid_vec, dist_vec
         integer :: m, n, i
         m = size(mat_vertices,dim=1) ! row
         n = size(mat_vertices,dim=2) ! col
         allocate( centroid_vec(m), dist_vec(n) )
-        do i = 1, m
-            centroid_vec(i) = sum(mat_vertices(i,1:n-size_of_worst_vertices))/(n-size_of_worst_vertices)        
+        !! Method 1.
+        !do i = 1, m
+        !    centroid_vec(i) = sum(mat_vertices(i,1:n-size_of_worst_vertices))/(n-size_of_worst_vertices)        
+        !enddo ! i
+        !do i = 1, n
+        !    dist_vec(i) = (sum((mat_vertices(:,i)-centroid_vec)**2._wp))**0.5_wp
+        !enddo
+        !maximum_distance_vertices = maxval(dist_vec)
+        
+        ! Method 2.
+        do i = 1, n ! Note that it goes across the vertices including the best vertex itself.
+            dist_vec(i) = sum((mat_vertices(:,i)-mat_vertices(:,1))**2._wp)**0.5_wp
         enddo ! i
-        !print*,'1 ',centroid_vec
-        do i = 1, n
-            dist_vec(i) = (sum((mat_vertices(:,i)-centroid_vec)**2._wp))**0.5_wp
-        enddo
-        !print*,'2 ',dist_vec
-        maximum_distance_vertices = maxval(dist_vec)
+        !maximum_distance_vertices = maxval(dist_vec(2:n))
+        ans_vec = dist_vec
         deallocate( centroid_vec, dist_vec )
-    end function maximum_distance_vertices
+    end subroutine maximum_distance_vertices
     
     function objective_value( mom, tar )
         real(wp) :: objective_value
@@ -79,7 +86,38 @@ module equilibrium
     function test_objective_value( mom, tar )
         real(wp) :: test_objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
-        test_objective_value = sum( (mom)**2._wp )
+        real(wp), dimension(:), allocatable :: func_ray, fund_ray
+        real(wp) :: temp1, temp2
+        integer :: i
+        select case(testfunc_idx)
+            case(1) ! Ordinary norm 2 measure
+                test_objective_value = sum( (mom)**2._wp )
+            case(2) ! Variably Dimensioned Function
+                allocate( func_ray(ndim), fund_ray(ndim) )
+                do i = 1, ndim
+                    func_ray(i) = mom(i)-1._wp
+                    fund_ray(i) = i*func_ray(i)
+                enddo ! i              
+                temp1 = sum(fund_ray)
+                temp2 = temp1**2._wp
+                test_objective_value = sum(func_ray**2._wp) + temp1**2._wp + temp2**2._wp + 1
+                deallocate( func_ray, fund_ray )
+            case(3) ! Trigonometric Function
+
+            case(4) ! Extended Rosenbrock Function
+                if(mod(ndim,2)/=0) write(*,*) " Extended rosenbrock function requires the size of dimensions is an even number. "
+                allocate( func_ray(ndim) )
+                do i = 1, ndim
+                    if(mod(i,2)==0)then
+                        func_ray(i) = 1._wp - mom(i-1)    
+                    else
+                        func_ray(i) = 10._wp*(mom(i+1)-mom(i)**2._wp)
+                    endif
+                enddo
+                test_objective_value = sum(func_ray**2._wp) + 1._wp
+                deallocate( func_ray )                
+            case(5) ! Extended Powell Singular Function
+        end select     
         !momvec = guessv*(sin(guessv)+0.1_wp) ! 7-21-2017, global optimum: f(x_i) = 0 for x_i = 0 for i = 1, ..., n, in [-10,10]
         !test_objective_value = sum(abs(mom*(sin(mom)+0.1_wp)))
     end function test_objective_value       
@@ -114,6 +152,14 @@ module equilibrium
         
         momvec = guessv
         msg = "ok"
+        
+        if(printout15)then
+            if( guessv(2)>3._wp .or. guessv(3)>3._wp )then
+                momvec(2) = inf
+                exit_log1 = .true.
+            endif
+        endif
+        
         ! 7-21-2017 Set target_i = 0, penalty function as summation of f(x_i) and let the range to be [-10,10].
         
     endsubroutine test_model
@@ -1008,9 +1054,9 @@ module equilibrium
             do i = 1, adim-1
                 write(my_id+1001, '(4x,a,i3)', advance='no') "level",i
             enddo
-            write(my_id+1001, '(10x,a,i3)') "level",adim
-            write(my_id+1001, '(<adim>(f18.9))') av
-            write(my_id+1001, '(<adim>(f18.9))') mass_vec
+            write(my_id+1001, '(12x,a,i3)') "level",adim
+            write(my_id+1001, '(<adim>(f20.9))') av
+            write(my_id+1001, '(<adim>(f20.9))') mass_vec
             write(my_id+1001, '(6x,a,x,6x,a)') "  amin", "  amax"
             write(my_id+1001, '(f12.7,x,f12.7)') amin, amax 
             write(my_id+1001, '(6x,a,x,6x,a)') " namin", " namax"

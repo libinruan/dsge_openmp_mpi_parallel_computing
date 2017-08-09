@@ -3,6 +3,9 @@
 ! (3) model.f90 solves the Bellman equations for saving and consumption decisions across generations.
 ! (4) variable.f90 initializes most variables to be used in the program.
 ! (5) toolbox.f90 contains all the subroutines that executes evoked numerical methods.
+!
+! Note that AMOEBA_WORLD can be larger or smaller than CONTRACT_WORLD; however, ROW_WORLD must be the larger than either AMOEBA_WORLD or CONTRACT_WORLD.
+! "nrow" = the size of ROW_WORLD, "4*noamoeba" = the size of AMOEBA_WORLD, and "ndim+1" = the size of CONTRACT_WORLD.
     
 program MPI_sandbox
     !use universe ! test on reversion. Should shown.
@@ -35,7 +38,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,134) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,136) ! works. 
             write(*,*) ' '
         endif
         
@@ -59,9 +62,18 @@ program MPI_sandbox
 
     if(mpi_exercise_mode == -2)then ! experiment zone
         
-        write(*,*) locate(real(breaks_list,wp),1.5_wp,1)
-        write(*,*) locate(real(breaks_list,wp),50._wp,1)
-        
+        if(my_id==0)then
+            
+            write(*,*) ' locate test ', locate(real(breaks_list,wp),1.5_wp,1)
+            write(*,*) ' locate test ', locate(real(breaks_list,wp),50._wp,1)
+            
+            call read_best_point( guessv, bestvertex_file )
+            
+            write(*,*) ' Filename: ', bestvertex_file
+            write(*,*) ' Best vertex: ', guessv
+            
+        endif
+  
     elseif(mpi_exercise_mode==-1)then ! MKL experiment (random number generator)
         
         generator = VSL_BRNG_MCG31
@@ -171,27 +183,27 @@ program MPI_sandbox
             enddo
             
             ! [The Root, case 1] Hear Responses from Slave Nodes
-            do i = 1, trylen ! The range is correct!! 7-3-2017
+            do i = 1, trylen ! The range is correct!! 7-3-2017 ! I controls the total number of outcome expected to receive. 8-2-2017
                 do
                     msgtype = 2 ! tag 1 for parameter passing; tag 2 for communicating the result between slave nodes and root. 
                     ! Non-blocking test for a message
                     call mpi_iprobe( mpi_any_source, msgtype, mpi_comm_world, &
                         & receiving, status, ierr)
                     if(receiving)then
-                        ! which member node is sending the result?
+                        ! 1. [slave] Which member node is sending the result? 
                         call mpi_recv( slave, 1, mpi_integer, mpi_any_source, &
                             & msgtype, mpi_comm_world, status, ierr)
-                        ! what's the returned trial index in the basic assignment loop?
+                        ! 2. [trial] what's the returned trial index in the basic assignment loop?
                         call mpi_recv( trial, 1, mpi_integer, slave, & ! Note: trial falls in [1,trylen], rather than the shifted interval.
                             & msgtype, mpi_comm_world, status, ierr)
-                        ! the feedback of simulated moments 
+                        ! 3. [result] the feedback of simulated moments 
                         call mpi_recv( result, ndim, mpi_double_precision, slave, &
                             & msgtype, mpi_comm_world, status, ierr)
-                        ! the value of penalty corresponds to the given trial
+                        ! 4. [obj_val_1st] the value of penalty corresponds to the given trial
                         call mpi_recv( obj_val_1st, 1, mpi_double_precision, slave, &
                             & msgtype, mpi_comm_world, status, ierr)
                         
-                        mpi_simmom_matrix(:,trial) = result ! Put it in column-major order to facilitate Fortran's operation.
+                        mpi_simmom_matrix(:,trial) = result ! Put it in column-major order to facilitate Fortran's operation; trial is the true index of the original loop, 1, ..., trylen.
                         obj_val_vec(trial) = obj_val_1st
                         
                         ! Results That Are Collected by Individual Nodes (we are now in the my_id == 0 zone)
@@ -200,16 +212,17 @@ program MPI_sandbox
                             & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') &
                             & "MyID","error", "#trial", "#list"
                         
-                        write(my_id+1001,'(i4,(x,f16.7),(2x,i5),(2x,i5),<ndim>(x,f16.7),<ndim>(x,f16.7))') &
-                            & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_mixed(trial,:)
+                        write(my_id+1001,'(i4,(x,f16.7),(2x,i5),(2x,i5),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 8-2-2017. Indexeries maps the basic index number to the index number for the shifted list.
+                            & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_mixed(trial,:) ! 8-2-2017. "slave" is the node returunign the computing outcome.
                         
                         ! Check to see if one more new trial is available to be assigned to the responding slave node.
-                        if(i<=trylen-nslaves)then
-                            !parcel = mpi_sobol_scaled(:,i+nslaves) ! Correct. 7-3-2017 
+                        ! Why subtract nslaves? It's because we have in the beginning scattered nslaves trials to nslaves node.
+                        if(i<=trylen-nslaves)then ! 8-2-2017 The boundary is correct. There is always nslaves trials unfinished until the end of the program. 
+                            !parcel = mpi_sobol_scaled(:,i+nslaves) ! Correct. 7-3-2017, but discarded becaused we use linear combination to generate parcel. 8-2-2017.
                             trial = i + nslaves
-                            call linear_combination_sobal_sequence(parcel,trial,mpi_sobol_scaled(:,trial),origin_input,weight_list,breaks_list)   
+                            call linear_combination_sobal_sequence( parcel, trial, mpi_sobol_scaled(:,trial), origin_input, weight_list, breaks_list )   
                             mpi_sobol_mixed(trial,:) = parcel                            
-                            call sendjob( trial, slave, parcel )
+                            call sendjob( trial, slave, parcel ) ! 8-2-2017 Now, 'trial' is different from the value of 'slave.'
                         endif
                         exit ! leave the current loop 
                     endif 
@@ -271,6 +284,15 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==2)then ! Amoeba algorithm
         
+        if( printout16 )then ! 8-7-2017. reset a set of variables so that only one amoeba is used and only one existing best point is read. 
+            slist = 1
+            elist = 1
+            nslaves = 1
+        endif ! printout16
+        
+        ! 8-2-2017: again, "nrow" is the number of nodes included in each column (equivalently), which contains the member of amoeba and idle nodes that do not participate in any amoeba operations.
+        ! nrow*ncol + 1 = num_procs, where the unity on the LHS represents the system node (root).
+        
         allocate( refpts(elist-slist+1), selected_input(ndim), result(ndim), bestvertex(ndim) )
         
         do i = 1, elist-slist+1 ! 7-17-2017 Generate the moving list that has the sequence of starting points.
@@ -292,7 +314,7 @@ program MPI_sandbox
         ! nrow: the number of nodes associated with an amoeba head. In the same vein, it is not necessarily equal to (ndim+1). As explained above, a single amoeba group contains idle nodes
         ! that do not participate in a contraction operation but take part in the operation of amoeba alogrithm.
         ncol = (num_procs-1)/nrow ! 7-29-2017 variable "nslaves" below equals to "ncol" defined here. 7-13-2017 The number of amoeba heads (equivalently, the number of amoebas).
-        if( abs( (num_procs-1._wp)/nrow-floor(real((num_procs-1._wp)/nrow),wp) )>5.e-10_wp .and. my_id==0 ) write(*,*) 'The total nodes should be a multiple of four plus one.'
+        !if( abs( (num_procs-1._wp)/nrow-floor(real((num_procs-1._wp)/nrow),wp) )>5.e-10_wp .and. my_id==0 ) write(*,*) 'The total nodes for a worst vertex should be a multiple of four plus one.' ! 8-2-2017 Not necessary the case any more.
         
         ! Initialization (7-13-2017 Not redundant; To be used in creating amoeba groups and communicators.)
         irow = 0
@@ -344,9 +366,14 @@ program MPI_sandbox
         write(node_string,'(i1)') icol ! The system root returns 0 for variable "icol."
         
         if( AMOEBA_ID == 0 )then ! AMOEBA_ID=0 is also the head for contraction.
-            solution_string = trim(node_string)//'_001_amaoeba_head.txt'
-            !print*, solution_string ! checked
-            open(unit=my_id+1001, file=solution_string, action='write') ! AMOEBA HEAD.
+            
+                solution_string = trim(node_string)//'_001_amoeba_head.txt'
+                !print*, solution_string ! checked
+                open(unit=my_id+1001, file=solution_string, action='write') ! AMOEBA HEAD.
+                
+                solution_string = trim(node_string)//'_001_restart_list.txt'
+                open(unit=my_id+2001, file=solution_string, action='write', position='append')
+                
         endif
 
         !write(*,'(5i6)') my_id, irow, icol, amoeba_id, merge(-1,contract_id,CONTRACT_WORLD==MPI_COMM_NULL) ! 7-13-201 verified.
@@ -415,11 +442,11 @@ program MPI_sandbox
         amoeba_x_y_string = trim(amoeba_x_y_string)//trim(node_string)
         
         if( CONTRACT_WORLD/=MPI_COMM_NULL .and. AMOEBA_ID /= 0 )then ! 7-22-201 This excludes the system root and the amoeba heads.
-                solution_string = trim(amoeba_x_y_string)//'_contract_member.txt' ! For example, 1_i_amoeba_member.txt, where i = 1,...,10 (except 0 the amoeba head).
-                open(unit=my_id+1001, file=solution_string, action='write') ! AMOEBA MEMBERS.
+            solution_string = trim(amoeba_x_y_string)//'_contract_member.txt' ! For example, 1_i_amoeba_member.txt, where i = 1,...,10 (except 0 the amoeba head).
+            open(unit=my_id+1001, file=solution_string, action='write') ! AMOEBA MEMBERS.
         elseif( CONTRACT_WORLD==MPI_COMM_NULL .and. my_id/=0 )then
-                solution_string = trim(amoeba_x_y_string)//'_Non-contract_member.txt'
-                open(unit=my_id+1001, file=solution_string, action='write')
+            solution_string = trim(amoeba_x_y_string)//'_Non-contract_member.txt'
+            open(unit=my_id+1001, file=solution_string, action='write')
         endif        
         
         !Core of communication among mpi_comm_world ======================================================================================================================        
@@ -435,14 +462,19 @@ program MPI_sandbox
                 !print*, 'My_Id=', my_id, ' slave=', i, ' trial=', trial, ' nslaves: ', nslaves ! 7-17-2017 checked. 
                 slave = i ! 7-17-2017 Correct. We use the rank ID in the Head_World group.
 
-                call read_one_point_from_short_list(trial,startpoint) ! 7-17-2017 Get a new starting point based on the input, trial.
-                selected_input = startpoint(15:24)
+                if(printout16)then     
+                    call read_best_point(selected_input,bestvertex_file)
+                else
+                    call read_one_point_from_short_list(trial,startpoint) ! 7-17-2017 Get a new starting point based on the input, trial.
+                    selected_input = startpoint(15:24)
+                endif
                 
                 ! The very first communication
                 call sendjob(trial, slave, selected_input, 'head_group') ! 7-17-2017 trial is a new starting point's index no. from the integrated list of favorable starting points.
                 
                 ! Only my_id == 0 would prints out.
                 if(printout13) write(my_id+1001,'("Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
+                if(printout13) write(*,'(/,"Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
                 
             enddo ! i
             
@@ -471,39 +503,41 @@ program MPI_sandbox
                     call MPI_RECV( result, ndim, MPI_DOUBLE_PRECISION, slave, &
                         & msgtype, HEAD_WORLD, status, ierr )
                     
-                    print*, " ierr 1 ", ierr
+                    !print*, " ierr 1 ", ierr
                     
                     call MPI_RECV( bestvertex, ndim, MPI_DOUBLE_PRECISION, slave, &
                         & msgtype, HEAD_WORLD, status, ierr )
                     
-                    print*, " ierr 2 ", ierr
+                    !print*, " ierr 2 ", ierr
                     
                     call MPI_RECV( bestobjval, 1, MPI_DOUBLE_PRECISION, slave, &
                         & msgtype, HEAD_WORLD, status, ierr )
                     
-                    print*, " ierr 3 ", ierr
+                    !print*, " ierr 3 ", ierr
                     
                     ! bookkeeping output from each amoeba group.                    
-                    write(my_id+1001,'(a,(4x,a), &
+                    write(my_id+1001,'((4x,a), &
                         & (11x,"input1"),(11x,"input2"),(11x,"input3"),(11x,"input4"),(11x,"input5"), &
                         & (11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"), &
                         & (10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"), &
                         & (10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"))') &
-                        & "Trial ", "func_val"
+                        & "func_val"
                     
-                    write(my_id+1001,'(i6, f12.7, <ndim>(x,f16.7),<ndim>(x,f16.7))') trial, bestobjval, bestvertex, result
+                    write(my_id+1001,'(f16.7, <ndim>(x,f16.7),<ndim>(x,f16.7))') bestobjval, bestvertex, result
                     
-                    index_pt = index_pt + 1
+                    index_pt  = index_pt + 1
                     index_rcv = index_rcv + 1
                     write(my_id+1001,'(a,i3,a,i3,a,i3,/)') "-index_rcv: ", index_rcv, ",index_pt: ", index_pt, ",elist-slist+1: ", elist-slist+1
                     
-                    ! Send out new starting points
+                    ! Send out new starting points as long as the list does not run out.
                     if( index_pt<=elist-slist+1 )then
                         trial = refpts(index_pt)
                         call read_one_point_from_short_list(trial,startpoint)
                         selected_input = startpoint(15:24)
                         call sendjob(trial, slave, selected_input, 'head_group')
+                        if(printout13) write(my_id+1001,'(a)') '-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
                         if(printout13) write(my_id+1001,'("Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
+                        if(printout13) write(*,'("Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
                     endif
                     
                 endif ! receiving, if statement
@@ -511,6 +545,7 @@ program MPI_sandbox
                 !write(my_id+1001,'(a,i3)') " ready to exit? ", index_rcv
                 
                 if( index_rcv>=elist-slist+1 ) exit ! 7-27-2017 Bug. ">"-->">=". 7-18-2017 we have collect the outcome for the full list of starting points.
+                
             enddo ! indefinite do loop
             !enddo ! i
             
@@ -566,7 +601,8 @@ program MPI_sandbox
                     call MPI_SEND( bestobjval, 1, MPI_DOUBLE_PRECISION, 0, & ! [5] best objective vale
                         & msgtype, HEAD_WORLD, ierr )
                     
-                    write(my_id+1001,'(/,a,i5.5," head_id: ",i3.3," min_val: ",f12.7,/)') "Outcome for trial no.", trial, head_id, bestobjval
+                    write(my_id+1001,'(/,a,i5.5," head_id: ",i3.3," min_val: ",f12.7)') "Outcome for trial no.", trial, head_id, bestobjval
+                    write(my_id+1001,'(a,/)') '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
                 enddo
                 
             elseif( ROW_WORLD/=MPI_COMM_NULL )then ! 7-18-2017 The amoeba members (i.e. excluding the amoeba head) in respective amoeba group.    
@@ -592,12 +628,16 @@ program MPI_sandbox
         
         deallocate( refpts, selected_input, result, bestvertex )
         
+        ! 8-2-2017 Close files created in lines 421-434.
         if( ROW_WORLD/=MPI_COMM_NULL .or. my_id == 0 )then
             close(my_id+1001)
+            if( AMOEBA_ID == 0 )then
+                close(my_id+2001)    
+            endif
         endif
         
-    elseif( mpi_exercise_mode==3 )then    
-        ! blank.    
+    elseif( mpi_exercise_mode==3 )then ! Should mimic what mpi_exercise_mode==0 and 2 did. 8-7-2017.   
+        ! open...
     endif ! mpi_exercise_model
     
     !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one. Obsolete, 7-3-2017.
@@ -658,21 +698,24 @@ contains
         integer :: shrink_counter, subworst_idx, i, j
         real(wp) :: plus_deviation, minus_deviation, true_deviation, sim_objval, best_val
         real(wp) :: tryfun, vr, ve, vcr, vco
-        real(wp), dimension(:), allocatable :: sim_moments, ray_objval, dup_ray_objval, centroid, best_posi
-        real(wp), dimension(:), allocatable :: worst_valvec, less_worse_valvec, try_vec
-        real(wp), dimension(:), allocatable :: trymoms_vec, tryfun_vec, subworst_posi
+        real(wp), dimension(:), allocatable :: sim_moments, ray_objval, dup_ray_objval, centroid, best_posi, temp_contract_vertex
+        real(wp), dimension(:), allocatable :: worst_valvec, less_worse_valvec, try_vec, current_best
+        real(wp), dimension(:), allocatable :: trymoms_vec, tryfun_vec, subworst_posi, distance_vec, old_objval_vec
         real(wp), dimension(:,:), allocatable :: vertex_list, mat_moments, worst_mat, try_mat, trymoms_mat
-        integer, dimension(:), allocatable :: rankinglist, ray_modelmsg ! Bug.
+        real(wp), dimension(:,:), allocatable :: old_vertex_list, old_mat_moments
+        integer, dimension(:), allocatable :: rankinglist, ray_modelmsg, old_ray_modelmsg ! Bug.
         logical, dimension(:), allocatable :: shrink_signal_ray
+        integer :: shrink_flag, mid_output_count
         
         ndim = size(bestvertex)
-        num_vertices = ndim + 1
+        num_vertices = ndim + 1 ! 8-2-2017 Not necessary equal to the number of nodes involved in the amoeba operation.
         
         allocate( vertex_list(ndim,ndim+1), sim_moments(ndim), mat_moments(ndim,ndim+1), ray_objval(ndim+1), ray_modelmsg(ndim+1), rankinglist(ndim+1) )
         allocate( dup_ray_objval(ndim+1), centroid(ndim), best_posi(ndim), selected_input(ndim) )
         allocate( worst_mat(ndim,noamoeba), worst_valvec(noamoeba), less_worse_valvec(noamoeba), subworst_posi(ndim) )
         allocate( trymoms_vec(ndim), trymoms_mat(ndim,4*noamoeba), try_vec(ndim), try_mat(ndim,4*noamoeba), tryfun_vec(4*noamoeba) )
-        allocate( shrink_signal_ray(noamoeba) )
+        allocate( shrink_signal_ray(noamoeba), distance_vec(ndim+1), old_vertex_list(ndim,ndim+1), old_objval_vec(ndim+1), old_mat_moments(ndim,ndim+1) )
+        allocate( old_ray_modelmsg(ndim+1), current_best(ndim), temp_contract_vertex(ndim) )
         
         ! Initialization
         bestvertex = 0._wp
@@ -682,6 +725,8 @@ contains
         amo_msgtype = 0
         major_counter = 0 
         shrink_counter = 0
+        shrink_flag = 0
+        mid_output_count = 0
         
         selected_input = selected_input_dup
         
@@ -703,30 +748,50 @@ contains
                 !    
                 !endif
                 
-                call MPI_BCAST( major_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err ) ! Bug. 7-30-2017 AMOEBA_WORLD --> CONTRACT_WORLD. [Trick] You should not put MPI_BCAST without appropraite if statement, if some vertices are not expected to take part of the broadcast operation.                 
+                call MPI_BCAST( major_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err ) ! Bug. 7-30-2017 AMOEBA_WORLD --> ROW_WORLD. [Trick] You should not put MPI_BCAST without appropraite if statement, if some vertices are not expected to take part of the broadcast operation.                 
                 !call MPI_BCAST( major_counter, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, mpi_err ) ! Bug. Don't use it, because only members in the amoeba group are called by this subroutine.
                 
                 if( CONTRACT_WORLD/=MPI_COMM_NULL )then
                     
                     if( CONTRACT_ID/=0 )then 
-                        plus_deviation = ( range_guess(CONTRACT_ID,2)-selected_input(CONTRACT_ID) )
-                        minus_deviation = ( range_guess(CONTRACT_ID,1)-selected_input(CONTRACT_ID) )
-                        ! Pick the largger deviation for creating the initial potion of every vertex. 7-20-2017
-                        true_deviation = merge( plus_deviation, minus_deviation, abs(plus_deviation)>=abs(minus_deviation) )                            
-                        selected_input(CONTRACT_ID) = selected_input(CONTRACT_ID) + stepsize/100._wp*true_deviation ! 7-20-2017 checked. It is direction sensitive design. Don't worry.
                         
-                        !if(printout13)then
-                        !    write(*,'("M_id", i3, " C_id ", i3, " LB ", f8.5, " HB ", f8.5, " Final ",f12.7, " Minus ", f12.7, " Positive ", f12.7, " Devi ", f12.7)') &
-                        !        & my_id, contract_id, range_guess(CONTRACT_ID,1), range_guess(CONTRACT_ID,2), selected_input(CONTRACT_ID), minus_deviation, &
-                        !        & plus_deviation, true_deviation
-                        !endif ! printout13
-                    endif
+                        if(printout14)then ! extreme method using only the maximum coordinate.
+                            
+                            true_deviation = initau*maxval(selected_input)
+                            
+                            !if( contract_id==1 )then
+                            !    print*, "selected_input: ", selected_input
+                            !    print*, "max selected_input: ", maxval(selected_input)
+                            !    print*, "true_deviation: ", true_deviation
+                            !endif
+                            
+                            selected_input(CONTRACT_ID) = selected_input(CONTRACT_ID) + true_deviation
+
+                        else
+                            plus_deviation  = ( range_guess(CONTRACT_ID,2)-selected_input(CONTRACT_ID) )
+                            minus_deviation = ( range_guess(CONTRACT_ID,1)-selected_input(CONTRACT_ID) )
+                            
+                            ! Pick the largger deviation for creating the initial potion of every vertex. 7-20-2017
+                            true_deviation  = merge( plus_deviation, minus_deviation, abs(plus_deviation)>=abs(minus_deviation) )  
+                            
+                            ! 8-4-2017 https://stackoverflow.com/questions/17928010/choosing-the-initial-simplex-in-the-nelder-mead-optimization-algorithm
+                            selected_input(CONTRACT_ID) = selected_input(CONTRACT_ID) + stepsize/100._wp*true_deviation ! 7-20-2017 checked. It is direction sensitive design. Don't worry.
+                            
+                            !if(printout13)then
+                            !    write(*,'("M_id", i3, " C_id ", i3, " LB ", f8.5, " HB ", f8.5, " Final ",f12.7, " Minus ", f12.7, " Positive ", f12.7, " Devi ", f12.7)') &
+                            !        & my_id, contract_id, range_guess(CONTRACT_ID,1), range_guess(CONTRACT_ID,2), selected_input(CONTRACT_ID), minus_deviation, &
+                            !        & plus_deviation, true_deviation
+                            !endif ! printout13
+                            
+                        endif ! printout14
+                        
+                    endif ! CONTRACT_ID/=0
                        
                     call MPI_ALLGATHER( selected_input, ndim, MPI_DOUBLE_PRECISION, vertex_list, & ! 7-21-2017 checked. 
                         & ndim, MPI_DOUBLE_PRECISION, CONTRACT_WORLD, mpi_err )                        
                                        
                     if( CONTRACT_ID == 0 )then ! checked! 7-22-2017
-                        write(my_id+1001,'("[amo0] counter:",i4,", assigned input with deviation ",<ndim>f12.7)') major_counter, vertex_list(:,contract_id+1)
+                        write(my_id+1001,'("[amo0] counter:",i6,", assigned input with deviation ",<ndim>f12.7)') major_counter, vertex_list(:,contract_id+1)
                         write( my_id+1001, '(a)') "List of generated initial vertices from amoeba member: "
                         do j = 1, ndim                                                       
                             write( my_id+1001, '("Row", i3, " input ", <ndim+1>f12.7)')  j, vertex_list(j,:) 
@@ -745,8 +810,9 @@ contains
             endif ! amo_msgtype == 0 initial allocation.
             
             if( amo_msgtype == 1 )then ! Evaluation and sorting by contract group.
+                write(my_id+1001,'(/,a)') '[amo1] evaluation and sorting by contract group'
                 ! Evaluation with CONTRACT_GROUP
-                if( CONTRACT_WORLD/=MPI_COMM_NULL )then
+                if( CONTRACT_WORLD/=MPI_COMM_NULL )then ! 8-2-2017 Consistent with the statement made in line 735 (the MPI_ALLGATHER function askS the CONSTARCT_WORLD for the operation).
                     
                     if( major_counter/=1 )then ! 7-28-2017 checked. The shrinking outcome is idnetical across vertices in the contract world.
                         do i = 1, ndim+1
@@ -756,7 +822,7 @@ contains
                     
                     selected_input = vertex_list(:,CONTRACT_ID+1)
                     !write(my_id+1001,'(/,"[amo1] counter ", i3, " input ", <ndim>f12.7)') major_counter, selected_input
-                
+                    
                     ! Core computation
                     modelmsg = 0
                     call read_parameter_model(para, '_1parameter.txt')
@@ -764,8 +830,8 @@ contains
                     !if( contract_id == 1 ) modelmsg = 1 ! Used for debug. Comment out.
                     
                     if(printout13 .and. contract_id==0 )then
-                        write(my_id+1001, '(/,"[amo1] individual output of search_equilibrium"," major_count: ",i3)') major_counter
-                        write(my_id+1001, '(" my_id ", i3, " contract_id ", i3, " sim_val ",f12.7," modelmsg ", i3)') my_id, contract_id, sim_objval, modelmsg 
+                        write(my_id+1001, '(/,"[amo1] individual output of search_equilibrium. My_ID:", i4, ", major_count: ",i6)') my_id, major_counter
+                        write(my_id+1001, '(" my_id ", i3, " contract_id ", i3, " sim_val ",f16.7," modelmsg ", i3)') my_id, contract_id, sim_objval, modelmsg 
                         write(my_id+1001, '(" input  ", <ndim>f12.7 )') selected_input ! 7-23-2017 check for input. Correct!
                         write(my_id+1001, '(" moment ", <ndim>f12.7 )') sim_moments
                     endif ! printout13
@@ -784,9 +850,35 @@ contains
                     if( printout13 .and. contract_id==0 )then ! 7-23-2017 checked. 
                         write(my_id+1001,'(/,a)') "[amo1] collected vertex_ist:"
                         do i = 1, ndim+1
-                            write(my_id+1001,'("nonsorted-val ", f12.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
+                            write(my_id+1001,'("nonsorted-val ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
                         enddo
                     endif
+                    write(my_id+1001,'(a)') " "
+                    
+                    ! 8-6-2017
+                    if(shrink_flag==1)then
+                        
+                        do i = ndim+1, 2, -1
+                            if(ray_objval(i)<old_objval_vec(i))then
+                                do j = 1, i-1
+                                    ray_objval(j)    = old_objval_vec(j) 
+                                    vertex_list(:,j) = old_vertex_list(:,j)
+                                    mat_moments(:,j) = old_mat_moments(:,j)
+                                    ray_modelmsg(j)  = old_ray_modelmsg(j)
+                                enddo ! j
+                                exit
+                            endif ! ray_objval(i)<old_objval_vec(i)
+                        enddo ! i
+                        
+                        if( printout13 .and. contract_id==0 )then
+                            do i = 1, ndim+1
+                                write(my_id+1001,'("contraction   ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)        
+                            enddo ! i
+                        endif ! printout13 .and. contract_id==0
+                        
+                        shrink_flag = 0 ! set it back to default value.
+                        
+                    endif ! shrink_flag                    
                 
                     if( contract_id==0 )then
                         ! SORTING
@@ -800,23 +892,57 @@ contains
                 
                         good_msg_count = count( ray_modelmsg==0 ) ! 0 means the triral vertex leads to a valid output.
                         
+                        ! EVALUATION
                         if( good_msg_count == ndim+1 )then ! every vertex returns a valid result. ! [REVISION NEEDED] 
-                            write(my_id+1001,'(/,a)') '[amo1] prepare to enter AMOEBA [-->amo3]'
-                            amo_msgtype = 3 ! enter amoeba stage        
-                        elseif( 1<=good_msg_count .and. good_msg_count<ndim+1 )then
-                            write(my_id+1001,'(/,a)') '[amo1] prepare to shrink [-->amo2]' ! Contract group.
+                            write(my_id+1001,'(/,a)') '[amo1] prepare for AMOEBA [-->amo3]'
+                            amo_msgtype = 3 ! enter amoeba stage      
+                            
+                            ! new block 8-3-2017 to check whether the amoeba is small engough to exit the algorithm.
+                            call maximum_distance_vertices( vertex_list, noamoeba, distance_vec)
+                            
+                            !if(maximum_distance_vertices(vertex_list,noamoeba)>maxdist)then ! 7-30-2017 Has not fallen into the neighborhood.
+                            if(maxval(distance_vec(2:ndim+1))>maxdist*sum(vertex_list(:,1)**2._wp)**0.5_wp)then
+                                amo_msgtype = 3 ! Keep staying in amo_msgtype = 3.
+                            else
+                                amo_msgtype = 10 ! Normal stop
+                            endif 
+                            
+                            write(my_id+1001,'(a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp                            
+                            
+                            ! Bookkepping for restarts.
+                            if( AMOEBA_ID==0 )then
+                                mid_output_count = mid_output_count + 1
+                                if(mid_output_count==1)then
+                                    write(my_id+2001,'(i5,f20.10,<ndim>f20.10)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                                    current_best = vertex_list(:,1)
+                                else
+                                    if( maxval(abs(current_best-vertex_list(:,1)))>1.e-8_wp )then ! There exist some changes in value of any digits.
+                                        write(my_id+2001,'(i5,f20.10,<ndim>f20.10)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                                        current_best = vertex_list(:,1)
+                                    endif
+                                endif ! mid_output_count==1
+                            endif
+                            
+                        elseif( 1<=good_msg_count .and. good_msg_count<ndim+1 )then ! Simply for initial shrinkage.
+                            
+                            write(my_id+1001,'(/,a)') '[amo1] prepare for initial shrinkage toward the best points. [-->amo2]' ! Contract group.
+                            
                             amo_msgtype = 2 ! shrinkage by contract group toward the best point with only those invalid vertices.
-                        !else ! It seems unlikely that even the origianl input is not valid, so this case seems impossibly to happen.
-                        !    write(my_id+1001,'(/,a)') '[amo1] prepare to Exit '
-                        !    amo_msgtype = 9 ! return and exit            
+                            
+                        else ! It seems unlikely that even the origianl input is not valid, so this case seems impossibly to happen.
+                            write(my_id+1001,'(/,a)') '[amo1] prepare to Exit '
+                            
+                            amo_msgtype = 9 ! return and exit  
+                            
                         endif ! good_msg_count
                     endif ! contract_id
                     
                 endif ! CONTRACT_WORLD/=MPI_COMM_NULL
                 
-                call MPI_BARRIER( ROW_WORLD, mpi_err )
+                call MPI_BARRIER( ROW_WORLD, mpi_err ) ! 8-2-2017 Trick: remeber to use the error message lest the MPI implementation kills itself abruptly.
                 
                 ! 7-28-2017 checked.
+                ! 8-2-2017 Trick: a MPI_BCAST function must not be seen by nodes not included in the working amoeba world (fortunately, it doesn't matter anyway, due to the comprehension of the world ROW_WORLD.)
                 if( ROW_WORLD/=MPI_COMM_NULL )then
                     call MPI_BCAST(    amo_msgtype, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
                     call MPI_BCAST(  major_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
@@ -830,20 +956,21 @@ contains
                 if( printout13 .and. contract_id==0 )then ! 7-28-2017 That other vertices have the same info is checked. 7-23-2017 checked. ! 7-24-2017 Double checked with other output.
                     write(my_id+1001,'(a)') "[amo1] After broadcast, every node has been updated."
                     do i = 1, ndim+1
-                        write(my_id+1001,'("sorted-value  ", f12.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
+                        write(my_id+1001,'("sorted-value  ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
                     enddo
                 endif                
             endif ! amo_msgtype == 1 7-28-2017 fully checked.
             
-            if( amo_msgtype == 2 )then ! shrinkage toward the "best point" only on those invalid vertices of "contract group for the very first few runs..
+            ! 8-3-2017 What differentiates this block from block 4? This shrinkage is performed by individual nodes in the contract world, but the shrinkage in block 4 is performed by All the nodes in the contract world.
+            if( amo_msgtype == 2 )then ! Shrinkage toward the "best point" only on those invalid vertices of "contract group for the very first few runs..
                 
                 shrink_counter = shrink_counter + 1
                 
                 if( CONTRACT_WORLD/=MPI_COMM_NULL )then                    
                     
-                    if(contract_id/=0) write(my_id+1001,'(/,a,a,i4,a,i4)') '[amo2] contract shrinking toward the best ', ' shrink_counter ', shrink_counter, ' major_count: ', major_counter  
+                    if(contract_id/=0) write(my_id+1001,'(/,a,a,i4,a,i6)') '[amo2] contract shrinking toward the best ', ' shrink_counter ', shrink_counter, ' major_count: ', major_counter  
                     
-                    do i = 1, ndim ! Only shrink those bad vertices toward the best point. ! 7-24-2017 Double checked with other output.
+                    do i = 1, ndim ! ["Discrimination strategy" compared to amo_msgtype == 4] 8-5-2017. Only shrink those bad vertices toward the best point. ! 7-24-2017 Double checked with other output.
                         
                         ! Just check to see if we have on the same page across vertices after transition from the case amo_msgtype=1
                         if( printout13 .and. contract_id == 0 .and. i == 1 )then
@@ -859,18 +986,24 @@ contains
                         
                         ! The shrinkage takes place in every node of the same amoeba. 7-23-2017 ! 7-24-2017 Double checked.
                         !if(printout13 .and. contract_id == 0 .and. i == 1 ) write(my_id+1001, '("[amo2] is going to move onto [amo1]")')
-                        if( ray_modelmsg(i+1)==1 )then
+                        if( ray_modelmsg(i+1)==1 )then ! 8-5-2017 ONLY THOSE BAD VERTICES NEED TO BE IMPROVED BY SHRINKAGE. <------------------------==========SSSSSSSSSSSSS
                             if(printout13 .and. contract_id == 0) write(my_id+1001,'("SHRINKAGE at VERTEX (Contract_ID) no.", i3)') i+1                            
                             if(printout13 .and. contract_id == 0) write(my_id+1001,'(" BEST ONE: ", <ndim>f12.7)') vertex_list(:,1)
                             if(printout13 .and. contract_id == 0) write(my_id+1001,'(" BAD ONE : ", <ndim>f12.7)') vertex_list(:,i+1)
                             
-                            ! CORE OF SHRINKAGE (toward the best point; the initial point obtained from the coarse search stage.)
+                            ! RULE OF SHRINKAGE (toward the best point; the initial point obtained from the coarse search stage.)
+                            
                             vertex_list(:,i+1) = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,i+1) ! 7-23-2017 vertex_list(:,1) is the best vertex in the very first run of the computation.                              
+                            
                             if(printout13 .and. contract_id == 0) write(my_id+1001,'(" New vertex ", <ndim>f12.7)') vertex_list(:,i+1)
                         endif
                     enddo ! i
                     
-                    if(printout13 .and. contract_id == 0) write(my_id+1001,'(/,a)') "[amo2] Prepare to be re-evaluated --> [amo1]"
+                    if(printout13 .and. contract_id == 0)then
+                        write(my_id+1001,'(/,a)') "[amo2] Prepare to be re-evaluated --> [amo1]"
+                        call maximum_distance_vertices( vertex_list, noamoeba, distance_vec)                        
+                        write(my_id+1001,'(a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp
+                    endif
                     
                     amo_msgtype = 1 ! Evaluation and Sorting by contract group.
                     
@@ -890,10 +1023,8 @@ contains
             
             if( amo_msgtype == 3 )then ! AMOEBA
                 
-                !call MPI_BARRIER( AMOEBA_WORLD, mpi_err )
-                
                 shrink_signal_ray = .false.
-                centroid = sum( vertex_list(:,1:(ndim+1)-noamoeba),dim=2 )/((ndim+1)-noamoeba)
+                centroid  = sum( vertex_list(:,1:(ndim+1)-noamoeba),dim=2 )/((ndim+1)-noamoeba)
                 best_posi = vertex_list(:,1)
                 best_val  = ray_objval(1) 
                 
@@ -905,11 +1036,11 @@ contains
                 enddo
                 
                 if( printout13 .and. CONTRACT_ID==0 )then ! 7-28-2017 checked. 7-24-207 checked.
-                    write( my_id+1001, '(/,a,i3)') "[amo3] Amoeba preparation (matrix initialization), major_counter: ", major_counter
+                    write( my_id+1001, '(/,a,i6)') "[amo3] Amoeba preparation (matrix initialization), major_counter: ", major_counter
                     write( my_id+1001, '(a, <ndim>f12.7)') "centroid:    ", centroid
-                    write( my_id+1001, '(a, <ndim>f12.7, a, f12.7)') "best vertex: ", best_posi, " the minimum penalty: ", best_val                                
+                    write( my_id+1001, '(a, <ndim>f12.7, a, f16.7)') "best vertex: ", best_posi, " the minimum penalty: ", best_val                                
                     do j = 1, noamoeba
-                        write( my_id+1001, '("no.",i2.2, " FUN ", f12.7, " INPUT ", <ndim>f12.7,  " Next_Val ", f12.7)') j, worst_valvec(j), worst_mat(:,j), less_worse_valvec(j)
+                        write( my_id+1001, '("no.",i2.2, " FUN ", f16.7, " INPUT ", <ndim>f12.7,  " Next_Val ", f16.7)') j, worst_valvec(j), worst_mat(:,j), less_worse_valvec(j)
                     enddo ! j
                 endif ! printout13 .and. amoeba_id==0
                 
@@ -947,7 +1078,7 @@ contains
                     if( AMOEBA_ID == 0 .and. printout13 )then
                         write( my_id+1001, '(/,a)') "Amoeba subgroup preliminary outcome:"    
                         do j = 1, 4*noamoeba
-                            write( my_id+1001, '("NO.",i2.2," FUN ",f12.7," INPUT ",<ndim>f12.7," MOMENT ",<ndim>f12.7)') j, tryfun_vec(j), try_mat(:,j), trymoms_mat(:,j)
+                            write( my_id+1001, '("NO.",i2.2," FUN ",f16.7," INPUT ",<ndim>f12.7," MOMENT ",<ndim>f12.7)') j, tryfun_vec(j), try_mat(:,j), trymoms_mat(:,j)
                         enddo
                     endif
                     
@@ -966,13 +1097,13 @@ contains
                                 vertex_list(:,subworst_idx) = try_mat(:,2+(j-1)*4) 
                                 ray_objval(subworst_idx)    = ve 
                                 mat_moments(:,subworst_idx) = trymoms_mat(:,2+(j-1)*4) 
-                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f12.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
                             elseif( ve>=best_val )then ! Go reflection.
                                 if(contract_id==0) write(my_id+1001,'(a,i3)') " (1) vr, case:", j
                                 vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
                                 ray_objval(subworst_idx)    = vr
                                 mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4) 
-                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f12.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
                             endif
                         elseif( vr>=best_val )then
                             if( vr<less_worse_valvec(j) )then ! CASE 2 Go reflection. 
@@ -980,29 +1111,29 @@ contains
                                 vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
                                 ray_objval(subworst_idx)    = vr
                                 mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)
-                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f12.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
                             elseif( vr>=less_worse_valvec(j) )then ! Case 3 Go contraction.
                                 if( vr<worst_valvec(j) .and. vcr<vr )then ! combination of A^R and M.
                                     if(contract_id==0) write(my_id+1001,'(a,i3)') " (3) vcr, case:", j
                                     vertex_list(:,subworst_idx) = try_mat(:,3+(j-1)*4)
                                     ray_objval(subworst_idx)    = vcr
                                     mat_moments(:,subworst_idx) = trymoms_mat(:,3+(j-1)*4)
-                                    if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f12.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                    if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
                                 elseif( worst_valvec(j)<=vr .and. vco<worst_valvec(j) )then ! combination of A_J and M.
                                     if(contract_id==0) write(my_id+1001,'(a,i3)') " (4) vco, case:", j
                                     vertex_list(:,subworst_idx) = try_mat(:,4+(j-1)*4)
                                     ray_objval(subworst_idx)    = vco
                                     mat_moments(:,subworst_idx) = trymoms_mat(:,4+(j-1)*4)
-                                    if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f12.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                    if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
                                 else ! Case 4 Shrink signal. 
                                     if( vr<worst_valvec(j) )then ! Bug exists in last version. 7-25-2017
                                         if(contract_id==0) write(my_id+1001,'(a,i3)') " (5) vr, case:", j
                                         vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
                                         ray_objval(subworst_idx)    = vr
                                         mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)    
-                                        if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f12.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                        if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
                                     else
-                                        if(contract_id==0) write(my_id+1001,'(a,i3)') " (6) vr, case:", j
+                                        if(contract_id==0) write(my_id+1001,'(a,i3)') " (6) v_original, case:", j
                                         ! Keep the vertex intact and 
                                     endif ! vr<worst_valvec
                                     shrink_signal_ray(j) = .true.
@@ -1015,17 +1146,19 @@ contains
                 
                 if( contract_id == 0 .and. printout13 )then
                     do i = 1, num_vertices
-                        write(my_id+1001,'("VAL ",f12.7," INPUT ", <ndim>f12.7, " MOMENTS ", <ndim>f12.7)') ray_objval(i), vertex_list(:,i), mat_moments(:,i)
+                        write(my_id+1001,'("VAL ",f16.7," INPUT ", <ndim>f12.7, " MOMENTS ", <ndim>f12.7)') ray_objval(i), vertex_list(:,i), mat_moments(:,i)
                     enddo ! i
-                    write(my_id+1001,'(<noamoeba>l3)') shrink_signal_ray
+                    
+                    write(my_id+1001,'(a,<noamoeba>l3)') 'Shrink_single_ray: ', shrink_signal_ray
                 endif ! 
                 
                 if( count(shrink_signal_ray) == noamoeba )then ! The worst case contraction is needed in next step.
                     
-                    amo_msgtype = 4 ! shrink
-                    
+                    amo_msgtype = 4 ! Shrink. toward the best
+                    if(contract_id==0) write(my_id+1001,'(a,/)') '[amo3]-->[amo4] leave for shrinking... '
                 else ! At least one processor finds that Case 1 or 2 applies or A^C takes place in Case 3.
                     
+                    ! ordering the result.
                     if(contract_id==0)then
                         rankinglist = [(i,i=1,ndim+1)]                  
                         call sort_real( ray_objval, rankinglist )
@@ -1035,14 +1168,29 @@ contains
                             mat_moments(j,:) = mat_moments(j,rankinglist)
                         enddo ! j
                     endif
+                    
+                    ! Bookkepping for restarts. 8-7-2017
+                    if( AMOEBA_ID==0 )then
+                        mid_output_count = mid_output_count + 1
+                        if( maxval(abs(current_best-vertex_list(:,1)))>1.e-8_wp )then ! There exist some changes in value of any digits.
+                            write(my_id+2001,'(i5,f20.10,<ndim>f20.10)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                            current_best = vertex_list(:,1)
+                        endif
+                    endif                    
                                         
-                    if(maximum_distance_vertices(vertex_list,noamoeba)>maxdist)then ! 7-30-2017 Has not fallen into the neighborhood.
+                    ! check if the exit critieria satisfies. 
+                    call maximum_distance_vertices( vertex_list, noamoeba, distance_vec)
+                    !if(maximum_distance_vertices(vertex_list,noamoeba)>maxdist)then ! 7-30-2017 Has not fallen into the neighborhood.
+                    if(maxval(distance_vec(2:ndim+1))>maxdist*sum(vertex_list(:,1)**2._wp)**0.5_wp)then                    
                         amo_msgtype = 3 ! Keep staying in amo_msgtype = 3.
                     else
-                        amo_msgtype = 10 ! Normal stop
+                        amo_msgtype = 10 ! Natural stop.
                     endif
                     
+                    write(my_id+1001,'(a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp                
+                    
                 endif
+                
                 
                 !! 7-30-2017 There are two possible scenarios that may make your MPI implmentation kills itself silendly during the run time:
                 !! (1) You call MPI_BCAST without the discretion that the function should only be seen/encountered by the calling communicator; otherse should be avoided using, say, a if statement.
@@ -1057,40 +1205,57 @@ contains
                 
             endif ! amo_msgtype = 3 (Amoeba)
             
-            if( amo_msgtype == 4 )then ! shrinkage toward the centroid across all the vertices of a single amoeba, rather than the subset of it (say, only those invalid vertices of amoeba group).    
+            ! 8-6-2017 Non-discrimination strategy: every vertex is required to shrink.
+            ! 8-3-2017 What differentiates this block from block 2? This shrinkage is performed by All the nodes in the contract world, but the shrinkage in block 2 is performed RESPECTIVELY by nodes in the contract world.
+            if( amo_msgtype == 4 )then ! 8-6-2017. Shrinkage strategy is NOT for the vertex initialization, compared to amo_msgtype == 2. 
+                
+                shrink_counter = shrink_counter + 1
                 
                 if( CONTRACT_WORLD/=MPI_COMM_NULL )then
-                    shrink_counter = shrink_counter + 1
-                    if(contract_id/=0) write(my_id+1001,'(/,a,a,i4)') '[amo4] contract shrinking toward the best', ' count: ', major_counter
+                        
+                    if(contract_id/=0) write(my_id+1001,'(/,a,a,i6)') '[amo4] contract shrinking toward the best', ' major_counter ', major_counter
                     
-                    if( printout13 .and. contract_id == 0 .and. i == 1 )then
+                    if( printout13 .and. contract_id == 0 )then
                         write(my_id+1001, '(a)') "[amo4] Before shrinking. "
                         do j = 1, num_vertices
-                            write(my_id + 1001, '("Vertex ", i3, " POS", <num_vertices>f12.7)') j, vertex_list(:,j)
+                            write(my_id + 1001, '("Vertex        ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(j), ray_modelmsg(j), vertex_list(:,j), mat_moments(:,j)                            
                         enddo ! j
                     endif ! if
                     
                     if(printout13 .and. contract_id == 0) write(my_id+1001,'(" best ", <ndim>f12.7, " to-be ", <ndim>f12.7)') vertex_list(:,1), vertex_list(:,i+1)
                     
-                    vertex_list(:,contract_id+1) = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,contract_id+1) ! 7-26-2017 
+                    ! Prepare for comparison in amo_msgtype = 1
+                    old_objval_vec   = ray_objval   ! everyone should already have the same information due to the broadcast in amo_msgtype =3.
+                    old_vertex_list  = vertex_list  ! everyone should already have the same information due to the broadcast in amo_msgtype =3.
+                    old_mat_moments  = mat_moments  ! everyone should already have the same information due to the broadcast in amo_msgtype =3.
+                    old_ray_modelmsg = ray_modelmsg ! everyone should already have the same information due to the broadcast in amo_msgtype =3.
+                    shrink_flag      = 1
                     
-                    if( printout13 .and. contract_id == 0 )then
-                        write(my_id+1001, '(a)') "[amo4] After shrinking. "
-                        do j = 1, num_vertices
-                            write(my_id + 1001, '("Vertex ", i3, " POS", <num_vertices>f12.7)') j, vertex_list(:,j)
-                        enddo ! j
-                    endif ! if
+                    ! overall contraction
+                    !vertex_list(:,contract_id+1) = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,contract_id+1) ! 7-26-2017 
+                    temp_contract_vertex = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,contract_id+1) ! 8-9-2017
+                    call MPI_GATHER( temp_contract_vertex, ndim, MPI_DOUBLE_PRECISION, &
+                        &                     vertex_list, ndim, MPI_DOUBLE_PRECISION, 0, CONTRACT_WORLD, mpi_err )
+                    
                 endif
                 
-                amo_msgtype = 1 ! Bug. 7-26-2017
+                if(contract_id/=0) write(my_id+1001,'(a,/)') '[amo4]-->[amo1] for post-shrinkage evaluation '
+                amo_msgtype = 1 ! Bug. Missing. 7-26-2017 EVALUATION.
                 
-                call MPI_BCAST( amo_msgtype, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( major_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( shrink_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( ray_modelmsg, ndim+1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( ray_objval, ndim+1, MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( mat_moments, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( vertex_list, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )                    
+                !call MPI_BCAST( amo_msgtype, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
+                !call MPI_BCAST( major_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
+                !call MPI_BCAST( shrink_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
+                !call MPI_BCAST( ray_modelmsg, ndim+1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
+                !call MPI_BCAST( ray_objval, ndim+1, MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )
+                !call MPI_BCAST( mat_moments, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )
+                call MPI_BCAST( vertex_list, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )   
+                
+                if( printout13 .and. contract_id == 0 )then
+                    write(my_id+1001, '(/,a)') "[amo4] Trial shrinking. "
+                    do j = 1, num_vertices
+                        write(my_id + 1001, '("Vertex ", i3, " POS", <num_vertices>f12.7)') j, vertex_list(:,j)
+                    enddo ! j
+                endif ! if                
                 
             endif ! amo_msgtype == 4       
             
@@ -1102,13 +1267,15 @@ contains
                 exit
             endif ! amo_msgtype == 10
             
+            !write(my_id+1001,'(/,a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp
+            
         enddo ! while ( major_counter<=amoitrcrt )
         
-        if( amo_msgtype==9 )then
+        if( amo_msgtype==9 )then 
             bestobjval = inf ! 0._wp
             bestvertex = 0._wp
             result     = 0._wp
-        else ! including the cases such as amo_msgtype== 1, 3 or 10.
+        else ! including the cases such as amo_msgtype== 1 (evaluation), 3 (amoeba) or 10 (naturally exit).
             bestobjval = ray_objval(1)
             bestvertex = vertex_list(:,1)
             result     = mat_moments(:,1)
@@ -1116,7 +1283,8 @@ contains
         
         deallocate( vertex_list, sim_moments, mat_moments, ray_objval, ray_modelmsg, rankinglist, dup_ray_objval )
         deallocate( centroid, best_posi, worst_mat, worst_valvec, less_worse_valvec, try_vec, trymoms_vec, subworst_posi )
-        deallocate( try_mat, tryfun_vec, trymoms_mat, shrink_signal_ray, selected_input )
+        deallocate( try_mat, tryfun_vec, trymoms_mat, shrink_signal_ray, selected_input, distance_vec, old_vertex_list )
+        deallocate( old_objval_vec, old_mat_moments, old_ray_modelmsg, current_best, temp_contract_vertex )
         
     end subroutine amoeba_algorithm
     
@@ -1192,6 +1360,32 @@ contains
         endif ! iostat
         close(10)
     end subroutine read_one_point_from_short_list
+    
+    subroutine read_best_point( startpoint, input_file )
+        implicit none
+        real(wp), dimension(:), intent(out) :: startpoint
+        real(wp), dimension(:), allocatable :: temp_ray
+        integer :: iostat
+        character(len=800) :: value_string
+        character(len=*), intent(in) :: input_file
+        integer :: n, m
+        !n = size(startpoint)
+        m = 0
+        allocate( temp_ray(ndim+2) )
+        open( unit=10, file=input_file, status='old', action='read', iostat=iostat )
+        if( iostat==0 )then
+            do
+                read( unit=10, fmt='(a)', iostat=iostat ) value_string
+                if( iostat/=0 ) exit                
+                if( scan( value_string,'!' )>0 ) cycle
+                read( value_string, fmt=* ) temp_ray
+                m = m + 1
+            enddo ! do
+        endif
+        if( m==0 ) write(*,fmt='(/,a)') "something wrong with the subroutine read_best_point "
+        startpoint = temp_ray(3:ndim+2) 
+        deallocate( temp_ray )            
+    end subroutine read_best_point
     
     subroutine read_short_list(filename,startpoint)
         implicit none
@@ -1533,7 +1727,11 @@ contains
     !print*, ' if test ', stemp=='west'
     !print*, trim(stemp), len(stemp)
     
-   
+    !! Experiment for inf.
+    !real(wp) :: temp1, temp2
+    !temp1 = inf
+    !temp2 = inf
+    !print*, "answer: ", merge(" yes "," no  ",temp1==temp2) ! answer: yes   
 
     ! TRICK: TO PRINT OUTCOME INSIDE INVOKED SUBROUTINES OR FUNCTIONS, DELCARE FILE-OPEN STATEMENTS IN THE MAIN PROGRAM.
     ! TRICK: THE FORMATE OF RESPECITVE OUTPUT FILE CAN RESIDE IN THE INVOKED SUBROUTINES AND FUNCTION

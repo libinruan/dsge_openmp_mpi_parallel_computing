@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(134)
-    real(wp) :: para(134), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(136)
+    real(wp) :: para(136), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -83,7 +83,8 @@ module variable
                 trsld = -1.e3, & ! expected value is reassigned as penalty level if its original value is smaller than "trsld"
                 maxdist = 5.e-6, &
                 tinymass = 1.e-2, &
-                chunkmass = 3.e-2
+                chunkmass = 3.e-2, &
+                initau = 4._wp
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -99,7 +100,8 @@ module variable
                 sdim   = 5, &
                 nsdim = 100, &
                 iterainvdist = 50, &
-                noamoeba = 2
+                noamoeba = 2, &
+                testfunc_idx = 1
     
     character(len=100) :: listnumber
     
@@ -143,7 +145,7 @@ module variable
     ! real(wp) :: penalty = -1e+7 
     real(wp) :: inf ! defined in toolbox.f90's function 'infinity_setting'.
     
-    integer ::  t, inv_dist_counter, szperiod1 
+    integer ::  t, inv_dist_counter, szperiod1
     real(wp) :: new_amin, new_amax
     real(wp) :: staxbase, staxwbase, staxebase, kndata, avgincw, govbalance, govbal, benefit, sumsstax
     real(wp) :: AggEffLab, AggCorpLab, AggCorpCap, AggCorpOut, AggOut, AggTax, AggAst, AggInc
@@ -206,12 +208,11 @@ module variable
 
     !real(wp), dimension(:), allocatable :: labdem
     
-    
     real(wp), dimension(:,:,:,:,:,:,:,:,:), allocatable :: tbi_m, atw_m, tax_m, beq_m, pro_m, ldem_m, lsup_m, hom_m, csp_m ! ON THE REFINED GRID
     real(wp), dimension(:,:,:,:,:,:,:,:,:), allocatable :: tbim, atwm, taxm, beqm, prom, ldemm, lsupm, homm, cspm ! ON THE COARSE GRID. tbim: taxible income, atwm: after tax wealth. production. labor demand and supply. 
     real(wp), dimension(:,:,:,:,:,:,:,:,:), allocatable :: ide, ent2wok, wok2ent ! 4.1.2017 nafv ! (nsav)-->(nafv), nsav: the beginning period refined grid; nafv: the end period refined grid
     real(wp), dimension(:,:,:,:,:,:,:,:,:), allocatable :: totast_m, entcap_m, entlab_m, entprd_m, home_m, ttax_m, uwa_m, uwh_m !, entsize_m
-    real(wp), dimension(:,:), allocatable :: p_homvec
+    real(wp), dimension(:,:), allocatable :: p_homvec, distance_vec
     
     real(wp), dimension(:,:,:,:,:,:), allocatable :: wf, id, ppldie, idtemp, sid ! ppldie: mass across states and elderly periods
     real(wp), dimension(:,:,:,:,:), allocatable :: c_prf_mat, c_lab_mat, c_grs_mat, beqdis, id1 ! invariant distribution of period one.
@@ -245,14 +246,14 @@ module variable
     real(wp), dimension(:,:), allocatable :: sobolm, sobolm_scaled, mpi_sobol_scaled, mpi_sobol_mixed ! sobolm: scaled for ranges; mpi_sobol_scaled: adjusted for the starting point.
     real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1
     
-    ! amoeba - break_list - mpi_exercise_mode == 0
+    ! amoeba - break_list - mpi_exercise_mode == 0 Only.
     real(wp), dimension(10) :: weight_list = [0.95_wp,0.9_wp,0.85_wp,0.8_wp,0.75_wp,0.7_wp,0.65_wp,0.6_wp,0.55_wp,0.5_wp] ! used for mpi_exercise_mode==1
     integer, dimension(10) :: breaks_list = [1,101,201,301,401,501,601,701,801,901] ! used for mpi_exercise_mode==1
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
-    logical :: printout13
+    logical :: printout13, printout14, printout15, printout16
     logical :: receiving, status(mpi_status_size)
-    character(len=40) :: node_string, trylen_string, amoeba_x_y_string
+    character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
     
     ! amoeba - mpi_exercise_mode == 2
@@ -305,9 +306,17 @@ contains
                    case ('printout12') 
                         read( value_string, * ) printout12         
                    case ('printout13') 
-                        read( value_string, * ) printout13                          
+                        read( value_string, * ) printout13  
+                   case ('printout14')                        
+                        read( value_string, * ) printout14
+                   case ('printout15')
+                        read( value_string, * ) printout15
+                   case ('printout16')     
+                        read( value_string, * ) printout16
                    case ('listnumber')
                         read(value_string, *  ) listnumber
+                   case ('bestvertex_file')
+                        read(value_string, * ) bestvertex_file
                    case('mpi_exercise_mode')
                        read( value_string,*) mpi_exercise_mode                         
                    !case ('tausvflag')
@@ -982,7 +991,17 @@ contains
                        i = i + 1
                        read( value_string,*) chunkmass
                        labstr(i) = 'chunkmass'
-                       para(i) = chunkmass                         
+                       para(i) = chunkmass       
+                   case('initau') ! 135
+                       i = i + 1
+                       read( value_string,*) initau
+                       labstr(i) = 'initau'
+                       para(i) = initau
+                   case('testfunc_idx') ! 136
+                       i = i + 1
+                       read( value_string,*) testfunc_idx
+                       labstr(i) = 'testfunc_idx'
+                       para(i) = testfunc_idx                       
                 end select
             enddo
         else
