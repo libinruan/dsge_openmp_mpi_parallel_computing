@@ -993,7 +993,8 @@ contains
                             
                             ! RULE OF SHRINKAGE (toward the best point; the initial point obtained from the coarse search stage.)
                             
-                            vertex_list(:,i+1) = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,i+1) ! 7-23-2017 vertex_list(:,1) is the best vertex in the very first run of the computation.                              
+                            !vertex_list(:,i+1) = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,i+1) ! 7-23-2017 vertex_list(:,1) is the best vertex in the very first run of the computation.                              
+                            vertex_list(:,i+1) = vertex_list(:,1) + amotau*(vertex_list(:,i+1)-vertex_list(:,1)) ! 8-9-2017                              
                             
                             if(printout13 .and. contract_id == 0) write(my_id+1001,'(" New vertex ", <ndim>f12.7)') vertex_list(:,i+1)
                         endif
@@ -1233,7 +1234,9 @@ contains
                     
                     ! overall contraction
                     !vertex_list(:,contract_id+1) = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,contract_id+1) ! 7-26-2017 
-                    temp_contract_vertex = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,contract_id+1) ! 8-9-2017
+                    !temp_contract_vertex = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,contract_id+1) ! 8-9-2017
+                    temp_contract_vertex = vertex_list(:,1) + amotau*(vertex_list(:,contract_id+1)-vertex_list(:,1)) ! 8-9-2017
+                    
                     call MPI_GATHER( temp_contract_vertex, ndim, MPI_DOUBLE_PRECISION, &
                         &                     vertex_list, ndim, MPI_DOUBLE_PRECISION, 0, CONTRACT_WORLD, mpi_err )
                     
