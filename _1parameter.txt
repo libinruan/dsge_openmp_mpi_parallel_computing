@@ -123,16 +123,18 @@ amogam       	  1.0   ! (real)
 amobet       	  0.5   ! (real) 
 amotau       	  0.5   ! (real) contraction factor.
 amoerrcrt    	1.E-3   ! (real) 1.E-4 
-amoitrcrt    	 1000   ! (integer) amoeba maximum interation
-amoconvex    	  0.2   ! (real) Weight on the best single point 
+amoitrcrt    	 1500   ! (integer) amoeba maximum interation. 500-1500.
+amoconvex    	  0.2   ! (real) Weight on the best single point (redundant) 
 amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combination with one best parameter inputs.
 nsbq 		    10000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
 slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
-elist               3   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
-noamoeba            2   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group.
-maxdist			1.e-2   ! maximum distance allowed among vertices in a single amoeba
-tinymass		1e-12   ! the lower threshold of a valid mass grid.
-chunkmass        1e-2   ! the upper threshold of a valid mass grid. 
+elist               1   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
+noamoeba            1   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group. Note: noamoeba is actually the number of subgroup within an amoeba.
+maxdist			1.e-6   ! 1.e-4; maximum distance allowed among vertices in a single amoeba
+tinymass		1e-12   ! the lower threshold of a valid mass grid. | for adjustment of extremem cases in population distribution.
+chunkmass        1e-2   ! the upper threshold of a valid mass grid. | for adjustment of extremem cases in population distribution.
+initau				4   ! multiplier of initial vertices ! for determining how spread the shape of the first vertex would be.
+testfunc_idx        5   ! 1, norm 2 measure; 2, Variably Dimensioned Function; 3, ; 4, Extended Rosenbrock Function (restart required to precisely approximate the answer). 
 printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
 printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage ! Successful development version: True in 1, 3, 5, 6, and 7.	
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
@@ -143,9 +145,103 @@ printout7		 false  ! !##!OFF IN PRODUCTION MODE. Print cww, cwf, cwa, cwh, cwk .
 printout8        false  ! !##!ONLY USED IN SINGLE NODE DEBUG MODE. trace of mass transition across generations [128] 
 printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].
 printout10       true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+2001. Final aggregate stat results. 
-printout11       false  ! !##!True, 'solve_model'; False, 'Random_generator_model', 7-8-2017
+printout11       false  ! !##!True, 'solve_model'; False, 'test_model', 7-8-2017
 printout12       true   ! Show the default parameter setting
 printout13	     true   ! debug amoeba
+printout14       true   ! true, extreme method as used in literature, based on coordinate and multiplier; false, the usual method I have been using, based on constraints
+printout15       true   ! true, allow undefined area to create extreme penalty of value infinity; 
+printout16       false  ! true, read existing optimal points WITHOUT sobel sequence; FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
 listnumber       _startingpoint_1.csv ! specify which starting point to read.       
+bestvertex_file  1_001_restart_list.txt
 mpi_exercise_mode   2   ! (integer) Single node mode, 0; Exploratory mode, 1; amoeba mode 2 (listnumber) 
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not.
+!
+! (Test) Setting #1. -------------------------------------------------------------------------------------------------
+!   Purpose: Customary experiment mode. Check if subroutine read_best_point works. 
+!   MPI_exercise_mode: -2 
+!   Bestvertex_file: xxxx.
+! 
+! (Test) Setting #2. -------------------------------------------------------------------------------------------------
+!   Purpose: MKL random number generator experiment.
+!	MPI_exercise_mode: -1 
+!
+! (Verification) Setting #3. size of nodes: One ----------------------------------------------------------------------
+!	Purpose: Compute the steady-state of the model with a SINGLE node using the parameters (of size ndim) 
+!		specified in _1parameter.txt. No amoeba algorithm, no convergence involved.  	  
+!   MPI_exercise_mode: 0 
+!   Output: _SingleNodeInputs.txt (1001), and _SingleNodeDetails.txt (2001)
+!  
+! (Production) Setting #4. size of nodes: customary (MPI implementation, no amoeba algorithm) ------------------------
+!   Purpose: system root collects a promising starting points from slave nodes via MPI. Slave nodes work 
+!		on a list generated by Sobel sequence in the convex-combination style.
+!	Method: one starting point per node. There is no upper bound of nodes evoked in the implementation.
+!   MPI_exercise_mode: 1 
+!	Output1 (non-root): SlaveIntermFeedback_xxx.txt (1001, detailed information on the fly), 
+!						SlaveMacrostat_xxx.txt (2001, blank)
+!   Output2 (root): RootIntermCollect_xxx.txt (1001, similar to IOMat_xxx.txt with MPI ranking info), 
+!					RootUseless_xxx.txt (2001, blank)
+!   Output3: IOMat_xxx.txt (input, moment, penalty)
+!   nsbq: the length of the trial sobel sequence list
+!   slist: customary.  
+!   elist: customary and bigger than slist. Note that (elist-slist+1) has to be larger than the number of 
+!		amaoeba group we ask for (that is, ncol).
+!
+! (Test) Setting #5. size of nodes = a single amoeba group.-----------------------------------------------------------
+!	Purpose: 
+!   Calculation of required nodes: To solve 10 unknown inputs, for example, if we ask for only two amoeba subgroups, then the required 
+!		total nodes would be (1+ndim+1) = 12 in command line for flag -np. And set the parameter nrow to be 11 
+!		correspondingly.
+! 	Formula of required nodes: (one root)+[size of nodes per amoeba group]*[number of amoebas], where 
+! 		[size of nodes per amoeba group] = [amoeba root] + {4*[number of worst vertices to be improved]} + 
+! 		[probably some additional vertices if the proceeding {} term is smaller than "ndim"].
+!	MPI_exercise_mode: 2
+!	Output1 (amoeba head): _001_amoeba_head.txt, and _001_restart_list.txt
+!	Output2 (amoeba members in contract world): _contract_member.txt
+! 	Output3 (amoeba members not in contract world): _Non-contract-member.txt
+!	printout11: False. Solve the test functions widely used in the field of operation research
+!	printout16: True. Read a single potential best vertex (No Sobel restart) from a file specified by parameter Bestvertex_file (below).
+!   bestvertex_file: xxx.
+!   testfunc_idx: 1~4. 
+!   nrow: xxx. (see the example in setting #6 below).
+!
+! (Production) Setting #6. size of nodes = a single amoeba group. ----------------------------------------------------
+!   Purpose: amoeba algorithm for approximiating the optimal parameter setting of the quantitative model.
+! 	MPI_exercise_mode: 2
+!	Output1 (amoeba head): _001_amoeba_head.txt, and _001_restart_list.txt
+!	Output2 (amoeba members in contract world): _contract_member.txt
+! 	Output3 (amoeba members not in contract world): _Non-contract-member.txt
+!   printout11: True. Solve the steady state solution of the quantitative model.
+!	printout16: True. Read a single potential best vertex (No Sobel restart) from a file specified by parameter Bestvertex_file.
+!   nrow: xxx. The number of nodes contained in a amoeba group. The size of unknown parameters is 10, 
+!		for example. We ask for two subgroup within each ameoba to perform algorithm. Since [one amoeba head] + 
+!		4 times 2 = 9 < (10+1), so we set the basic ameoba required number of node to 11 for "nrow" . 
+! 		On the other hand, if we ask for four amoeba subgroup for this 10 unknown parameter 
+!		question (the same question), we would set 4 times 4 plus 1 = 17 (just use 17 
+!		becuase it exceeds the minimum number of required amoeba nodes, 11). The command line -np would be 12 and 18, 
+!		respectively.
+!
+! How to conduct a test experiment to see the performance of amoeba algorithm?
+!
+! Step 1. Pick one test function and a (or a list) of starting points. In this example, I demonstrate two methods to 
+!	read a starting point. The first method is to read an existing short list as in setting #5, BUT 
+!   (0) First, check to see if a .txt file, named _full_list_startingpoint.csv, exists and starting points available;
+!       And if you want to have a refreshed output file, then delet the file with named hard-wiredly specified by x_001_restart_list.txt.
+!   (1) Set printout16 to FALSE (important) so that the program is asked to read a list of starting points from _full_list_startingpoint.csv;
+!   (2) Therefore, we ignore parameter bestvertex_file;
+!   (3) Set slist=1 and elist=1 for simplicity because we have only one trial starting point. 
+!   (4) Choose a test function which you prefer (i.e., set testfunc_idx). 
+!   (5) Set printout11 to false. And change nrow to satisfy the rule of required nodes being (ndim+1).
+!   (6) Ignore the value of bestvertex_file, because we already set printout16 to false. 
+!   	Although these starting points were originally generaed for the quantitative 
+!   	model and essentially irrelevant to any of our test functions, we adopt this list of starting points for 
+!   	illustrational convenience here. 
+!   (7) noamoeba sould be set correctly as you request.
+!   (8) The rest of parameters can just be the same as specified in setting #5. 
+!   (9) Command line: mpiexec -np 12 MPI_sandbox.exe.
+!	(10) If you don't want to use the list of starting points _full_list_startingpoint.csv, then skip items (0) and (1) and set 
+!       printout16 to true and set parameter bestvertex_file to the target file that have a valid starting point.
+!
+! Step 2. Tell the program to reuse the last best point from file 1_001_restart_list_txt by 
+!   (1) setting printout16 to TRUE;
+!	(2) and set bestvertex_file correspondingly as in setting#6 (say, 1_001_restart_list.txt);
+!   (3) but remeber to change printout11 to false because we are in the test stage rather than production stage.

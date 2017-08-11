@@ -88,7 +88,7 @@ module equilibrium
         real(wp), dimension(:), intent(in) :: mom, tar
         real(wp), dimension(:), allocatable :: func_ray, fund_ray
         real(wp) :: temp1, temp2
-        integer :: i
+        integer :: i, j, m
         select case(testfunc_idx)
             case(1) ! Ordinary norm 2 measure
                 test_objective_value = sum( (mom)**2._wp )
@@ -117,6 +117,30 @@ module equilibrium
                 test_objective_value = sum(func_ray**2._wp) + 1._wp
                 deallocate( func_ray )                
             case(5) ! Extended Powell Singular Function
+                
+                !write(*,*) " Function value takes non-zero only in the first eight dimensions  "
+                allocate( func_ray(ndim) )
+                do i = 1, ndim
+                    j = mod(i,4)        
+                    m = merge((i-j)/4,(i-j)/4+1,j==0)
+                    if(m<=2)then
+                        select case (j)
+                        case (1)
+                            func_ray(i) = mom(i) + 10._wp*mom(i+1) - 11._wp    
+                        case (2)
+                            func_ray(i) = (5._wp)**0.5_wp*(mom(i+1)-mom(i+2))
+                        case (3)
+                            func_ray(i) = (mom(i-1)-2._wp*mom(i) +1._wp)**2._wp
+                        case (0) 
+                            func_ray(i) = (10)**0.5_wp*(mom(i-3)-mom(i))**2._wp
+                        end select
+                    else
+                        func_ray(i) = mom(i)
+                    endif    
+                enddo ! i 
+                test_objective_value = sum(func_ray**2._wp) + 1._wp
+                deallocate( func_ray )
+                
         end select     
         !momvec = guessv*(sin(guessv)+0.1_wp) ! 7-21-2017, global optimum: f(x_i) = 0 for x_i = 0 for i = 1, ..., n, in [-10,10]
         !test_objective_value = sum(abs(mom*(sin(mom)+0.1_wp)))

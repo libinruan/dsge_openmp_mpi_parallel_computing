@@ -757,6 +757,7 @@ contains
                         
                         if(printout14)then ! extreme method using only the maximum coordinate.
                             
+                            ! http://bit.ly/2vpVmm0 p.276 See "why sets initau to 4._wp?"
                             true_deviation = initau*maxval(selected_input)
                             
                             !if( contract_id==1 )then
@@ -850,7 +851,7 @@ contains
                     if( printout13 .and. contract_id==0 )then ! 7-23-2017 checked. 
                         write(my_id+1001,'(/,a)') "[amo1] collected vertex_ist:"
                         do i = 1, ndim+1
-                            write(my_id+1001,'("nonsorted-val ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
+                            write(my_id+1001,'("nonsorted-val ", f20.7, " msg ", i3, " input ", <ndim>f20.7, " mom ", <ndim>f20.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
                         enddo
                     endif
                     write(my_id+1001,'(a)') " "
@@ -956,7 +957,7 @@ contains
                 if( printout13 .and. contract_id==0 )then ! 7-28-2017 That other vertices have the same info is checked. 7-23-2017 checked. ! 7-24-2017 Double checked with other output.
                     write(my_id+1001,'(a)') "[amo1] After broadcast, every node has been updated."
                     do i = 1, ndim+1
-                        write(my_id+1001,'("sorted-value  ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
+                        write(my_id+1001,'("sorted-value  ", f20.7, " msg ", i3, " input ", <ndim>f20.7, " mom ", <ndim>f20.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
                     enddo
                 endif                
             endif ! amo_msgtype == 1 7-28-2017 fully checked.
@@ -1041,7 +1042,7 @@ contains
                     write( my_id+1001, '(a, <ndim>f12.7)') "centroid:    ", centroid
                     write( my_id+1001, '(a, <ndim>f12.7, a, f16.7)') "best vertex: ", best_posi, " the minimum penalty: ", best_val                                
                     do j = 1, noamoeba
-                        write( my_id+1001, '("no.",i2.2, " FUN ", f16.7, " INPUT ", <ndim>f12.7,  " Next_Val ", f16.7)') j, worst_valvec(j), worst_mat(:,j), less_worse_valvec(j)
+                        write( my_id+1001, '("no.",i2.2, " FUN ", f20.7, " INPUT ", <ndim>f20.7,  " Next_Val ", f20.7)') j, worst_valvec(j), worst_mat(:,j), less_worse_valvec(j)
                     enddo ! j
                 endif ! printout13 .and. amoeba_id==0
                 
@@ -1079,7 +1080,7 @@ contains
                     if( AMOEBA_ID == 0 .and. printout13 )then
                         write( my_id+1001, '(/,a)') "Amoeba subgroup preliminary outcome:"    
                         do j = 1, 4*noamoeba
-                            write( my_id+1001, '("NO.",i2.2," FUN ",f16.7," INPUT ",<ndim>f12.7," MOMENT ",<ndim>f12.7)') j, tryfun_vec(j), try_mat(:,j), trymoms_mat(:,j)
+                            write( my_id+1001, '("NO.",i2.2," FUN ",f20.7," INPUT ",<ndim>f20.7," MOMENT ",<ndim>f20.7)') j, tryfun_vec(j), try_mat(:,j), trymoms_mat(:,j)
                         enddo
                     endif
                     
@@ -1147,7 +1148,7 @@ contains
                 
                 if( contract_id == 0 .and. printout13 )then
                     do i = 1, num_vertices
-                        write(my_id+1001,'("VAL ",f16.7," INPUT ", <ndim>f12.7, " MOMENTS ", <ndim>f12.7)') ray_objval(i), vertex_list(:,i), mat_moments(:,i)
+                        write(my_id+1001,'("VAL ",f20.7," INPUT ", <ndim>f20.7, " MOMENTS ", <ndim>f20.7)') ray_objval(i), vertex_list(:,i), mat_moments(:,i)
                     enddo ! i
                     
                     write(my_id+1001,'(a,<noamoeba>l3)') 'Shrink_single_ray: ', shrink_signal_ray

@@ -1,0 +1,151 @@
+! "nrow" = the size of ROW_WORLD, "4*noamoeba" = the size of AMOEBA_WORLD, and "ndim+1" = the size of CONTRACT_WORLD.
+rhoy             0.715
+vary             0.52 
+rhoyh            0.677
+varyh            0.37 
+deltak           0.109
+deltah           0.017
+rd               0.035
+alpha            0.247 ! Following Naka, housing capital is removed from the defintiion for capital income (p.15).0.26 perfect version. 
+lambda           0.2  
+theta            0.1359087 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
+sigma            1.5 ! 1.5 Yang. 2.0 ! the larger the sigma, the flatter the curve becomes when the abscissa is away from the origin.  
+nu               0.88 
+kv1              0.0766807 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
+prtk0            0.0400111 ! <-------------------------------------------------------------------------- (2-4)
+prtk1            0.1155747
+prtk2            0.1164856
+phi0             0.5 ! needed for programming issue. can take any value. 
+phi1             0.7701660 ! <-------------------------- (8-10)
+phi2             0.9351416 
+phi3             0.9674434 
+beta             0.9416076 ! 0.93 might be too low. <---------------------------------------------------- (6)
+zbar             1.2379053 ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
+zlow             0.0 ! hard wired. Don't change it. 
+hmin             0 
+hmax             16 ! 25; 120.0
+amin             -0.5  
+amax             300 ! 70 ! 500 ! 700 ! 999.0 If scale 3 enteprise disappear then raise up the upper bound of financial assets.
+dfrac            0.27 ! See Cagetti and De Nardi 2009, TaucfinalSS.f90, lines 56, and 1273. the ratio of government debt to total capital
+gfrac            0.187 ! government spending. average ratio of "government purchases to GDP" over the 1990-1999 period. Cagetti and De Nardi 2009 pdf. 11.
+taubal           0.033
+CorpLabFrac      0.5  
+CorpOutFrac      0.5  
+btaxw            0.32 
+ptaxw            0.7646
+staxw            0.2154
+btaxe            0.2562
+ptaxe            1.4   
+staxe            0.42  
+tauss            0.074 
+PropHouseCapital 0.5   
+BossPropPopu     0.12  
+rl               0.09  
+penalty          -1.e6 
+epsilon          1.e-3 ! used for housing utility
+err_dist         1.e-12
+gamma1           0.0505
+mu1              0.07  
+mu2              0.07  
+rho1             0.070 ! sell current one.
+rho2             0.025 ! buy new one.	
+nmc              3 
+hdim             15 ! 15 ! <------------ 
+adim             15 ! 15 ! <------------ 15 has the same performance as 30 (because brent_localizer has only 5 grid points.)
+fnadim           15 ! hardwired automatically equal to adim.
+kdim             4 
+length           5 
+radjust          0.08  
+rweight          0.50  
+epsirmin         5.e-05 ! 5.e-08
+iterarmax        40 ! 40 <----------------   
+rbar             0.035
+tbalwidth        0.3     
+epsigovmin       5.e-05 ! 5.e-12 
+iteragovmax      40 ! 40 <---------------- 
+taubalmin        0.06 ! 0.0345 Since our taubal seraching starts with the taubalmin, if we set this initial guess too low and we get a positive bal2gdp in the first round, then the program will go in the wrong direction by searching only the area smaller than the initial "too small" lower bound.
+taubalmax        0.08 ! 0.0363
+pertgov          0.04 ! good.
+b2gratio         0.02 ! bequest to gdp
+btax             0.258
+ptax			 0.768
+stax             0.031
+nmul             2
+ndim			 10
+tauk  			 0.4 ! interest income tax rate
+fnhdim			 15 ! hardwired automatically equal to "hdim."
+sdim			 5 ! Use Odd number only!!! 5 good. It is the size of financial grid points after the 1st round.
+err_svdist 	     1.e-10 ! 
+iterasvmax		 5 ! five has the same performance as 10 and 20.	
+nsdim	         20 ! good 20. It is the first round's financial grid point number. Had better larger than "hdim."
+gsdim			 1.0 ! good 1.0 (housing-asset-grid-generating parameter)
+trsld			 -5.e8
+iterainvdist	 40 ! 40
+tausv			 0.15   ! rate of tax on interest income
+taubp			 0.25   ! rate of tax on corporate profit
+target1			 0.65   ! target 1: fraction of capital in the corporate sector ! ##############################################################
+target2   		 0.60   ! target 2: distribution of entrepreneurs on smallest projects
+target3          0.30   ! target 3: distribution of entrepreneurs on median projects
+target4          0.10   ! target 4: distribution of entrepreneurs on largest projects
+target5          0.12   ! target 5: fraction of entrepreneurs in the population
+target6			 1.97   ! target 6: non-housing capital (physical capital) to output
+target7  	     1.26   ! target 7: housing capital (consumer durables) to output
+target8          0.40   ! target 8: total asset held by entrepreneurs
+target9          0.27   ! target 9: share of income held by entrepreneurs
+target10         8.0    ! target 10: ratio of median assets (entrepreneurs to workers)
+lower1           0.002  ! kv1: size of the smallest project ! ##################################################################################
+upper1           1.0    ! kv1: size of the smallest project
+lower2           0.01   ! prtk0: probability of new ideas
+upper2           0.15   ! prtk0: probability of new ideas
+lower3           0.05   ! prtk1: probability of new ideas
+upper3           0.3    ! prtk1: probability of new ideas
+lower4           0.025  ! prtk2: probability of new ideas
+upper4           0.25   ! prtk2: probability of new ideas
+lower5           0.2    ! zbar: average tech shock  
+upper5           1.5    ! zbar: average tech shock
+lower6           0.85   ! beta: discount factor (on "annual" basis)
+upper6           0.998  ! beta: discount factor (on "annual" basis)
+lower7           0.08   ! theta: housing utility parameter
+upper7           0.25   ! theta: housing utility parameter
+lower8           0.65   ! phi1: tech shock
+upper8           0.85   ! phi1: tech shock
+lower9           0.87   ! phi2: tech shock
+upper9           0.97   ! phi2: tech shock
+lower10          0.95   ! phi3: tech shock
+upper10          0.99   ! phi3: tech shock
+trylen           1000   ! (integer) Length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq. ! ############################################################
+sblno1              1   ! (integer) The index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
+nrow         	   11   ! !!!(integer) "nrow has to be larger than or equal to (ndim+1) and 4*noamoeba," and "-np has to be nrow+1." The number of nodes involved in an individual amoeba group, including its amoeba head, the sub-amoeba groups, each of which contains 4 nodes. There are two possible scenario. One: ndim (size of target moments) plus one (the amoeba head) is smaller than total vertices in a single amoeba (i.e., 4 times noamoeba (the size of amoeba)). Two: it goes the other way around, ndim+1>=4*noamoeba. Both cases are acceptable to the program. 7-30-2017. 
+stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
+reinifac     	  0.5   ! (real) reinitialization factor determining the weights of centroid when re-initializing a bad node.
+amoalp       	  1.0   ! (real)   
+amogam       	  1.0   ! (real) 
+amobet       	  0.5   ! (real) 
+amotau       	  0.5   ! (real) 
+amoerrcrt    	1.E-3   ! (real) 1.E-4 
+amoitrcrt    	  400   ! (integer)
+amoconvex    	  0.2   ! (real) Weight on the best single point 
+amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combination with one best parameter inputs.
+nsbq 		    10000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
+slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
+elist               3   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
+noamoeba            2   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group.
+maxdist			 5e-6   ! maximum distance allowed among vertices in a single amoeba
+tinymass		1e-12   ! the lower threshold of a valid mass grid.
+chunkmass        1e-2   ! the upper threshold of a valid mass grid. 
+printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
+printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage ! Successful development version: True in 1, 3, 5, 6, and 7.	
+printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
+printout4        false  ! !##!OFF IN PRODUCTIVE MODE. printout_for_stata_lifecycle_plotting() [121]
+printout5        false  ! debug with process mark for convergence [104]
+printout6        true   ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round and mass transition. 
+printout7		 false  ! !##!OFF IN PRODUCTION MODE. Print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. 
+printout8        false  ! !##!ONLY USED IN SINGLE NODE DEBUG MODE. trace of mass transition across generations [128] 
+printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].
+printout10       true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+2001. Final aggregate stat results. 
+printout11       false  ! !##!True, 'solve_model'; False, 'Random_generator_model', 7-8-2017
+printout12       true   ! Show the default parameter setting
+printout13	     true   ! debug amoeba
+listnumber       _startingpoint_1.csv ! specify which starting point to read.       
+mpi_exercise_mode   2   ! (integer) Single node mode, 0; Exploratory mode, 1; amoeba mode 2 (listnumber) 
+! tausvflag		 true   ! it controls whther the interest income tax is levied or not.
