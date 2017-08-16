@@ -87,8 +87,8 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==0)then ! Stage 0. Building Stage with only a single node.
         
-        solution_string = '_SingleNodeInputs.txt'   
-        concisesolution_string = '_SingleNodeDetails.txt'
+        solution_string = 'SingleNodeInputs.txt'   
+        concisesolution_string = 'SingleNodeDetails.txt'
         open(unit=my_id+1001, file=solution_string, action='write', position='append')
         open(unit=my_id+2001, file=concisesolution_string, action='write', position='append')
         !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
@@ -103,10 +103,12 @@ program MPI_sandbox
         guessv(7) = theta 
         guessv(8) = phi1  
         guessv(9) = phi2  
-        guessv(10)= phi3      
+        guessv(10)= phi3     
+        
         modelmsg = 0
         momvec = inf
         obj_val_1st = inf
+        
         ! Don't update the parameter setting as do the other part of this program. Let's use the modified guessv array.
         call search_equilibrium( guessv, momvec, obj_val_1st, my_id, my_id, modelmsg )
         if( modelmsg == 0 )then
@@ -371,8 +373,11 @@ program MPI_sandbox
                 !print*, solution_string ! checked
                 open(unit=my_id+1001, file=solution_string, action='write') ! AMOEBA HEAD.
                 
-                solution_string = trim(node_string)//'_001_restart_list.txt'
+                solution_string = trim(node_string)//'_001_macrostat.txt'
                 open(unit=my_id+2001, file=solution_string, action='write', position='append')
+                
+                solution_string = trim(node_string)//'_001_restart_list.txt'
+                open(unit=my_id+3001, file=solution_string, action='write', position='append')                
                 
         endif
 
@@ -633,6 +638,7 @@ program MPI_sandbox
             close(my_id+1001)
             if( AMOEBA_ID == 0 )then
                 close(my_id+2001)    
+                close(my_id+3001)
             endif
         endif
         
@@ -914,11 +920,13 @@ contains
                             if( AMOEBA_ID==0 )then
                                 mid_output_count = mid_output_count + 1
                                 if(mid_output_count==1)then
-                                    write(my_id+2001,'(i5,f20.10,<ndim>f20.10)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                                    write(my_id+2001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                                    write(my_id+3001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
                                     current_best = vertex_list(:,1)
                                 else
                                     if( maxval(abs(current_best-vertex_list(:,1)))>1.e-8_wp )then ! There exist some changes in value of any digits.
-                                        write(my_id+2001,'(i5,f20.10,<ndim>f20.10)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                                        write(my_id+2001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                                        write(my_id+3001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
                                         current_best = vertex_list(:,1)
                                     endif
                                 endif ! mid_output_count==1
@@ -1175,7 +1183,8 @@ contains
                     if( AMOEBA_ID==0 )then
                         mid_output_count = mid_output_count + 1
                         if( maxval(abs(current_best-vertex_list(:,1)))>1.e-8_wp )then ! There exist some changes in value of any digits.
-                            write(my_id+2001,'(i5,f20.10,<ndim>f20.10)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                            write(my_id+2001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                            write(my_id+3001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
                             current_best = vertex_list(:,1)
                         endif
                     endif                    

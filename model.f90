@@ -75,8 +75,12 @@ contains
         y = x**(1._wp-sigma)/(1._wp-sigma)
     end function bu    
     
-    subroutine solve_bellman_1014() ! 072516 072816
+    subroutine solve_bellman_1014(exit_bellman) ! 072516 072816 8-13-2017 [0]
         implicit none
+        logical, intent(inout) :: exit_bellman ! inivialized in calling function 8-13-2017 [1]
+        logical :: exit_brent                  ! 8-13-2017 [1] -------------------------------
+        logical, dimension(:), allocatable :: qray ! 8-13-2017 [2]
+        
         ! (1)
         integer :: tstart, tend, trate, tmax
         integer, dimension(:,:), allocatable :: xlist, blist1014, bd ! index list, and boundary
@@ -105,10 +109,16 @@ contains
         xlist = xl14 ! coarse combination with entrepreneurs choosing not to run a business this period
         t = 14
         
-        !$omp parallel default(shared) private(n,capgain,intfund,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,bdis,bestl,bestu,dsdim,m,loc1,labsup,labdem,bgp) ! [2]
+        allocate( qray(bd(1,2)) ) ! 8-13-2017 [3]
+        qray = .false.            ! 8-13-2017 
+        
+        !$omp parallel default(shared) private(n,capgain,intfund,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,bdis,bestl,bestu,dsdim,m,loc1,labsup,labdem,bgp,exit_brent) ! [2] ! 8-13-2017 [4]
         !$omp do
         do q = bd(1,1), bd(1,2) ! income in period 14 could be used later. Proceed all the way toward the end. Nonstoping process.
             do n = 1, hdim ! experiment on each level of housing asset
+                
+                exit_brent = .false. ! 8-13-2017 [5]
+                
                 ax  = xlist(q,1)
                 hx  = n ! column-major search over asset dimension for each level of housing assest holding
                 kx  = xlist(q,3)
@@ -212,6 +222,7 @@ contains
                     ! 3.10.2017 "nsdim" has better to be bigger than "hdim," I think.
                     do while(stp1<iterasvmax .and. log1==.false.) ! log1=.true. when only penalty can be found.
                         
+                        ! ------------------- housing assset holding grid zooming-in -------------------------- 8-13-2017
                         if(stp1>1)then ! "dsdim" is safe regardless of the value of stp1. confirmed.
                             best = shv(loc1(1)) ! obtain the maximum from the previous round.
                             !if(printout5) write(unit=109,fmt='(a,2i4,f12.8)'), ' new stp old idx ', stp1, loc1(1), best
@@ -273,6 +284,7 @@ contains
                         !if(printout5) write(unit=109,fmt='(a,9a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
                         !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t
                         
+                        ! ------------------------------- Brent zone -------------------------------------- 8-13-2017
                         do m = 1, dsdim
                             hp = shv(m) ! 3.6.2017 needed in brent_localizer's evoked function; pass into the thread "shv(m)" is the trial next period housing asset holding. 
                             call col_valid_fin(shv(m),kpx,ypx,t,lowap(m),deb1) ! output: lowap(m)
@@ -283,103 +295,128 @@ contains
                                 !if(printout5) write(unit=109,fmt='(a,i4,f12.8,2f8.4,i5)'), ' -- ', m, shv(m), lowap(m), highap(m), merge(0,1,lowap(m)<highap(m))                                
                                 cycle ! negative consumption in one of the refined housing assets level 
                             endif
-                            call brent_localizer(f14,lowap(m),highap(m),apvec(m),smaxv(m))
+                            
+                            call brent_localizer(f14,lowap(m),highap(m),apvec(m),smaxv(m),exit_brent) ! 8-13-2017 [6]
+                            !if(exit_brent) exit_bellman=.true. ! 8-13-2017 [7]
+                            !if(exit_brent) write(*,*) ax, hx, kx, zx, yx, kpx, ypx, opx
+                            
+                            if(exit_brent) exit ! exit this loop. ! 8-13-2017 [7]
+                            
                             !if(printout5) write(unit=109,fmt='(a,i4,f12.8,2f8.4,f15.8)'), ' -- ', m, shv(m), lowap(m), highap(m), smaxv(m)                            
                         enddo
                         
-                        ! get the maximum from the set of local bests.
-                        if(maxval(smaxv)/=penalty)then
-                            !if(printout7) write(unit=109,fmt='(a,3f12.8)'), ' Gd ', apvec(maxloc(smaxv)), shv(maxloc(smaxv)), smaxv(maxloc(smaxv))                            
-                            loc1 = maxloc(smaxv)
-                            stp1 = stp1 + 1
-                            if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit ! 3.8.2017 this one controls the convergence 
-                            svcmp = smaxv(loc1(1)) ! update the best value.                            
-                        else
-                            log1 = .true. ! Exit. It indicates that the algorithm can not find a reasonalbe value other than the penalty.
-                            svcmp = penalty
-                        endif
+                        if(exit_brent==.false.)then ! 8-13-2017 [8]
+                            ! Get the maximum from the set of local bests.
+                            if(maxval(smaxv)/=penalty)then
+                                !if(printout7) write(unit=109,fmt='(a,3f12.8)'), ' Gd ', apvec(maxloc(smaxv)), shv(maxloc(smaxv)), smaxv(maxloc(smaxv))                            
+                                loc1 = maxloc(smaxv)
+                                stp1 = stp1 + 1
+                                if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit ! 3.8.2017 this one controls the convergence 
+                                svcmp = smaxv(loc1(1)) ! update the best value.                            
+                            else
+                                log1 = .true. ! Exit. It indicates that the algorithm can not find a reasonalbe value other than the penalty.
+                                svcmp = penalty
+                            endif
+                        else                                                           ! 
+                            exit ! exit this housing asset holding grid searching zone ! 8-13-2017 [9]
+                        endif ! exit_brent                                             !
                     enddo ! do while
                     ! end of new zone -------------------------------------------- I
                     
-                    ! save searching results or give a warning mark.
-                    if(svcmp/=penalty)then
-                        cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
-                        cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
-                        cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1)) 
-                        cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1))) ! It should correspond to the consumption defined in function f14. 
-                        !! CHECKED. NO LEAKS. 09302016
-                        !if(printout5) write(unit=109,fmt='(a,9a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
-                        !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                        
-                        !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp.and.printout5) write(unit=109,fmt='(a,f8.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)
-                        cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0 ! die next period no matter how the current (last period) work status.
-                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99 ! sign. -99 indicates normal.
-                    else ! infeasible point due to collateral and budget constraints AND no downgrade place to go.
-                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 2 
-                    endif 
+                    if(exit_brent==.false.)then ! 8-13-2017 [10]
+                        ! save searching results or give a warning mark.
+                        if(svcmp/=penalty)then
+                            cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
+                            cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
+                            cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1)) 
+                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1))) ! It should correspond to the consumption defined in function f14. 
+                            !! CHECKED. NO LEAKS. 09302016
+                            !if(printout5) write(unit=109,fmt='(a,9a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
+                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                        
+                            !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp.and.printout5) write(unit=109,fmt='(a,f8.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)
+                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0 ! die next period no matter how the current (last period) work status.
+                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99 ! sign. -99 indicates normal.
+                        else ! infeasible point due to collateral and budget constraints AND no downgrade place to go.
+                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 2 
+                        endif 
+                    endif ! exit_brent 8-13-2017 [11]
+                    
                     deallocate( shv, lowap, highap, smaxv, apvec ) 
                 else ! NEGATIVE income (stops before hitting the criteria of negative consumption).
                     !if(printout7) write(unit=109,fmt='(a,10a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t',' insufficeint income '
                     !if(printout7) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                    
                     cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1 ! if cww takes a value other than -99,                
                 endif ! income > 0   
+                
+                if(exit_brent) exit ! exit this n loop (over the indices of housing asset holding grid). 8-13-2017 [12]
+                
             enddo ! n
+            
+            !if(exit_brent) write(*,*) ' q ', q, t
+            if(exit_brent) qray(q)=.true. ! 8-13-2017 [13]
+            
         enddo ! q
         !$omp end do
         !$omp end parallel ! 3.11.2017 There is no "psz" and "v2d" and "ap, apx, hpx, zpx" and "i, opxi" are used in this parallel block 
         ! ------- End of the end of period 14 computation.
         
-        t = 14 
-        ! ------- PRINT OUT 
-        if(printout2)then        
-            do q = bd(1,1), bd(1,2) ! income in period 14 could be used later.   
-                ax  = xlist(q,1)
-                hx  = xlist(q,2)
-                kx  = xlist(q,3)
-                zx  = xlist(q,4)
-                yx  = xlist(q,5)
-                kpx = xlist(q,6)
-                ypx = xlist(q,7)
-                opx = xlist(q,8)       
-                     
-                if(ax==1.and.hx==1)then
-                    write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
-                    write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
-                    write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) ! "str1" represents the size of housing asset grid.
-                    write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
+        if(any(qray==.true.)) exit_bellman=.true. ! 8-13-2017 [14]
+        deallocate( qray ) ! 8-13-2017 [15]
+        
+        if(exit_bellman==.false.)then ! 8-13-2017 [16]
+            t = 14 
+            ! ------- PRINT OUT 
+            if(printout2)then        
+                do q = bd(1,1), bd(1,2) ! income in period 14 could be used later.   
+                    ax  = xlist(q,1)
+                    hx  = xlist(q,2)
+                    kx  = xlist(q,3)
+                    zx  = xlist(q,4)
+                    yx  = xlist(q,5)
+                    kpx = xlist(q,6)
+                    ypx = xlist(q,7)
+                    opx = xlist(q,8)       
+                         
+                    if(ax==1.and.hx==1)then
+                        write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
+                        write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
+                        write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) ! "str1" represents the size of housing asset grid.
+                        write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
+                        
+                        do i = 1, adim
+                            write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
+                        enddo
                     
-                    do i = 1, adim
-                        write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
-                    enddo
-                
-                endif        
-            enddo ! q
-        endif ! printout2
-        
-        ! beginning of period 14. Ok consistent 6-17-2016 
-        ! Just copy the end value function, because actually we only need the beginning period of value function for period 14
-        !allocate( tvector(7,3) )
-        
-        ! Beginning of the period --- important     
-        do n = 1, 7
-            kx = tvector(n,1)
-            zx = tvector(n,2)
-            yx = tvector(n,3) ! all zeros, because no labor efficiency exists any more.
-            do j = 1, hdim
-                do i = 1, adim
-                    wf(i,j,kx,zx,yx,t) = cwf(i,j,kx,zx,yx,0,0,0,t)
-                enddo
-            enddo   
+                    endif        
+                enddo ! q
+            endif ! printout2
             
-            if(printout2)then
-                write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
-                write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
-                write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
-                do j = 1, adim
-                    write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
-                enddo                                  
-            endif ! printout2    
-        enddo
-        
+            ! beginning of period 14. Ok consistent 6-17-2016 
+            ! Just copy the end value function, because actually we only need the beginning period of value function for period 14
+            !allocate( tvector(7,3) )
+            
+            ! Beginning of the period --- important     
+            do n = 1, 7
+                kx = tvector(n,1)
+                zx = tvector(n,2)
+                yx = tvector(n,3) ! all zeros, because no labor efficiency exists any more.
+                do j = 1, hdim
+                    do i = 1, adim
+                        wf(i,j,kx,zx,yx,t) = cwf(i,j,kx,zx,yx,0,0,0,t)
+                    enddo
+                enddo   
+                
+                if(printout2)then
+                    write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
+                    write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
+                    write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
+                    do j = 1, adim
+                        write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
+                    enddo                                  
+                endif ! printout2    
+            enddo
+        endif ! eixt_bellman ! 8-13-2017 [17]
+            
         deallocate( xlist, bd )    
         
         ! No borrowing, no new business idea in the last peirod, so there is no probablility transition matrix. The beginning is the same as the         
@@ -406,365 +443,396 @@ contains
 
         !! t = 10-13 ------------------------------------------------------------------------------------------------------
         
-        allocate( xlist(adim*1*12,8), bd(4,2) )
-        xlist = xl1013 ! 3.10.2017
-        bd = bd1013
-        do t = 13, 10, -1
-            call system_clock(tstart)
-            do l = 1, 4 ! 4.22.2017
-            !do l = 1, 1
-                !!$omp parallel default(shared) private(n,capgain,intfund,i,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,loc1,bdis,bestl,bestu,dsdim,m,opxi,labsup,labdem,bgp) ! #1
-                allocate( v2d(adim,hdim,1:2) ) ! 3.11.2017 Note: "v2d" is passed into respective threads for interpolation!! 
-                !!$omp do ! #2
-                do q = bd(l,1), bd(l,2) ! 4.22.2017
-                !do q = 18, 18
-                    do n = 1, hdim
-                        ax  = xlist(q,1)
-                        hx  = n
-                        kx  = xlist(q,3)
-                        zx  = xlist(q,4)
-                        yx  = xlist(q,5)
-                        kpx = xlist(q,6)
-                        ypx = xlist(q,7)
-                        opx = xlist(q,8)                          
-                        
-                        a  = av(ax)
-                        h  = hv(hx)
-                        k  = kv(kx)
-                        z  = merge(0._wp, merge(zlow,z2(kx),zx==0), kx==0)
-                        y  = yv(yx)
-                        kp = kv(kpx)
-                        yp = yv(ypx)
-                        dk = merge(0._wp, merge(delzl(kx), delzh(kx), zx==0), kx==0)                          
-                        
-                        ! income (step 1)
-                        if(kx==0)then
-                            ! 3.26.2017 revision
-                            inc = benefit
-                            inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq
+        if(exit_bellman==.false.)then ! 8-13-2017 [b0]
+            allocate( xlist(adim*1*12,8), bd(4,2) )
+            xlist = xl1013 ! 3.10.2017
+            bd = bd1013
+            
+            allocate( qray(bd(4,2)) ) ! 8-13-2017 [b1]
+            
+            do t = 13, 10, -1
+                qray = .false. ! 8-13-2017 [b2]
+                call system_clock(tstart)
+                do l = 1, 4 ! 4.22.2017
+                !do l = 1, 1
+                    !!$omp parallel default(shared) private(n,capgain,intfund,i,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,loc1,bdis,bestl,bestu,dsdim,m,opxi,labsup,labdem,bgp,exit_brent) ! #1 8-13-2017 [b3]
+                    allocate( v2d(adim,hdim,1:2) ) ! 3.11.2017 Note: "v2d" is passed into respective threads for interpolation!! 
+                    !!$omp do ! #2
+                    do q = bd(l,1), bd(l,2) ! 4.22.2017
+                    !do q = 18, 18
+                        do n = 1, hdim
                             
-                            !capgain = merge(rd*a,0._wp,rd*a>0._wp) ! retirees can only have capital income from savings.
-                            !inc = benefit + merge(0._wp,capgain,tausvflag)
-                            !inc = inc + a + rd*merge(a, 0._wp, a<0._wp) + (1._wp-tausv)*merge(capgain, 0._wp, tausvflag) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq  ! total wealth before the introduction of the adjustment costs of housing units
-                        else
-                            labsup = 0._wp ! [3] ! 3.26.2017 useless in this lifecycle stage.
-                            intfund = merge(a-k, 0._wp, a>k) ! excess internal fund bears 
-                            inc = benefit
-                            bgp = c_grs_mat(ax, kx, zx, yx, t)
+                            exit_brent = .false. ! 8-13-2017 [b4]
                             
-                            !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
-                            !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
-                            !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                            
+                            ax  = xlist(q,1)
+                            hx  = n
+                            kx  = xlist(q,3)
+                            zx  = xlist(q,4)
+                            yx  = xlist(q,5)
+                            kpx = xlist(q,6)
+                            ypx = xlist(q,7)
+                            opx = xlist(q,8)                          
                             
-                            inc = inc + bgp ! 4.10.2017
-                            inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
-                                              merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
-                                  + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                               
+                            a  = av(ax)
+                            h  = hv(hx)
+                            k  = kv(kx)
+                            z  = merge(0._wp, merge(zlow,z2(kx),zx==0), kx==0)
+                            y  = yv(yx)
+                            kp = kv(kpx)
+                            yp = yv(ypx)
+                            dk = merge(0._wp, merge(delzl(kx), delzh(kx), zx==0), kx==0)                          
                             
-                            !inc = inc + a + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h + (1._wp-taubp)*c_grs_mat(ax, kx, zx, yx, t) - ttaxent(inc) + transbeq
-                            !capgain = merge(rd*intfund,0._wp,rd*intfund>0._wp)
-                            ! inc = benefit + merge(0._wp,capgain,tausvflag) + c_grs_mat(ax,kx,zx,yx,t) ! taxable income
-                            
-                            !labdem = c_lab_vec(kx) ! [4] ! 0204pm stop at here. ! 3.26.2017 seems useless.
-                            !! 3.10.2017 Social security tax has been taxed in business profits, so I removed ssbtax below when calculating the disposable income.
-                            !if(zx==0)then
-                            !    ssbtax = 0._wp ! [5]   
-                            !else
-                            !    ssbtax = tauss*wage*labdem ! [6]
-                            !endif
-                            
-                            !inc = inc + a + (1._wp-tauk)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! [7]                         
-                            ! inc = inc + a + rd*merge(a,0._wp,a<0._wp.and.zx==0) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h + (1._wp-taubp)*c_grs_mat(ax, kx, zx, yx, t) - ttaxent(inc) + transbeq
-                            ! 3.12.2017 entrepreneur's disposable income shouldn't include + rd*merge(a,0._wp,a<0._wp.and.zx==0)
-                            ! For one, there is no possible for him to run a zero scale project (kx/=0 anyway in this block), and for two, the corresponding situation is that
-                            ! in this condition block he either earns riskless interest rates (which is a cased covered in the disposable income equation above) or he borrows and pay the interests
-                            ! through his business profits equation. Therefore, there is no need to consider the term, + rd*merge(a,0._wp,a<0._wp.and.zx==0), in any case.
-                        endif  
-                        
-                        if(inc>0._wp)then
-                            
-                            if(opx/=0)then ! Entrepreneurial case. The agent will receive idiosyncratic business shock.
-                                pzv(1) = pz2(kpx,1) ! probability of technology shock is determined by the size of next-period project (kpx).
-                                pzv(2) = pz2(kpx,2) ! probability of technology shock is determined by the size of next-period project (kpx).        
-                                do i = 1, 2 ! There are two types of business shock. Note that this variable is not the state index of business shocks, which ranges from 0 to 1, rather than 1 to 2.
-                                    v2d(:,:,i) = wf(:,:,kpx,i-1,0,t+1)    
-                                enddo
-                            else ! For workers, there is no business shock, so the value function reduces to a single level in the business shock dimension.
-                                v2d(:,:,1) = wf(:,:,kpx,0,0,t+1)    
-                            endif ! opx
-                            
-                            stp1  = 1
-                            log1  = .false.
-                            svcmp = 100._wp ! used for convergence
-                            allocate( shv(nsdim), lowap(nsdim), highap(nsdim), smaxv(nsdim), apvec(nsdim) ) ! first run
-                            do while(stp1<iterasvmax .and. log1==.false.)
+                            ! income (step 1)
+                            if(kx==0)then
+                                ! 3.26.2017 revision
+                                inc = benefit
+                                inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq
                                 
-                                ! ACCURACY BLOCK --- START
-                                if(stp1>1)then
-                                    best = shv(loc1(1))
-                                    !if(printout7) write(unit=109,fmt='(a,2i4,f12.8)'), ' new stp old idx ', stp1, loc1(1), best
-                                    if(loc1(1)/=1.and.loc1(1)/=dsdim)then
-                                        bdis = abs(shv(loc1(1)+1)-shv(loc1(1)-1))
-                                    else
-                                        if(loc1(1)==1)then
-                                            bdis = abs(shv(1)-shv(2))       
-                                        else ! loc1(1)==dsdim
-                                            bdis = abs(shv(dsdim)-shv(dsdim-1))
+                                !capgain = merge(rd*a,0._wp,rd*a>0._wp) ! retirees can only have capital income from savings.
+                                !inc = benefit + merge(0._wp,capgain,tausvflag)
+                                !inc = inc + a + rd*merge(a, 0._wp, a<0._wp) + (1._wp-tausv)*merge(capgain, 0._wp, tausvflag) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq  ! total wealth before the introduction of the adjustment costs of housing units
+                            else
+                                labsup = 0._wp ! [3] ! 3.26.2017 useless in this lifecycle stage.
+                                intfund = merge(a-k, 0._wp, a>k) ! excess internal fund bears 
+                                inc = benefit
+                                bgp = c_grs_mat(ax, kx, zx, yx, t)
+                                
+                                !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
+                                !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
+                                !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                            
+                                
+                                inc = inc + bgp ! 4.10.2017
+                                inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
+                                                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
+                                      + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                               
+                                
+                                !inc = inc + a + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h + (1._wp-taubp)*c_grs_mat(ax, kx, zx, yx, t) - ttaxent(inc) + transbeq
+                                !capgain = merge(rd*intfund,0._wp,rd*intfund>0._wp)
+                                ! inc = benefit + merge(0._wp,capgain,tausvflag) + c_grs_mat(ax,kx,zx,yx,t) ! taxable income
+                                
+                                !labdem = c_lab_vec(kx) ! [4] ! 0204pm stop at here. ! 3.26.2017 seems useless.
+                                !! 3.10.2017 Social security tax has been taxed in business profits, so I removed ssbtax below when calculating the disposable income.
+                                !if(zx==0)then
+                                !    ssbtax = 0._wp ! [5]   
+                                !else
+                                !    ssbtax = tauss*wage*labdem ! [6]
+                                !endif
+                                
+                                !inc = inc + a + (1._wp-tauk)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! [7]                         
+                                ! inc = inc + a + rd*merge(a,0._wp,a<0._wp.and.zx==0) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h + (1._wp-taubp)*c_grs_mat(ax, kx, zx, yx, t) - ttaxent(inc) + transbeq
+                                ! 3.12.2017 entrepreneur's disposable income shouldn't include + rd*merge(a,0._wp,a<0._wp.and.zx==0)
+                                ! For one, there is no possible for him to run a zero scale project (kx/=0 anyway in this block), and for two, the corresponding situation is that
+                                ! in this condition block he either earns riskless interest rates (which is a cased covered in the disposable income equation above) or he borrows and pay the interests
+                                ! through his business profits equation. Therefore, there is no need to consider the term, + rd*merge(a,0._wp,a<0._wp.and.zx==0), in any case.
+                            endif  
+                            
+                            if(inc>0._wp)then
+                                
+                                if(opx/=0)then ! Entrepreneurial case. The agent will receive idiosyncratic business shock.
+                                    pzv(1) = pz2(kpx,1) ! probability of technology shock is determined by the size of next-period project (kpx).
+                                    pzv(2) = pz2(kpx,2) ! probability of technology shock is determined by the size of next-period project (kpx).        
+                                    do i = 1, 2 ! There are two types of business shock. Note that this variable is not the state index of business shocks, which ranges from 0 to 1, rather than 1 to 2.
+                                        v2d(:,:,i) = wf(:,:,kpx,i-1,0,t+1)    
+                                    enddo
+                                else ! For workers, there is no business shock, so the value function reduces to a single level in the business shock dimension.
+                                    v2d(:,:,1) = wf(:,:,kpx,0,0,t+1)    
+                                endif ! opx
+                                
+                                stp1  = 1
+                                log1  = .false.
+                                svcmp = 100._wp ! used for convergence
+                                allocate( shv(nsdim), lowap(nsdim), highap(nsdim), smaxv(nsdim), apvec(nsdim) ) ! first run
+                                do while(stp1<iterasvmax .and. log1==.false.)
+                                    
+                                    ! ACCURACY BLOCK --- START
+                                    if(stp1>1)then
+                                        best = shv(loc1(1))
+                                        !if(printout7) write(unit=109,fmt='(a,2i4,f12.8)'), ' new stp old idx ', stp1, loc1(1), best
+                                        if(loc1(1)/=1.and.loc1(1)/=dsdim)then
+                                            bdis = abs(shv(loc1(1)+1)-shv(loc1(1)-1))
+                                        else
+                                            if(loc1(1)==1)then
+                                                bdis = abs(shv(1)-shv(2))       
+                                            else ! loc1(1)==dsdim
+                                                bdis = abs(shv(dsdim)-shv(dsdim-1))
+                                            endif
                                         endif
-                                    endif
-                                    
-                                    !if(loc1(1)==1)then
-                                    !    bestl = best
-                                    !    bestu = best + 0.8_wp*bdis
-                                    !elseif(loc1(1)==dsdim)then
-                                    !    bestu = best
-                                    !    bestl = best - 0.8_wp*bdis
-                                    !else
-                                    !    bestl = best - 0.8_wp*bdis
-                                    !    bestu = best + 0.8_wp*bdis
-                                    !endif
-
-                                    if(loc1(1)==1)then
-                                        !bestl = best
-                                        bestl = best - 0.2_wp*bdis ! 10012016
-                                        bestu = best + 0.8_wp*bdis
-                                        if(bestl<hv(1)) bestl = hv(1) ! 10012016
-                                    elseif(loc1(1)==dsdim)then
-                                        !bestu = best
-                                        bestu = best + 0.2_wp*bdis ! 10012016
-                                        bestl = best - 0.8_wp*bdis
-                                        if(bestu>hv(hdim)) bestu = hv(hdim) ! 10012016
-                                    else
-                                        bestl = best - 0.8_wp*bdis
-                                        bestu = best + 0.8_wp*bdis
-                                        if(bestl<hv(1)) bestl = hv(1) ! 10012016
-                                        if(bestu>hv(hdim)) bestu = hv(hdim) ! 10012016
-                                    endif                                    
-                                    
-                                    dsdim = sdim ! zoom-in search area (using less grid points by default).
-                                    deallocate( shv, lowap, highap, smaxv, apvec )
-                                    allocate( shv(sdim), lowap(sdim), highap(sdim), smaxv(sdim), apvec(sdim) ) ! small region brent's method --- part II
-                                    !if(printout7) write(unit=109,fmt='(a,3f8.4)'), ' boundary ', bestl, bestu, bdis
-                                    call grid(shv,bestl,bestu,1._wp) ! 3.13.2017 keep using 1._wp rather than gsdim.
-                                else ! stp1 = 1
-                                    dsdim = nsdim ! bigger grid              
-                                    if(hx==1)then
-                                        call grid(shv,hv(1),hv(hdim),gsdim)    
-                                    else ! hx
-                                        !if(cwh(ax,hx-1,kx,zx,yx,kpx,ypx,opx,t)/=penalty)then
-                                        !    call grid(shv,cwh(ax,hx-1,kx,zx,yx,kpx,ypx,opx,t),hv(hdim),gsdim)
+                                        
+                                        !if(loc1(1)==1)then
+                                        !    bestl = best
+                                        !    bestu = best + 0.8_wp*bdis
+                                        !elseif(loc1(1)==dsdim)then
+                                        !    bestu = best
+                                        !    bestl = best - 0.8_wp*bdis
                                         !else
-                                            call grid(shv,hv(1),hv(hdim),gsdim) ! the default full range
-                                        !endif ! cwh                                 
-                                    endif ! hx
-                                endif ! stp
-                                ! ACCURACY BLOCK --- END                               
-                                
-                                smaxv = penalty
-                                lowap  = -1
-                                highap = -1
-                                
-                                ! 4.23.2017 # 1 & 2
-                                if(printout7) write(unit=109,fmt='(a,9a)'),  ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
-                                if(printout7) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax, hx, kx, zx, yx, kpx, ypx, opx, t
-                                
-                                do m = 1, dsdim
-                                    if(printout7) write(unit=109,fmt='(i4)') m ! 4.23.2017 # 3
+                                        !    bestl = best - 0.8_wp*bdis
+                                        !    bestu = best + 0.8_wp*bdis
+                                        !endif
+
+                                        if(loc1(1)==1)then
+                                            !bestl = best
+                                            bestl = best - 0.2_wp*bdis ! 10012016
+                                            bestu = best + 0.8_wp*bdis
+                                            if(bestl<hv(1)) bestl = hv(1) ! 10012016
+                                        elseif(loc1(1)==dsdim)then
+                                            !bestu = best
+                                            bestu = best + 0.2_wp*bdis ! 10012016
+                                            bestl = best - 0.8_wp*bdis
+                                            if(bestu>hv(hdim)) bestu = hv(hdim) ! 10012016
+                                        else
+                                            bestl = best - 0.8_wp*bdis
+                                            bestu = best + 0.8_wp*bdis
+                                            if(bestl<hv(1)) bestl = hv(1) ! 10012016
+                                            if(bestu>hv(hdim)) bestu = hv(hdim) ! 10012016
+                                        endif                                    
+                                        
+                                        dsdim = sdim ! zoom-in search area (using less grid points by default).
+                                        deallocate( shv, lowap, highap, smaxv, apvec )
+                                        allocate( shv(sdim), lowap(sdim), highap(sdim), smaxv(sdim), apvec(sdim) ) ! small region brent's method --- part II
+                                        !if(printout7) write(unit=109,fmt='(a,3f8.4)'), ' boundary ', bestl, bestu, bdis
+                                        call grid(shv,bestl,bestu,1._wp) ! 3.13.2017 keep using 1._wp rather than gsdim.
+                                    else ! stp1 = 1
+                                        dsdim = nsdim ! bigger grid              
+                                        if(hx==1)then
+                                            call grid(shv,hv(1),hv(hdim),gsdim)    
+                                        else ! hx
+                                            !if(cwh(ax,hx-1,kx,zx,yx,kpx,ypx,opx,t)/=penalty)then
+                                            !    call grid(shv,cwh(ax,hx-1,kx,zx,yx,kpx,ypx,opx,t),hv(hdim),gsdim)
+                                            !else
+                                                call grid(shv,hv(1),hv(hdim),gsdim) ! the default full range
+                                            !endif ! cwh                                 
+                                        endif ! hx
+                                    endif ! stp
+                                    ! ACCURACY BLOCK --- END                               
                                     
-                                    hp = shv(m) ! 3.12.2017 Pass into the thread. Note that hp keeps being refined throughout the process.
-                                    call col_valid_fin(shv(m),kpx,ypx,t,lowap(m),deb1)
-                                    !if(printout7) write(unit=109,fmt='(a,i3,x,3f8.4)'), ' -c ', m, deb1 ! this printout can show how eager people want to borrow money.
-                                    call csp_valid_fin(h,shv(m),inc,highap(m))      
+                                    smaxv = penalty
+                                    lowap  = -1
+                                    highap = -1
                                     
-                                    if(lowap(m)>=highap(m).or.highap(m)<0._wp)then
-                                        !if(printout7) write(unit=109,fmt='(a,i4,f12.8,2f8.4,i5)'), ' -A ', m, shv(m), lowap(m), highap(m), merge(0,1,lowap(m)<highap(m))
-                                        cycle ! negative consumption in one of the refined housing assets level 
-                                    endif
-                                    call brent_localizer(f1013,lowap(m),highap(m),apvec(m),smaxv(m)) ! <--------------------------------------------
-                                    !if(printout7) write(unit=109,fmt='(a,i4,f12.8,2f8.4,e13.4)'), ' -B ', m, shv(m), lowap(m), highap(m), smaxv(m)
+                                    ! 4.23.2017 # 1 & 2
+                                    if(printout7) write(unit=109,fmt='(a,9a)'),  ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
+                                    if(printout7) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax, hx, kx, zx, yx, kpx, ypx, opx, t
                                     
-                                    if(printout7) write(unit=109,fmt='(f15.4)') smaxv(m) ! 4.23.2017 # 4
-                                    !if(smaxv(m)<penalty/1.e5) smaxv(m)=penalty ! 4.23.2017 <---------------------------
-                                enddo
+                                    do m = 1, dsdim
+                                        if(printout7) write(unit=109,fmt='(i4)') m ! 4.23.2017 # 3
+                                        
+                                        hp = shv(m) ! 3.12.2017 Pass into the thread. Note that hp keeps being refined throughout the process.
+                                        call col_valid_fin(shv(m),kpx,ypx,t,lowap(m),deb1)
+                                        !if(printout7) write(unit=109,fmt='(a,i3,x,3f8.4)'), ' -c ', m, deb1 ! this printout can show how eager people want to borrow money.
+                                        call csp_valid_fin(h,shv(m),inc,highap(m))      
+                                        
+                                        if(lowap(m)>=highap(m).or.highap(m)<0._wp)then
+                                            !if(printout7) write(unit=109,fmt='(a,i4,f12.8,2f8.4,i5)'), ' -A ', m, shv(m), lowap(m), highap(m), merge(0,1,lowap(m)<highap(m))
+                                            cycle ! negative consumption in one of the refined housing assets level 
+                                        endif
+                                        call brent_localizer(f1013,lowap(m),highap(m),apvec(m),smaxv(m),exit_brent) ! <-------------------------------------------- ! 8-13-2017 [b5]
+                                        !if(printout7) write(unit=109,fmt='(a,i4,f12.8,2f8.4,e13.4)'), ' -B ', m, shv(m), lowap(m), highap(m), smaxv(m)
+                                        
+                                        if(exit_brent) exit ! exit this loop over m. ! 8-13-2017 [b6]
+                                        
+                                        if(printout7) write(unit=109,fmt='(f15.4)') smaxv(m) ! 4.23.2017 # 4
+                                        !if(smaxv(m)<penalty/1.e5) smaxv(m)=penalty ! 4.23.2017 <---------------------------
+                                    enddo
+                                    
+                                    if(exit_brent==.false.)then ! 8-13-2017 [b7]
+                                        ! get the maximum from the set of local bests.
+                                        if(maxval(smaxv)/=penalty)then
+                                            !if(printout7) write(unit=109,fmt='(a,3f12.8)'), ' Gd ', apvec(maxloc(smaxv)), shv(maxloc(smaxv)), smaxv(maxloc(smaxv))
+                                            loc1 = maxloc(smaxv)
+                                            stp1 = stp1 + 1
+                                            if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit
+                                            svcmp = smaxv(loc1(1))                            
+                                        else
+                                            log1 = .true.
+                                            svcmp= penalty
+                                            !if(printout7) write(unit=109,fmt='(a)'), ' Ba '
+                                        endif
+                                    else                                                           !
+                                        exit ! exit this housing asset holding grid searching zone ! 8-13-2017 [b8]    
+                                    endif ! exit_brent                                             !
+                                    
+                                enddo ! do while      
                                 
-                                ! get the maximum from the set of local bests.
-                                if(maxval(smaxv)/=penalty)then
-                                    !if(printout7) write(unit=109,fmt='(a,3f12.8)'), ' Gd ', apvec(maxloc(smaxv)), shv(maxloc(smaxv)), smaxv(maxloc(smaxv))
-                                    loc1 = maxloc(smaxv)
-                                    stp1 = stp1 + 1
-                                    if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit
-                                    svcmp = smaxv(loc1(1))                            
-                                else
-                                    log1 = .true.
-                                    svcmp= penalty
-                                    !if(printout7) write(unit=109,fmt='(a)'), ' Ba '
-                                endif
-                            enddo ! do while      
-                            
-                            ! save searching results or give a warning mark.
-                            if(svcmp/=penalty)then ! SOME CASES NEED TO DO COMPARISON 
-                                cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
-                                cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
-                                cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1)) 
-                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99 ! -99 indicates a normal situation occurs.
-                                if(opx==0)then ! Once retired, retired forever.
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0 
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1))) 
-                                    !! CHECKED. NO LEAKS. 09302016 OK!
-                                    !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
-                                    !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', 'A'
-                                    !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                        
-                                    !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
-                                    !endif
-                                else ! opx/=0 3.30.2017 Cases where further comparison needs to make. 3.30.2017 Stop here. 11:00 am.
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = kpx ! The benchmark for comparison is the new business idea.
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))
-                                    if(opx==1)then ! 3.11.2017 Engage in the existing production technology.
-                                        !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' B'
-                                        !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                                          
-                                        !if(printout5) write(unit=109,fmt='(2f15.4,"----------------",i3)'), cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t), cwf(ax,hx,kx,zx,yx,0,0,0,t), merge(1,0,cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t)>cwf(ax,hx,kx,zx,yx,0,0,0,t))
-                                        if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,0,0,0,t))then ! 3.11.2017 Choose to be retired next period. 3.29.2017 If there is a tie, I assume the agent prefer to being an entrepreneur.
+                                if(exit_brent==.false.)then ! 8-13-2017 [b9]
+                                    ! save searching results or give a warning mark.
+                                    if(svcmp/=penalty)then ! SOME CASES NEED TO DO COMPARISON 
+                                        cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
+                                        cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
+                                        cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1)) 
+                                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99 ! -99 indicates a normal situation occurs.
+                                        if(opx==0)then ! Once retired, retired forever.
+                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0 
+                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1))) 
+                                            !! CHECKED. NO LEAKS. 09302016 OK!
+                                            !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
+                                            !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', 'A'
+                                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                        
+                                            !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
+                                            !endif
+                                        else ! opx/=0 3.30.2017 Cases where further comparison needs to make. 3.30.2017 Stop here. 11:00 am.
+                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = kpx ! The benchmark for comparison is the new business idea.
+                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))
+                                            if(opx==1)then ! 3.11.2017 Engage in the existing production technology.
+                                                !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' B'
+                                                !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                                          
+                                                !if(printout5) write(unit=109,fmt='(2f15.4,"----------------",i3)'), cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t), cwf(ax,hx,kx,zx,yx,0,0,0,t), merge(1,0,cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t)>cwf(ax,hx,kx,zx,yx,0,0,0,t))
+                                                if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,0,0,0,t))then ! 3.11.2017 Choose to be retired next period. 3.29.2017 If there is a tie, I assume the agent prefer to being an entrepreneur.
+                                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,0,0,t) 
+                                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,0,0,t)
+                                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,0,0,t)
+                                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)
+                                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)
+                                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,0,0,t)
+                                                    !! CHECKED. NO LEAKS. 09302016 OK.
+                                                    !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
+                                                    !    if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' B'
+                                                    !    if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t   
+                                                    !    if(printout5) write(unit=109,fmt='(2f15.4)'), cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t), cwf(ax,hx,kx,zx,yx,0,0,0,t) 
+                                                    !    if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
+                                                    !endif                                       
+                                                endif
+                                            else ! opx==2 ! choose to engage in a smaller investment project.
+                                                opxi = merge(opx-1,opx-2,kx/=0) ! Compared opx==2 (advanced project) with opxi (the default project in this period).
+                                                if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t))then
+                                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                            
+                                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                                    !! CHECKED. NO LEAKS. 09302016
+                                                    !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
+                                                    !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' C'
+                                                    !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                        
+                                                    !if(printout5) write(unit=109,fmt='(a,9i4)'), ' source ', ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t     
+                                                    !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' source ', cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                           
+                                                    !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                                                           
+                                                endif
+                                            endif ! opx==1
+                                        endif ! opx/=0
+                                    else ! infeasible point due to collateral and budget constraints. DOWNGRADE WITHOUT ANY COMPARISON
+                                        if(opx==0)then ! no where to downgrade their expenses or costs
+                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 2 ! warning singal is issued. That is, a bad state combination is found.
+                                        elseif(opx==1)then ! may instead choose to be a worker
                                             cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,0,0,t) 
                                             cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,0,0,t)
                                             cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,0,0,t)
-                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)
-                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)
+                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)   
+                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)                                    
                                             cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,0,0,t)
-                                            !! CHECKED. NO LEAKS. 09302016 OK.
+                                            !! CHECKED. NO LEAKS. 09302016
                                             !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
-                                            !    if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' B'
-                                            !    if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t   
-                                            !    if(printout5) write(unit=109,fmt='(2f15.4)'), cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t), cwf(ax,hx,kx,zx,yx,0,0,0,t) 
-                                            !    if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
-                                            !endif                                       
-                                        endif
-                                    else ! opx==2 ! choose to engage in a smaller investment project.
-                                        opxi = merge(opx-1,opx-2,kx/=0) ! Compared opx==2 (advanced project) with opxi (the default project in this period).
-                                        if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t))then
+                                            !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' D'
+                                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t   
+                                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,0,0,0,t 
+                                            !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' source ', cwc(ax,hx,kx,zx,yx,0,0,0,t)
+                                            !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
+                                            !endif                                     
+                                        elseif(opx==2)then ! may instead choose to engage in an investment project of smaller scale.
+                                            opxi = merge(opx-1,opx-2,kx/=0)
                                             cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
                                             cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
                                             cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                            
-                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
+                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                                                                
+                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
                                             !! CHECKED. NO LEAKS. 09302016
                                             !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
-                                            !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' C'
-                                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t                        
-                                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' source ', ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t     
-                                            !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' source ', cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                           
-                                            !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                                                           
-                                        endif
-                                    endif ! opx==1
-                                endif ! opx/=0
-                            else ! infeasible point due to collateral and budget constraints. DOWNGRADE WITHOUT ANY COMPARISON
-                                if(opx==0)then ! no where to downgrade their expenses or costs
-                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 2 ! warning singal is issued. That is, a bad state combination is found.
-                                elseif(opx==1)then ! may instead choose to be a worker
-                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,0,0,t) 
-                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,0,0,t)
-                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,0,0,t)
-                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)   
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)                                    
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,0,0,t)
-                                    !! CHECKED. NO LEAKS. 09302016
-                                    !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
-                                    !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' D'
-                                    !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t   
-                                    !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,0,0,0,t 
-                                    !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' source ', cwc(ax,hx,kx,zx,yx,0,0,0,t)
-                                    !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
-                                    !endif                                     
-                                elseif(opx==2)then ! may instead choose to engage in an investment project of smaller scale.
-                                    opxi = merge(opx-1,opx-2,kx/=0)
-                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                                                                
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
-                                    !! CHECKED. NO LEAKS. 09302016
-                                    !if(cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)<0._wp)then
-                                    !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' E'
-                                    !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t    
-                                    !if(printout5) write(unit=109,fmt='(a,9i4)'), ' source ', ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t
-                                    !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' source ', cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                       
-                                    !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
-                                    !endif                                       
-                                endif    
-                            endif 
-                            deallocate( shv, lowap, highap, smaxv, apvec )                             
+                                            !if(printout5) write(unit=109,fmt='(a,9a,x,a)'), ' ---- ', '  ax','  hx','  kx','  zx','  yx',' kpx',' ypx',' opx','   t', ' E'
+                                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' ---- ', ax,hx,kx,zx,yx,kpx,ypx,opx,t    
+                                            !if(printout5) write(unit=109,fmt='(a,9i4)'), ' source ', ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t
+                                            !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' source ', cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                       
+                                            !if(printout5) write(unit=109,fmt='(a,f15.4)'), ' income ', cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t)                                                                        
+                                            !endif                                       
+                                        endif    
+                                    endif 
+                                endif ! exit_brent 8-13-2017 [b10]
+                                
+                                deallocate( shv, lowap, highap, smaxv, apvec )                             
+                                
+                            else ! inc<0._wp ! bug fixed 09232016
+                                ! 3.11.2017 Note: there is no need to allocate matrices: shv, lowap, highap, smaxv, and apvec!!
+                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 3    
+                            endif ! inc
                             
-                        else ! inc<0._wp ! bug fixed 09232016
-                            ! 3.11.2017 Note: there is no need to allocate matrices: shv, lowap, highap, smaxv, and apvec!!
-                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 3    
-                        endif ! inc
-                    enddo ! n
-                enddo ! q
-                !!$omp end do ! #3
-                deallocate( v2d )
-                !!$omp end parallel ! #4
-            enddo ! l
-            
-            if(printout2)then            
-                do l = 1, 4                
-                    do q = bd(l,1), bd(l,2) ! income in period 14 could be used later.
-                        ax  = xlist(q,1)
-                        hx  = xlist(q,2)
-                        kx  = xlist(q,3)
-                        zx  = xlist(q,4)
-                        yx  = xlist(q,5)
-                        kpx = xlist(q,6)
-                        ypx = xlist(q,7)
-                        opx = xlist(q,8)  
-                                 
-                        if(ax==1.and.hx==1)then ! printout only once
-                            write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
-                            write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
-                            write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) 
-                            write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
-                            do i = 1, adim
-                                write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
-                            enddo
-                        endif 
+                            if(exit_brent) exit ! exit this n loop (over the indices of housing asset hodling grid). 8-13-2017 [b11]
+                            
+                        enddo ! n
                         
-                    enddo ! q            
+                        if(exit_brent) qray(q)=.true. ! 8-13-2017 [b12]
+                        
+                    enddo ! q
+                    !!$omp end do ! #3
+                    deallocate( v2d )
+                    !!$omp end parallel ! #4
+                    
+                    if(any(qray==.true.)) exit_bellman=.true. ! 8-13-2017 [b13]
+                    if(exit_bellman) exit ! exit the loop over l ! 8-13-2017 [b14]
                 enddo ! l
-            endif ! printout2           
-            
-            ! 3.14.2017 The uncertainty comes solely from the innovation of business ideas.
-            do n = 1, 7 ! Beginning of the period. 3.12.2017 Grouping of combination at the "beginning" of period. 
-                kx = tvector(n,1)
-                zx = tvector(n,2)
-                yx = tvector(n,3)                
-                if(n<=4)then
-                    where(cww(:,:,kx,zx,yx,0,0,0,t)==-99) & ! the condition is needed, so that we dont' need to screen out expectation of utils of unrealistic states
-                        & wf(:,:,kx,zx,yx,t) = cwf(:,:,kx,zx,yx,0,0,0,t)
-                elseif(5<=n.and.n<=6)then
-                    where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99.and.cww(:,:,kx,zx,yx,kx+1,0,2,t)==-99) & ! two possibilities
-                        & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(kx))*cwf(:,:,kx,zx,yx,kx,0,1,t) + probtk(kx)*cwf(:,:,kx,zx,yx,kx+1,0,2,t) ! 3.12.2017 "probtk" is the probability to get new idea.
-                elseif(n==7)then
-                    where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99) &
-                        & wf(:,:,kx,zx,yx,t) = cwf(:,:,kx,zx,yx,kx,0,1,t)
-                endif
                 
-                if(printout2)then
-                    write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
-                    write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
-                    write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
-                    do j = 1, adim
-                        write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
-                    enddo                                  
-                endif ! printout2
-            enddo ! n
-            
-            call system_clock(tend)
-            !if(printout6) write(unit=120,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'  
-            if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'  
-            
-        enddo ! t
-        deallocate( xlist, bd )
-        
+                if(exit_bellman==.false.)then ! 8-13-2017 [b15]
+                    if(printout2)then 
+                        do l = 1, 4                
+                            do q = bd(l,1), bd(l,2) ! income in period 14 could be used later.
+                                ax  = xlist(q,1)
+                                hx  = xlist(q,2)
+                                kx  = xlist(q,3)
+                                zx  = xlist(q,4)
+                                yx  = xlist(q,5)
+                                kpx = xlist(q,6)
+                                ypx = xlist(q,7)
+                                opx = xlist(q,8)  
+                                         
+                                if(ax==1.and.hx==1)then ! printout only once
+                                    write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
+                                    write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
+                                    write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) 
+                                    write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
+                                    do i = 1, adim
+                                        write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
+                                    enddo
+                                endif 
+                                
+                            enddo ! q            
+                        enddo ! l
+                    endif ! printout2           
+                    
+                    ! 3.14.2017 The uncertainty comes solely from the innovation of business ideas.
+                    do n = 1, 7 ! Beginning of the period. 3.12.2017 Grouping of combination at the "beginning" of period. 
+                        kx = tvector(n,1)
+                        zx = tvector(n,2)
+                        yx = tvector(n,3)                
+                        if(n<=4)then
+                            where(cww(:,:,kx,zx,yx,0,0,0,t)==-99) & ! the condition is needed, so that we dont' need to screen out expectation of utils of unrealistic states
+                                & wf(:,:,kx,zx,yx,t) = cwf(:,:,kx,zx,yx,0,0,0,t)
+                        elseif(5<=n.and.n<=6)then
+                            where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99.and.cww(:,:,kx,zx,yx,kx+1,0,2,t)==-99) & ! two possibilities
+                                & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(kx))*cwf(:,:,kx,zx,yx,kx,0,1,t) + probtk(kx)*cwf(:,:,kx,zx,yx,kx+1,0,2,t) ! 3.12.2017 "probtk" is the probability to get new idea.
+                        elseif(n==7)then
+                            where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99) &
+                                & wf(:,:,kx,zx,yx,t) = cwf(:,:,kx,zx,yx,kx,0,1,t)
+                        endif
+                        
+                        if(printout2)then
+                            write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
+                            write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
+                            write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
+                            do j = 1, adim
+                                write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
+                            enddo                                  
+                        endif ! printout2
+                    enddo ! n
+                endif ! exit_bellman ! 8-13-2017 [b16]
+                    
+                call system_clock(tend)
+                !if(printout6) write(unit=120,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'  
+                if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'  
+                
+                if(exit_bellman) exit ! exit the loop over t. 8-13-2017 [b17]
+                
+            enddo ! t
+            deallocate( qray, xlist, bd ) ! 8-13-2017 [b18]
+        endif ! exit_bellman 8-13-2017 [b19]
     end subroutine solve_bellman_1014   
     
     function f14(x) ! coarse value function for financial holdings. 09232016
@@ -862,8 +930,12 @@ contains
         highap = merge(av(adim),highap,highap>av(adim)) ! 3.6.2017 deal with available consumption exceeds the maximum finanacial asset hodling in the grid we specified.
     end subroutine csp_valid_fin
     
-    subroutine solve_bellman_9 
+    subroutine solve_bellman_9(exit_bellman) ! 8-13-2017 [0]
         implicit none
+        logical, intent(inout) :: exit_bellman ! 8-13-2017 [1]
+        logical :: exit_brent                  ! 8-13-2017 [1]
+        logical, dimension(:), allocatable :: qray ! 8-13-2017 [2]
+        
         integer :: n, i, j, q, m, l
         integer :: tstart, tend, trate, tmax
         integer, dimension(:,:), allocatable :: xlist, bd  
@@ -886,14 +958,20 @@ contains
         allocate( xlist(adim*1*nmc*16,8), bd(4,2), vpe1(nmc), vpe2(nmc), pyv(nmc) ) ! 3.29.2017
         xlist = xl9
         bd = bd9
-        
         t = 9
+        
+        allocate( qray(bd(4,2)) ) ! 8-13-2017 [3]
+        qray = .false.            ! 8-13-2017
+        
         do l = 1, 4
-            !$omp parallel default(shared) private(n,capgain,intfund,i,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,bdis,bestl,bestu,dsdim,m,loc1,opxi,labsup,labdem,ssbtax,bgp) ! [2]
+            !$omp parallel default(shared) private(n,capgain,intfund,i,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,bdis,bestl,bestu,dsdim,m,loc1,opxi,labsup,labdem,ssbtax,bgp,exit_brent) ! [2] ! 8-13-2017 [4]
             allocate( v2d(adim,hdim,1:2) )
             !$omp do
             do q = bd(l,1), bd(l,2)
                 do n = 1, hdim
+                    
+                    exit_brent = .false. ! 8-13-2017 [5]
+                    
                     ax  = xlist(q,1)
                     hx  = n
                     kx  = xlist(q,3)
@@ -1065,155 +1143,179 @@ contains
                                     !if(printout7) write(unit=109,fmt='(i3)'), debcnt1
                                     cycle ! negative consumption in one of the refined housing assets level 
                                 endif
-                                call brent_localizer(f9,lowap(m),highap(m),apvec(m),smaxv(m)) ! <--------------------------------------------
+                                call brent_localizer(f9,lowap(m),highap(m),apvec(m),smaxv(m),exit_brent) ! <-------------------------------------------- ! 8-13-2017 [6]
                                 !if(printout7) write(unit=109,fmt='(a,2f8.4)'), '    ', apvec(m), smaxv(m)
                                 !if(printout7.and.m==sdim) write(unit=109,fmt='(a)'), '    '
+                                
+                                if(exit_brent) exit ! exit this loop over m. ! 8-13-2017 [7]
+                                
                             enddo
                             
-                            ! get the maximum from the set of local bests.
-                            if(maxval(smaxv)/=penalty)then
-                                loc1 = maxloc(smaxv)
-                                stp1 = stp1 + 1
-                                if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit
-                                svcmp = smaxv(loc1(1))                            
-                            else
-                                log1 = .true.
-                                svcmp= penalty
-                                !if(printout7.and.debcnt1==sdim) write(unit=109,fmt='(a)'), ' all penalty  ' ! correct 09222016
-                                !if(printout7.and.debcnt1/=sdim) write(unit=109,fmt='(a,10i3)'), ' something wrong in smaxv ', ax,hx,kx,zx,yx,kpx,ypx,opx,t, debcnt1 ! no leaks 09222016
-                            endif
+                            if(exit_brent==.false.)then ! 8-13-2017 [8]
+                                ! get the maximum from the set of local bests.
+                                if(maxval(smaxv)/=penalty)then
+                                    loc1 = maxloc(smaxv)
+                                    stp1 = stp1 + 1
+                                    if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit
+                                    svcmp = smaxv(loc1(1))                            
+                                else
+                                    log1 = .true.
+                                    svcmp= penalty
+                                    !if(printout7.and.debcnt1==sdim) write(unit=109,fmt='(a)'), ' all penalty  ' ! correct 09222016
+                                    !if(printout7.and.debcnt1/=sdim) write(unit=109,fmt='(a,10i3)'), ' something wrong in smaxv ', ax,hx,kx,zx,yx,kpx,ypx,opx,t, debcnt1 ! no leaks 09222016
+                                endif
+                            else                                                           ! 
+                                exit ! exit this housing asset holding grid searching zone ! 8-13-2017 [9]
+                            endif ! exit_brent                                             !
+                            
                         enddo ! do while                              
                         
-                        ! save searching results or give a warning mark.
-                        if(svcmp/=penalty)then ! SOME CASES NEED TO DO COMPARISON 
-                            cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
-                            cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
-                            cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1))    
-                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99
-                            if(opx==0)then
-                                cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0
-                                cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
-                            else ! opx/=0
-                                cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = kpx
-                                cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
-                                if(opx==1)then ! just choose to be a worker instead
-                                    if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,0,0,0,t))then ! 3.12.2017 Entrepreneurs > Workers > Retirees. 3.31.2017 correct.
-                                        cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,0,0,t) 
-                                        cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,0,0,t)
-                                        cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,0,0,t)
-                                        cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)
-                                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)
-                                        cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,0,0,t)                                        
-                                    endif
-                                else ! opx==2 ! choose to engage in a smaller investment project.
-                                    !opxi = merge(opx-1,opx-2,kx/=0)
-                                    ! 3.30.2017 only need to pay attention to kp and op.
-                                    opxi = merge(opx-1,opx-2,zx==1) ! 3.30.2017
-                                    if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t))then
-                                        cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                        cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                        cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                        cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                            
-                                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                        cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                         
-                                    endif
-                                endif ! opx==1
-                            endif ! opx/=0
-                        else ! infeasible point due to collateral and budget constraints. DOWNGRADE WITHOUT ANY COMPARISON
-                            if(opx==0)then ! no where to downgrade their expenses or costs
-                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1 
-                            elseif(opx==1)then ! may instead choose to be a worker
-                                cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,0,0,t) 
-                                cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,0,0,t)
-                                cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,0,0,t)
-                                cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)                                    
-                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)   
-                                cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,0,0,t)                                
-                            elseif(opx==2)then ! may instead choose to engage in an investment project of smaller scale.
-                                opxi = merge(opx-1,opx-2,zx==1) ! 3.31.2017 
-                                cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                                                                
-                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
-                                cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                
-                            endif    
-                        endif 
+                        if(exit_brent==.false.)then ! 8-13-2017 [10]
+                            ! save searching results or give a warning mark.
+                            if(svcmp/=penalty)then ! SOME CASES NEED TO DO COMPARISON 
+                                cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
+                                cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
+                                cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1))    
+                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99
+                                if(opx==0)then
+                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0
+                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
+                                else ! opx/=0
+                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = kpx
+                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
+                                    if(opx==1)then ! just choose to be a worker instead
+                                        if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,0,0,0,t))then ! 3.12.2017 Entrepreneurs > Workers > Retirees. 3.31.2017 correct.
+                                            cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,0,0,t) 
+                                            cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,0,0,t)
+                                            cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,0,0,t)
+                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)
+                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)
+                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,0,0,t)                                        
+                                        endif
+                                    else ! opx==2 ! choose to engage in a smaller investment project.
+                                        !opxi = merge(opx-1,opx-2,kx/=0)
+                                        ! 3.30.2017 only need to pay attention to kp and op.
+                                        opxi = merge(opx-1,opx-2,zx==1) ! 3.30.2017
+                                        if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t))then
+                                            cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                            cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                            cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                            
+                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                         
+                                        endif
+                                    endif ! opx==1
+                                endif ! opx/=0
+                            else ! infeasible point due to collateral and budget constraints. DOWNGRADE WITHOUT ANY COMPARISON
+                                if(opx==0)then ! no where to downgrade their expenses or costs
+                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1 
+                                elseif(opx==1)then ! may instead choose to be a worker
+                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,0,0,t) 
+                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,0,0,t)
+                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,0,0,t)
+                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,0,0,t)                                    
+                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,0,0,t)   
+                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,0,0,t)                                
+                                elseif(opx==2)then ! may instead choose to engage in an investment project of smaller scale.
+                                    opxi = merge(opx-1,opx-2,zx==1) ! 3.31.2017 
+                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                                                                
+                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
+                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                
+                                endif    
+                            endif 
+                        endif ! exit_brent 8-13-2017 [11]
+                        
                         deallocate( shv, lowap, highap, smaxv, apvec )     
+                        
                     else
                         cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1                           
                     endif ! inc>0
+                    
+                    if(exit_brent) exit ! exit this n loop (over the indices of housing asset holding grid).  8-13-2017 [12]
+                    
                 enddo ! n
+                
+                if(exit_brent) qray(q)=.true. ! 8-13-2017 [13]
+                
             enddo ! q
             !$omp end do
             deallocate( v2d )
             !$omp end parallel
+            
+            if(any(qray==.true.)) exit_bellman=.true. ! 8-13-2017 [14]
+            if(exit_bellman) exit ! exit the loop over l ! 8-13-2017 [15]
         enddo ! l
-        ! Review done! 3.13.2017 afternoon 4:25 pm
-        if(printout2)then            
-            do l = 1, 4                
-                do q = bd(l,1), bd(l,2) ! income in period 14 could be used later.
-                    ax  = xlist(q,1)
-                    hx  = xlist(q,2)
-                    kx  = xlist(q,3)
-                    zx  = xlist(q,4)
-                    yx  = xlist(q,5)
-                    kpx = xlist(q,6)
-                    ypx = xlist(q,7)
-                    opx = xlist(q,8)  
-                             
-                    if(ax==1.and.hx==1)then
-                        write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
-                        write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
-                        write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) 
-                        write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
-                        do i = 1, adim
-                            write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
-                        enddo
-                    endif 
-                    
-                enddo ! q            
-            enddo ! l
-        endif ! printout2  
         
-        ! 3.14.2017 Whether we have a valide beginning-of-period combination depends on whether the corresponding end-of-period combinations are both valid.
-        ! 3.14.2017 The uncertainty comes solely from the innovation of business ideas.<-------
-        ! 3.31.2017 Stop here 12:23 pm. revise 2<=n.and.n<=4
-        do n = 1, 7
-            kx = tvector(n,1)
-            zx = tvector(n,2)
-            do yx = 1, nmc
-                if(n==1)then ! 3.14.2017 Workers have the chance to conceive a business idea. 3.31.2017 Taking expectation.
-                    where(cww(:,:,kx,zx,yx,0,0,0,t)==-99.and.cww(:,:,kx,zx,yx,1,0,2,t)==-99) & ! workers might come across an entrepreneurial idea. 3.14.2017
-                        & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(kx))*cwf(:,:,kx,zx,yx,0,0,0,t) + probtk(kx)*cwf(:,:,kx,zx,yx,1,0,2,t)    
-                elseif(2<=n.and.n<=4)then ! 3.14.2017 These are the cases where entrepreneurs receive bad busniess shock in the beginning of period, which forces them to exit entrepreneurship.
-                    where(cww(:,:,kx,zx,yx,0,0,0,t)==-99.and.cww(:,:,kx,zx,yx,1,0,2,t)==-99) & ! 3.31.2017 entrepreneurs receive bad shocks and are "doomed" to exit entrepreneurship. 3.14.2017
-                        & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(0))*cwf(:,:,kx,zx,yx,0,0,0,t) + probtk(0)*cwf(:,:,kx,zx,yx,1,0,2,t) ! 3.31.2017 correct the error that probtk's index is not 0.
-                        !& wf(:,:,kx,zx,yx,t) = 1._wp ! (1._wp-probtk(0)) ! *cwf(:,:,kx,zx,yx,0,0,0,t) + probtk(0)*cwf(:,:,kx,zx,yx,1,0,2,t) ! 3.31.2017 correct the error that probtk's index is not 0.
-                elseif(5<=n.and.n<=6)then
-                    where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99.and.cww(:,:,kx,zx,yx,kx+1,0,2,t)==-99) &
-                        & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(kx))*cwf(:,:,kx,zx,yx,kx,0,1,t) + probtk(kx)*cwf(:,:,kx,zx,yx,kx+1,0,2,t)
-                elseif(n==7)then
-                    where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99) &
-                        & wf(:,:,kx,zx,yx,t) = cwf(:,:,kx,zx,yx,kx,0,1,t) ! 3.14.2017 The entrepreneur who runs the largest project has no more room to access more to advanced bussiness project.
-                endif
-                
-                if(printout2)then
-                    write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
-                    write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
-                    write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
-                    do j = 1, adim
-                        write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
-                    enddo                                  
-                endif ! printout2                 
-                
-            enddo ! yx          
-        enddo ! n 
+        if(exit_bellman==.false.)then ! 8-13-2017 [16]
+            ! Review done! 3.13.2017 afternoon 4:25 pm
+            if(printout2)then            
+                do l = 1, 4                
+                    do q = bd(l,1), bd(l,2) ! income in period 14 could be used later.
+                        ax  = xlist(q,1)
+                        hx  = xlist(q,2)
+                        kx  = xlist(q,3)
+                        zx  = xlist(q,4)
+                        yx  = xlist(q,5)
+                        kpx = xlist(q,6)
+                        ypx = xlist(q,7)
+                        opx = xlist(q,8)  
+                                 
+                        if(ax==1.and.hx==1)then
+                            write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
+                            write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
+                            write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) 
+                            write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
+                            do i = 1, adim
+                                write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
+                            enddo
+                        endif 
+                        
+                    enddo ! q            
+                enddo ! l
+            endif ! printout2  
+            
+            ! 3.14.2017 Whether we have a valide beginning-of-period combination depends on whether the corresponding end-of-period combinations are both valid.
+            ! 3.14.2017 The uncertainty comes solely from the innovation of business ideas.<-------
+            ! 3.31.2017 Stop here 12:23 pm. revise 2<=n.and.n<=4
+            do n = 1, 7
+                kx = tvector(n,1)
+                zx = tvector(n,2)
+                do yx = 1, nmc
+                    if(n==1)then ! 3.14.2017 Workers have the chance to conceive a business idea. 3.31.2017 Taking expectation.
+                        where(cww(:,:,kx,zx,yx,0,0,0,t)==-99.and.cww(:,:,kx,zx,yx,1,0,2,t)==-99) & ! workers might come across an entrepreneurial idea. 3.14.2017
+                            & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(kx))*cwf(:,:,kx,zx,yx,0,0,0,t) + probtk(kx)*cwf(:,:,kx,zx,yx,1,0,2,t)    
+                    elseif(2<=n.and.n<=4)then ! 3.14.2017 These are the cases where entrepreneurs receive bad busniess shock in the beginning of period, which forces them to exit entrepreneurship.
+                        where(cww(:,:,kx,zx,yx,0,0,0,t)==-99.and.cww(:,:,kx,zx,yx,1,0,2,t)==-99) & ! 3.31.2017 entrepreneurs receive bad shocks and are "doomed" to exit entrepreneurship. 3.14.2017
+                            & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(0))*cwf(:,:,kx,zx,yx,0,0,0,t) + probtk(0)*cwf(:,:,kx,zx,yx,1,0,2,t) ! 3.31.2017 correct the error that probtk's index is not 0.
+                            !& wf(:,:,kx,zx,yx,t) = 1._wp ! (1._wp-probtk(0)) ! *cwf(:,:,kx,zx,yx,0,0,0,t) + probtk(0)*cwf(:,:,kx,zx,yx,1,0,2,t) ! 3.31.2017 correct the error that probtk's index is not 0.
+                    elseif(5<=n.and.n<=6)then
+                        where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99.and.cww(:,:,kx,zx,yx,kx+1,0,2,t)==-99) &
+                            & wf(:,:,kx,zx,yx,t) = (1._wp-probtk(kx))*cwf(:,:,kx,zx,yx,kx,0,1,t) + probtk(kx)*cwf(:,:,kx,zx,yx,kx+1,0,2,t)
+                    elseif(n==7)then
+                        where(cww(:,:,kx,zx,yx,kx,0,1,t)==-99) &
+                            & wf(:,:,kx,zx,yx,t) = cwf(:,:,kx,zx,yx,kx,0,1,t) ! 3.14.2017 The entrepreneur who runs the largest project has no more room to access more to advanced bussiness project.
+                    endif
+                    
+                    if(printout2)then
+                        write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
+                        write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
+                        write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
+                        do j = 1, adim
+                            write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
+                        enddo                                  
+                    endif ! printout2                 
+                    
+                enddo ! yx          
+            enddo ! n 
+        endif ! exit_bellman 8-13-2017 [17]
         
         call system_clock(tend)
         !if(printout6) write(unit=120,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'          
         if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'          
-        deallocate( xlist, bd )
+        deallocate( qray, xlist, bd ) ! [18]
  
     end subroutine solve_bellman_9
     
@@ -1463,12 +1565,17 @@ contains
         
     end subroutine collbd_for_brentmaxrhs
     
-    subroutine solve_bellman_18()
+    subroutine solve_bellman_18(exit_bellman) ! 8-13-2017 [0]
         implicit none
+        logical, intent(inout) :: exit_bellman     ! [1]
+        logical :: exit_brent                      !
+        logical, dimension(:), allocatable :: qray ! [2]
+        
         integer :: tstart, tend, trate, tmax
         integer :: n, i, j, m, q, l
         integer, dimension(:,:), allocatable :: xlist, bd
         real(wp) :: capgain, intfund, labsup, labdem, ssbtax, bgp
+        
         real(wp) :: svcmp 
         integer  :: stp1, loc1(1)
         logical  :: log1 
@@ -1486,14 +1593,21 @@ contains
         allocate( xlist(adim*1*(nmc)**2*16,8), bd(4,2) )  ! 3.30.2017
         xlist = xl18
         bd = bd18
+        
+        allocate( qray(bd(4,2)) ) ! [3-1]
+        
         do t = 8, 1, -1
+            qray = .false.            ! [3-2]
             call system_clock(tstart)
             do l = 1, 4
-                !$omp parallel default(shared) private(n,capgain,intfund,i,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,bdis,bestl,bestu,dsdim,m,loc1,opxi,labsup,labdem,ssbtax,bgp)
+                !$omp parallel default(shared) private(n,capgain,intfund,i,stp1,log1,svcmp,shv,lowap,highap,smaxv,apvec,best,bdis,bestl,bestu,dsdim,m,loc1,opxi,labsup,labdem,ssbtax,bgp,exit_brent) ! [4]
                 allocate( v2d(adim,hdim,1:2) )
                 !$omp do
                 do q = bd(l,1), bd(l,2)
                     do n = 1, hdim
+                        
+                        exit_brent = .false. ! [5]
+                        
                         ax  = xlist(q,1)
                         hx  = n
                         kx  = xlist(q,3)
@@ -1645,171 +1759,197 @@ contains
                                         !if(printout7) write(unit=109,fmt='(i3)'), debcnt1
                                         cycle ! negative consumption in one of the refined housing assets level 
                                     endif
-                                    call brent_localizer(f18,lowap(m),highap(m),apvec(m),smaxv(m)) ! <--------------------------------------------
+                                    call brent_localizer(f18,lowap(m),highap(m),apvec(m),smaxv(m),exit_brent) ! <-------------------------------------------- [6]
                                     !if(printout7) write(unit=109,fmt='(a,2f8.4)'), '    ', apvec(m), smaxv(m)
                                     !if(printout7.and.m==sdim) write(unit=109,fmt='(a)'), '    '
+                                    
+                                    if(exit_brent) exit ! exit this loop over m. ! [7]
+                                    
                                 enddo
                                 
-                                ! get the maximum from the set of local bests.
-                                if(maxval(smaxv)/=penalty)then
-                                    loc1 = maxloc(smaxv)
-                                    stp1 = stp1 + 1
-                                    if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit
-                                    svcmp = smaxv(loc1(1))                            
-                                else
-                                    log1 = .true.
-                                    svcmp= penalty
-                                    !if(printout7.and.debcnt1==sdim) write(unit=109,fmt='(a)'), ' all penalty  ' ! correct 09222016
-                                    !if(printout7.and.debcnt1/=sdim) write(unit=109,fmt='(a,10i3)'), ' something wrong in smaxv ', ax,hx,kx,zx,yx,kpx,ypx,opx,t, debcnt1 ! no leaks 09222016
-                                endif
+                                if(exit_brent==.false.)then ! [8]
+                                    ! get the maximum from the set of local bests.
+                                    if(maxval(smaxv)/=penalty)then
+                                        loc1 = maxloc(smaxv)
+                                        stp1 = stp1 + 1
+                                        if(abs(svcmp-smaxv(loc1(1)))<err_svdist) exit
+                                        svcmp = smaxv(loc1(1))                            
+                                    else
+                                        log1 = .true.
+                                        svcmp= penalty
+                                        !if(printout7.and.debcnt1==sdim) write(unit=109,fmt='(a)'), ' all penalty  ' ! correct 09222016
+                                        !if(printout7.and.debcnt1/=sdim) write(unit=109,fmt='(a,10i3)'), ' something wrong in smaxv ', ax,hx,kx,zx,yx,kpx,ypx,opx,t, debcnt1 ! no leaks 09222016
+                                    endif
+                                else                                                           !
+                                    exit ! exit this housing asset housing grid searching zone ! [9]    
+                                endif ! exit_brent                                             !
                             enddo ! do while                              
                             
-                            ! save searching results or give a warning mark.
-                            if(svcmp/=penalty)then ! SOME CASES NEED TO DO COMPARISON 
-                                cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
-                                cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
-                                cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1))  
-                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99
-                                if(opx==0)then
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
-                                else ! opx/=0
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = kpx
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
-                                    if(opx==1)then ! just choose to be a worker instead
-                                        if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,0,ypx,0,t))then ! 3.14.2017 Entrepreneurs > Workers > Retirees.
-                                            cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,ypx,0,t) 
-                                            cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,ypx,0,t)
-                                            cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,ypx,0,t)
-                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,ypx,0,t)
-                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,ypx,0,t)
-                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,ypx,0,t)
-                                        endif
-                                    else ! opx==2 ! choose to engage in a smaller investment project.
+                            if(exit_brent==.false.)then ! [10]
+                                ! save searching results or give a warning mark.
+                                if(svcmp/=penalty)then ! SOME CASES NEED TO DO COMPARISON 
+                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = smaxv(loc1(1))
+                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = apvec(loc1(1))
+                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = shv(loc1(1))  
+                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = -99
+                                    if(opx==0)then
+                                        cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 0
+                                        cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
+                                    else ! opx/=0
+                                        cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = kpx
+                                        cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = inc - (apvec(loc1(1))+shv(loc1(1))) - HomTrnsCst(h,shv(loc1(1)))                                
+                                        if(opx==1)then ! just choose to be a worker instead
+                                            if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,0,ypx,0,t))then ! 3.14.2017 Entrepreneurs > Workers > Retirees.
+                                                cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,ypx,0,t) 
+                                                cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,ypx,0,t)
+                                                cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,ypx,0,t)
+                                                cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,ypx,0,t)
+                                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,ypx,0,t)
+                                                cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,ypx,0,t)
+                                            endif
+                                        else ! opx==2 ! choose to engage in a smaller investment project.
+                                            opxi = merge(opx-1,opx-2,zx==1) ! 3.31.2017
+                                            if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) )then
+                                                cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                                cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                                cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                                cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                            
+                                                cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                                cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                            endif
+                                        endif ! opx==1
+                                    endif ! opx/=0
+                                else ! infeasible point due to collateral and budget constraints. DOWNGRADE WITHOUT ANY COMPARISON
+                                    if(opx==0)then ! no where to downgrade their expenses or costs
+                                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1 ! -99 indicates a normal case.
+                                    elseif(opx==1)then ! may instead choose to be a worker
+                                        cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,ypx,0,t) 
+                                        cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,ypx,0,t)
+                                        cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,ypx,0,t)
+                                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,ypx,0,t)   
+                                        cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,ypx,0,t)                                    
+                                        cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,ypx,0,t)   
+                                    elseif(opx==2)then ! may instead choose to engage in an investment project of smaller scale.
                                         opxi = merge(opx-1,opx-2,zx==1) ! 3.31.2017
-                                        if( cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) < cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) )then
-                                            cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                            cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                            cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                            cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                            
-                                            cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                            cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                        endif
-                                    endif ! opx==1
-                                endif ! opx/=0
-                            else ! infeasible point due to collateral and budget constraints. DOWNGRADE WITHOUT ANY COMPARISON
-                                if(opx==0)then ! no where to downgrade their expenses or costs
-                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1 ! -99 indicates a normal case.
-                                elseif(opx==1)then ! may instead choose to be a worker
-                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,0,ypx,0,t) 
-                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,0,ypx,0,t)
-                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,0,ypx,0,t)
-                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,0,ypx,0,t)   
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,0,ypx,0,t)                                    
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,0,ypx,0,t)   
-                                elseif(opx==2)then ! may instead choose to engage in an investment project of smaller scale.
-                                    opxi = merge(opx-1,opx-2,zx==1) ! 3.31.2017
-                                    cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
-                                    cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                    cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
-                                    cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
-                                    cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                                                                
-                                    cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
-                                endif    
-                            endif 
-                            deallocate( shv, lowap, highap, smaxv, apvec )                             
+                                        cwf(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwf(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t) 
+                                        cwa(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwa(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                        cwh(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwh(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)
+                                        cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cww(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
+                                        cwk(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwk(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)                                                                                
+                                        cwc(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cwc(ax,hx,kx,zx,yx,kpx-1,ypx,opxi,t)   
+                                    endif    
+                                endif 
+                            endif ! exit_brent [11]
+                        
+                            deallocate( shv, lowap, highap, smaxv, apvec )  
+                            
                         else ! inc<0._wp
                             cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1                        
                         endif ! inc
+                        
+                        if(exit_brent) exit ! exit this n loop (over the indices of housing asset holding grid). 8-13-2017 [12]
+                        
                     enddo ! n
+                    
+                    if(exit_brent) qray(q)=.true. ! [13]
+                    
                 enddo ! q  
                 !$omp end do
                 deallocate( v2d )
                 !$omp end parallel
+                
+                if(any(qray==.true.)) exit_bellman=.true. ! [14]
+                if(exit_bellman) exit ! [15]
+                
             enddo ! l
             
-            if(printout2)then            
-                do l = 1, 4                
-                    do q = bd(l,1), bd(l,2) ! income in period 14 could be used later.
-                        ax  = xlist(q,1)
-                        hx  = xlist(q,2)
-                        kx  = xlist(q,3)
-                        zx  = xlist(q,4)
-                        yx  = xlist(q,5)
-                        kpx = xlist(q,6)
-                        ypx = xlist(q,7)
-                        opx = xlist(q,8)  
-                                 
-                        if(ax==1.and.hx==1)then
-                            write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
-                            write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
-                            write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) 
-                            write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
-                            do i = 1, adim
-                                write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
-                            enddo
-                        endif 
-                        
-                    enddo ! q            
-                enddo ! l
-            endif ! printout2  
-            
-
-            do n = 1, 7
-                !$omp parallel default(shared) private(i,j,vpe1,vpe2,pyv)
-                kx = tvector(n,1)
-                zx = tvector(n,2)
-                do yx = 1, nmc            
-                    !$omp do
-                    do q = 1, hdim*adim  
-                        call acc_index_begin_mass_per_period(q,i,j)
-                        pyv = py(yx,:)
-                        if(n==1)then
-                                vpe1 = cwf(i,j,kx,zx,yx,0,1:nmc,0,t) ! still a worker
-                                vpe2 = cwf(i,j,kx,zx,yx,1,1:nmc,2,t) ! turn to be an entrepreneur
-                                if(all(cww(i,j,kx,zx,yx,0,1:nmc,0,t)==-99).and.all(cww(i,j,kx,zx,yx,1,1:nmc,2,t)==-99)) &
-                                    & wf(i,j,kx,zx,yx,t) = (1._wp-probtk(kx))*dot_product(pyv,vpe1) + probtk(kx)*dot_product(pyv,vpe2)
-                        elseif(2<=n.and.n<=4)then ! 3.31.2017                    
-                                vpe1 = cwf(i,j,kx,zx,yx,0,1:nmc,0,t)
-                                vpe2 = cwf(i,j,kx,zx,yx,1,1:nmc,2,t)
-                                if(all(cww(i,j,kx,zx,yx,0,1:nmc,0,t)==-99).and.all(cww(i,j,kx,zx,yx,1,1:nmc,2,t)==-99)) &
-                                    & wf(i,j,kx,zx,yx,t) = (1._wp-probtk(0))*dot_product(pyv,vpe1) + probtk(0)*dot_product(pyv,vpe2) ! 3.31.2017 correct the error that probtk's index is not 0.
-                        elseif(5<=n.and.n<=6)then                     
-                                vpe1 = cwf(i,j,kx,zx,yx,kx,1:nmc,1,t)
-                                vpe2 = cwf(i,j,kx,zx,yx,kx+1,1:nmc,2,t)
-                                if(all(cww(i,j,kx,zx,yx,kx,1:nmc,1,t)==-99).and.all(cww(i,j,kx,zx,yx,kx+1,1:nmc,2,t)==-99)) &
-                                    & wf(i,j,kx,zx,yx,t) = (1._wp-probtk(kx))*dot_product(pyv,vpe1) + probtk(kx)*dot_product(pyv,vpe2)             
-                        elseif(n==7)then                     
-                                vpe1 = cwf(i,j,kx,zx,yx,kx,1:nmc,1,t)
-                                if(all(cww(i,j,kx,zx,yx,kx,1:nmc,1,t)==-99)) &
-                                    & wf(i,j,kx,zx,yx,t) = dot_product(pyv,vpe1)           
-                        endif
-                    enddo ! q
-                    !$omp end do
-                enddo ! yx
-                !$omp end parallel
-            enddo ! n
+            if(exit_bellman==.false.)then ! [16]
+                if(printout2)then            
+                    do l = 1, 4                
+                        do q = bd(l,1), bd(l,2) ! income in period 14 could be used later.
+                            ax  = xlist(q,1)
+                            hx  = xlist(q,2)
+                            kx  = xlist(q,3)
+                            zx  = xlist(q,4)
+                            yx  = xlist(q,5)
+                            kpx = xlist(q,6)
+                            ypx = xlist(q,7)
+                            opx = xlist(q,8)  
+                                     
+                            if(ax==1.and.hx==1)then
+                                write(unit=056,fmt='(7a)') '  kx','  zx','  yx',' kpx',' ypx',' opx','   t'
+                                write(unit=056,fmt='(7i4)') kx,zx,yx,kpx,ypx,opx,t
+                                write(unit=056,fmt='(3x,9x,'//str1//'i21)') (j,j=1,hdim) 
+                                write(unit=056,fmt='(3x,9x,'//str1//'f21.4)') (hv(j),j=1,hdim) 
+                                do i = 1, adim
+                                    write(unit=056,fmt='(i3,x,f8.4,'//str1//'(x,f20.8))') i,av(i),(cwf(i,j,kx,zx,yx,kpx,ypx,opx,t),j=1,hdim)    
+                                enddo
+                            endif 
+                            
+                        enddo ! q            
+                    enddo ! l
+                endif ! printout2  
                 
-            do n = 1, 7
-                kx = tvector(n,1)
-                zx = tvector(n,2)
-                do yx = 1, nmc                    
-                    if(printout2)then
-                        write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
-                        write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
-                        write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
-                        do j = 1, adim
-                            write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
-                        enddo                                  
-                    endif ! printout2                      
-                enddo ! yx              
-            enddo ! n
+
+                do n = 1, 7
+                    !$omp parallel default(shared) private(i,j,vpe1,vpe2,pyv)
+                    kx = tvector(n,1)
+                    zx = tvector(n,2)
+                    do yx = 1, nmc            
+                        !$omp do
+                        do q = 1, hdim*adim  
+                            call acc_index_begin_mass_per_period(q,i,j)
+                            pyv = py(yx,:)
+                            if(n==1)then
+                                    vpe1 = cwf(i,j,kx,zx,yx,0,1:nmc,0,t) ! still a worker
+                                    vpe2 = cwf(i,j,kx,zx,yx,1,1:nmc,2,t) ! turn to be an entrepreneur
+                                    if(all(cww(i,j,kx,zx,yx,0,1:nmc,0,t)==-99).and.all(cww(i,j,kx,zx,yx,1,1:nmc,2,t)==-99)) &
+                                        & wf(i,j,kx,zx,yx,t) = (1._wp-probtk(kx))*dot_product(pyv,vpe1) + probtk(kx)*dot_product(pyv,vpe2)
+                            elseif(2<=n.and.n<=4)then ! 3.31.2017                    
+                                    vpe1 = cwf(i,j,kx,zx,yx,0,1:nmc,0,t)
+                                    vpe2 = cwf(i,j,kx,zx,yx,1,1:nmc,2,t)
+                                    if(all(cww(i,j,kx,zx,yx,0,1:nmc,0,t)==-99).and.all(cww(i,j,kx,zx,yx,1,1:nmc,2,t)==-99)) &
+                                        & wf(i,j,kx,zx,yx,t) = (1._wp-probtk(0))*dot_product(pyv,vpe1) + probtk(0)*dot_product(pyv,vpe2) ! 3.31.2017 correct the error that probtk's index is not 0.
+                            elseif(5<=n.and.n<=6)then                     
+                                    vpe1 = cwf(i,j,kx,zx,yx,kx,1:nmc,1,t)
+                                    vpe2 = cwf(i,j,kx,zx,yx,kx+1,1:nmc,2,t)
+                                    if(all(cww(i,j,kx,zx,yx,kx,1:nmc,1,t)==-99).and.all(cww(i,j,kx,zx,yx,kx+1,1:nmc,2,t)==-99)) &
+                                        & wf(i,j,kx,zx,yx,t) = (1._wp-probtk(kx))*dot_product(pyv,vpe1) + probtk(kx)*dot_product(pyv,vpe2)             
+                            elseif(n==7)then                     
+                                    vpe1 = cwf(i,j,kx,zx,yx,kx,1:nmc,1,t)
+                                    if(all(cww(i,j,kx,zx,yx,kx,1:nmc,1,t)==-99)) &
+                                        & wf(i,j,kx,zx,yx,t) = dot_product(pyv,vpe1)           
+                            endif
+                        enddo ! q
+                        !$omp end do
+                    enddo ! yx
+                    !$omp end parallel
+                enddo ! n
+                    
+                do n = 1, 7
+                    kx = tvector(n,1)
+                    zx = tvector(n,2)
+                    do yx = 1, nmc                    
+                        if(printout2)then
+                            write(unit=026,fmt='(a,3(i3),a,i3)') '(kx,zx,yx) ',kx,zx,yx, ' t ',t     
+                            write(unit=026,fmt='(3x,8x,'//str1//'(8x,i8))') (j,j=1,hdim)             
+                            write(unit=026,fmt='(3x,5x,"999",'//str1//'(8x,f8.4))') (hv(j),j=1,hdim)             
+                            do j = 1, adim
+                                write(unit=026,fmt='(i3,x,f7.2,'//str1//'(x,f15.5))') j, av(j),(wf(j,i,kx,zx,yx,t),i=1,hdim)
+                            enddo                                  
+                        endif ! printout2                      
+                    enddo ! yx              
+                enddo ! n
+            endif ! exit_bellman [17]
             
             call system_clock(tend)
             !if(printout6) write(unit=120,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'     
-            if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'     
+            if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'  
+            
+            if(exit_bellman) exit ! exit the loop over t. [18]
+            
         enddo ! t
-        deallocate( xlist, bd )     
+        deallocate( qray, xlist, bd ) ! [19]    
         
     end subroutine solve_bellman_18
     
