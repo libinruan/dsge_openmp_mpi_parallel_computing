@@ -880,13 +880,14 @@ contains
         endif    
     end subroutine brentmaxrhs
 
-    function brentmax(ax,bx,cx,func,xmax) ! 3.7.2017 don't change anything in this function.
+    function brentmax(ax,bx,cx,func,xmax,flag) ! 3.7.2017 don't change anything in this function.
         ! look for the minimizor XMIN for the penalty function FUNC.
         ! Note that BX is between AX and CX. 
         ! Return the maximum value the function FUNC attains.
         implicit none
         real(wp), intent(in) :: ax,bx,cx
         real(wp), intent(out) :: xmax
+        logical, optional, intent(inout) :: flag ! 8-13-2017
         real(wp) :: brentmax
         
         interface
@@ -898,7 +899,7 @@ contains
           end function func
         end interface
         
-        integer, parameter :: itmax=100
+        integer, parameter :: itmax=100 ! Numerical Recipes in Fortran 90 - the art of scientific computing (2nd)_Press_Teukolsky_Vetterling_Flannery, page 1204
         real(wp), parameter :: tol=sqrt(epsilon(ax)),cgold=0.381966011250105_wp,zeps=1.0e-3_wp*epsilon(ax)
         integer :: iter
         real(wp) :: a,b,d,e,etemp,fu,fv,fw,fx,p,q,r,tol1,tol2,u,v,w,x,xm
@@ -911,7 +912,9 @@ contains
         fx=-func(x) !fixed caused the original version is for minimum. My program looks for maximum.
         fv=fx
         fw=fx
-        do iter=1,itmax
+        
+        do iter=1,itmax ! 8-13-2017 original
+        !do iter=1, 1 ! 8-13-2017 test
           xm=0.5_wp*(a+b)
           tol1=tol*abs(x)+zeps
           tol2=2.0_wp*tol1
@@ -977,6 +980,14 @@ contains
           end if
         end do
         ! stop 'brent: exceed maximum iterations'
+        if(present(flag))then ! 8-13-2017
+            flag = .true.     ! 
+            xmax = x          ! 
+            brentmax = -fx    ! 
+        endif                 ! 
+
+        xmax = x
+        brentmax = -fx
         write(*,'(a)') 'brent: exceed maximum iterations'
     end function brentmax
     
@@ -984,10 +995,11 @@ contains
     ! Input:
     !   xa: lower bound of financial asset holding
     !   xc: upper bound of financial asset holding
-    subroutine brent_localizer(func,xa,xc,xs,ys)
+    subroutine brent_localizer(func,xa,xc,xs,ys,flag)
         implicit none
         real(wp), intent(out) :: xs, ys
         real(wp), intent(in) :: xa,xc
+        logical, optional, intent(inout) :: flag ! 8-13-2017
         integer :: m, log0(1), size
         real(wp) :: ya, yb, yc, yaa, ycc, xaa, xcc
         real(wp) :: nxb, nxa, nxc
@@ -1027,7 +1039,7 @@ contains
             nxc = xvec(log0(1)+1)
             nxb = (nxa+nxc)/2._wp
         endif
-        ys = brentmax(nxa,nxb,nxc,func,xs)                              
+        ys = brentmax(nxa,nxb,nxc,func,xs,flag)                              
         deallocate( xvec, yvec )   
         return
     end subroutine brent_localizer

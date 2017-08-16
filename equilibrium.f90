@@ -31,7 +31,6 @@ module equilibrium
             call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
         else ! .false. for testing the communication of the coarse search.
             call test_model( guessv, momvec, node_id, trial_id, exit_log1, msg) 
-            
         endif
         
         if(exit_log1 == .true.)then ! Failure to solve the model with the given parameter setting.
@@ -190,17 +189,19 @@ module equilibrium
     
     subroutine solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! node_id == my_id
         implicit none
+        real(wp), dimension(:), intent(in) :: guessv
+        real(wp), dimension(:), intent(out) :: momvec
+        logical, intent(inout) :: exit_log1 ! EXIT "SOLVE MODEL" SUBROUTINE; It is initialized by its calling subroutine.
+        character(len=*), intent(out) :: msg ! MESSAGE FOR EXIT THIS SUBROUTINE
+        integer, intent(in) :: node_id, trial_id
+        
         integer :: i, j, m, n, ti, hi, ki, yi, kpi, int1
         real(wp) :: sar, tar ! THESE DUMMY VARIABLES USED FOR MULTIPLE TESTING BLOCKS, SO DON'T UNCOMMENT MORE THAN ONE BLOCKS AT THE SAME TIME.
         real(wp), dimension(:), allocatable :: yvtemp
-        integer :: colbnd1, colbnd2 ! FOR ILLUSTRATION
-        
-        real(wp), dimension(:), intent(in) :: guessv
-        real(wp), dimension(:), intent(out) :: momvec
-        integer, intent(in) :: node_id, trial_id
-        logical, intent(inout) :: exit_log1 ! EXIT "SOLVE MODEL" SUBROUTINE
-        character(len=*), intent(out) :: msg ! MESSAGE FOR EXIT THIS SUBROUTINE
+        integer :: colbnd1, colbnd2 ! FOR ILLUSTRATION        
         integer :: tstart, tend, trate, tmax
+        
+        logical :: exit_bellman
         
         !exit_log1 = .false. ! Redundant. Was initialized in the evoking subroutine 'search_equilibrium' 
         
@@ -214,6 +215,9 @@ module equilibrium
         phi1  = guessv(8)
         phi2  = guessv(9)
         phi3  = guessv(10)
+        
+        msg = " "
+        exit_bellman = .false.
         
         ! 4.1.2017 fnadim, fnhdim, adim, hdim all need to keep. Hard to disentangle these variables, although their functions are overlapping each other's.
         fnadim = adim ! 3.16.2017 Hardwired for preventing program complexity. 
@@ -743,12 +747,21 @@ module equilibrium
                 
                 if(num_procs==2) write(*,*) ' '
                 !!!!!!! ---- kernel ----- Option I 4.8.2017 fix the wrong indexing of parallel liss (0)
-                call solve_bellman_1014() ! 072516 one more time 09122016 3.15-17.2017
+                call solve_bellman_1014(exit_bellman) ! 072516 one more time 09122016 3.15-17.2017
                 write(unit=my_id+1001,fmt='(a)',advance='no') ' Bellman 10-14'
-                call solve_bellman_9()    ! 072516 one more time 09122016 3.15-17.2017
+                !write(*,*) merge('exit 1014','stay 1014',exit_bellman) ! 8-13-2017
+                if(exit_bellman) exit_log1 = .true. ! 8-13-2017
+                if(exit_bellman) exit ! exit the government loop 8-13-2017
+                
+                call solve_bellman_9(exit_bellman)    ! 072516 one more time 09122016 3.15-17.2017
                 write(unit=my_id+1001,fmt='(a)',advance='no') ', bellman 9'
-                call solve_bellman_18()   ! 072516 one more time 09122016 3.15-17.2017
+                if(exit_bellman) exit_log1 = .true. ! 8-13-2017
+                if(exit_bellman) exit ! exit the government loop 8-13-2017
+                
+                call solve_bellman_18(exit_bellman)   ! 072516 one more time 09122016 3.15-17.2017
                 write(unit=my_id+1001,fmt='(a)',advance='no') ', bellman 1-8'
+                if(exit_bellman) exit_log1 = .true. ! 8-13-2017
+                if(exit_bellman) exit ! exit the government loop 8-13-2017
                 
                 ! 4.8.2017 4:34 pm stop here.
                 !! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1068,7 +1081,7 @@ module equilibrium
                 if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 30 '
                 iterar = iterar + 1
             else ! exit_log1 == .true.
-                exit
+                exit ! exit the interest rate loop. 
             endif
             
             !! 8-1-2017

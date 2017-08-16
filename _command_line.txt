@@ -1,7 +1,0 @@
-For running the case where mpi_exercise_mode == 0,
-	Unix OS:
-	$ mpirun -perhost 1 -np 1 ./main
-	
-For running the case where mpi_exercise_mode == 1 and printout6 == .false.	
-	Windows OS:
-	$ mpiexec -np 4  MPI_sandbox.exe
