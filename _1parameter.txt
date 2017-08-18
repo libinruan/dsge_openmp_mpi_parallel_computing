@@ -1,11 +1,11 @@
 ! "nrow" = the size of ROW_WORLD, "4*noamoeba" = the size of AMOEBA_WORLD, and "ndim+1" = the size of CONTRACT_WORLD.
-rhoy             0.715
-vary             0.52 
-rhoyh            0.677
-varyh            0.37 
-deltak           0.109
-deltah           0.017
-rd               0.035
+rhoy             0.715 ! 
+vary             0.52  !
+rhoyh            0.677 !
+varyh            0.37  !
+deltak           0.109 !
+deltah           0.017 !
+rd               0.035 !
 alpha            0.247 ! Following Naka, housing capital is removed from the defintiion for capital income (p.15).0.26 perfect version. 
 lambda           0.2  
 theta            0.1359087 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
@@ -93,27 +93,27 @@ target7  	     1.26   ! target 7: housing capital (consumer durables) to output
 target8          0.40   ! target 8: total asset held by entrepreneurs
 target9          0.27   ! target 9: share of income held by entrepreneurs
 target10         8.0    ! target 10: ratio of median assets (entrepreneurs to workers)
-lower1           0.002  ! kv1: size of the smallest project ! ##################################################################################
-upper1           1.0    ! kv1: size of the smallest project
+lower1           0.01   ! kv1: size of the smallest project ! ##################################################################################
+upper1           1.50   ! kv1: size of the smallest project
 lower2           0.01   ! prtk0: probability of new ideas
-upper2           0.15   ! prtk0: probability of new ideas
-lower3           0.05   ! prtk1: probability of new ideas
-upper3           0.3    ! prtk1: probability of new ideas
-lower4           0.025  ! prtk2: probability of new ideas
-upper4           0.25   ! prtk2: probability of new ideas
-lower5           0.2    ! zbar: average tech shock  
-upper5           1.5    ! zbar: average tech shock
-lower6           0.85   ! beta: discount factor (on "annual" basis)
-upper6           0.998  ! beta: discount factor (on "annual" basis)
-lower7           0.08   ! theta: housing utility parameter
-upper7           0.25   ! theta: housing utility parameter
-lower8           0.65   ! phi1: tech shock
-upper8           0.85   ! phi1: tech shock
-lower9           0.87   ! phi2: tech shock
-upper9           0.97   ! phi2: tech shock
-lower10          0.95   ! phi3: tech shock
-upper10          0.99   ! phi3: tech shock
-trylen           1000   ! (integer) Length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq. ! ############################################################
+upper2           1.00   ! prtk0: probability of new ideas
+lower3           0.01   ! prtk1: probability of new ideas
+upper3           1.00   ! prtk1: probability of new ideas
+lower4           0.01   ! prtk2: probability of new ideas
+upper4           1.00   ! prtk2: probability of new ideas
+lower5           0.01   ! zbar: average tech shock  
+upper5           1.50   ! zbar: average tech shock
+lower6           0.50   ! beta: discount factor (on "annual" basis)
+upper6           1.50   ! beta: discount factor (on "annual" basis)
+lower7           0.05   ! theta: housing utility parameter
+upper7           0.30   ! theta: housing utility parameter
+lower8           0.50   ! phi1: tech shock
+upper8           1.00   ! phi1: tech shock
+lower9           0.20   ! phi2: tech shock
+upper9           1.00   ! phi2: tech shock
+lower10          0.20   ! phi3: tech shock
+upper10          1.00   ! phi3: tech shock
+trylen          10000   ! (integer) Length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq. ! ############################################################
 sblno1              1   ! (integer) The index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   20   ! !!!(integer) "nrow has to be larger than or equal to (ndim+1) and 4*noamoeba," and "-np has to be nrow+1." The number of nodes involved in an individual amoeba group, including its amoeba head, the sub-amoeba groups, each of which contains 4 nodes. There are two possible scenario. One: ndim (size of target moments) plus one (the amoeba head) is smaller than total vertices in a single amoeba (i.e., 4 times noamoeba (the size of amoeba)). Two: it goes the other way around, ndim+1>=4*noamoeba. Both cases are acceptable to the program. 7-30-2017. 
 stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
@@ -126,9 +126,9 @@ amoerrcrt    	1.E-3   ! (real) 1.E-4
 amoitrcrt    	 1500   ! (integer) amoeba maximum interation. 500-1500.
 amoconvex    	  0.2   ! (real) Weight on the best single point (redundant) 
 amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combination with one best parameter inputs.
-nsbq 		    10000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
-slist               2   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
-elist               2   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
+nsbq 		    20000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
+slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
+elist               1   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
 noamoeba            5   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group. Note: noamoeba is actually the number of subgroup within an amoeba.
 maxdist			1.e-6   ! 1.e-4; maximum distance allowed among vertices in a single amoeba
 tinymass		1e-12   ! the lower threshold of a valid mass grid. | for adjustment of extremem cases in population distribution.
@@ -147,13 +147,13 @@ printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonli
 printout10       true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+2001. Final aggregate stat results. 
 printout11       true   ! !##!True, 'solve_model'; False, 'test_model', 7-8-2017
 printout12       true   ! Show the default parameter setting
-printout13	     true   ! debug amoeba
-printout14       true   ! true, extreme method as used in literature, based on coordinate and multiplier; false, the usual method I have been using, based on constraints
+printout13	     true   ! amoeba intermediate message
+printout14       false  ! true, extreme method as used in literature, based on coordinate and multiplier; false, the usual method I have been using, based on constraints
 printout15       false  ! Used in building stage. True, allow undefined area to create extreme penalty of value infinity; 
 printout16       false  ! true, read existing optimal points WITHOUT sobel sequence; FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   2   ! (integer) Single node mode, 0; Exploratory mode, 1; amoeba mode 2 (listnumber) 
+mpi_exercise_mode   1   ! (integer) Single node mode, 0; Exploratory mode, 1; amoeba mode 2 (listnumber) 
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not.
 !
 ! (Test) Setting #1. -------------------------------------------------------------------------------------------------
@@ -181,10 +181,11 @@ mpi_exercise_mode   2   ! (integer) Single node mode, 0; Exploratory mode, 1; am
 !   Output2 (root): RootIntermCollect_xxx.txt (1001, similar to IOMat_xxx.txt with MPI ranking info), 
 !					RootUseless_xxx.txt (2001, blank)
 !   Output3: IOMat_xxx.txt (input, moment, penalty)
-!   nsbq: the length of the trial sobel sequence list
-!   slist: customary.  
-!   elist: customary and bigger than slist. Note that (elist-slist+1) has to be larger than the number of 
-!		amaoeba group we ask for (that is, ncol).
+!   nsbq: the length of the trial sobel sequence list 
+!   trylen: ...
+!   sblno1: ...
+!   weight list:
+!   breaks list:
 !
 ! (Test) Setting #5. size of nodes = a single amoeba group.-----------------------------------------------------------
 !	Purpose: 
@@ -200,6 +201,9 @@ mpi_exercise_mode   2   ! (integer) Single node mode, 0; Exploratory mode, 1; am
 ! 	Output3 (amoeba members not in contract world): _Non-contract-member.txt
 !	printout11: False. Solve the test functions widely used in the field of operation research
 !	printout16: True. Read a single potential best vertex (No Sobel restart) from a file specified by parameter Bestvertex_file (below).
+!   slist: customary. 
+!   elist: customary and bigger than slist. Note that (elist-slist+1) has to be larger than the number of 
+!		amaoeba group we ask for (that is, ncol).
 !   bestvertex_file: xxx.
 !   testfunc_idx: 1~4. 
 !   nrow: xxx. (see the example in setting #6 below).

@@ -162,7 +162,9 @@ program MPI_sandbox
         
         ! Quasi-random Sobol sequence block # 2 move inside the MPI_exercise_mode == 1!?
         call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim ) ! Generate ndim dimensional sobol sequence of length nsbq (nsbq*ndim).
-        call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) ! ndim*nsbq
+        ! call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) ! ndim*nsbq ! comment out 8-18-2017
+        
+        sobolm_scaled = transpose(sobolm) ! added 8-18-2017
         mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1) ! 7-29-2017 Shifted.    
         
         if(my_id==0) call sm(sobolm,'sobolm'//trim(trylen_string)) ! checked 2017-Jul-1
@@ -172,15 +174,32 @@ program MPI_sandbox
         nslaves = num_procs - 1 ! Just for mpi_exercise_mode==1 case, the root processor (my_id==0) is in charge of sending out new trial and receiving the corresponding result.
 
         if( my_id == 0)then
-            write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
-            io_string = 'IOMat_'//trim(trylen_string) 
             
+            write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
+            
+            !! 8-18-2017
+            io_string = 'FinalScaledSobel_'//trim(trylen_string) 
+            do i = 1, trylen
+                call linear_combination_sobol_sequence_corrected( parcel, i, mpi_sobol_scaled(:,i), range_guess )
+                mpi_sobol_mixed(i,:) = parcel
+            enddo
+            call sm(mpi_sobol_mixed,io_string)
+            
+            io_string = 'IOMat_'//trim(trylen_string) 
             ! [The Root, case 1] Send Initial Messages to Slave Nodes (indices ranges from 1 to nslaves)
             do i = 1, nslaves ! nslaves = num_procs-1.
                 trial = i ! the index of the basic loop: 1,...,trylen; Not the indices of the adjusted Sobol sequence.
                 slave = i
-                call linear_combination_sobal_sequence(parcel,trial,mpi_sobol_scaled(:,trial),origin_input,weight_list,breaks_list) ! Be sure to set up weight_list and breaks_list.    
-                mpi_sobol_mixed(trial,:) = parcel ! bookkeeping.
+                
+                !! comment out 8-18-2017
+                !call linear_combination_sobal_sequence(parcel,trial,mpi_sobol_scaled(:,trial),origin_input,weight_list,breaks_list) ! Be sure to set up weight_list and breaks_list.    
+                
+                !! added 8-18-2017, then moved outside this do loop over i between 1 and nslaves
+                !call linear_combination_sobol_sequence_corrected( parcel, trial, mpi_sobol_scaled(:,trial), range_guess )
+                !! The formula is: vertex_output = (range_guess(:,2)+range_guess(:,1))/2._wp + (unit_sobol_input-0.5_wp)*(range_guess(:,2)-range_guess(:,1))
+                !mpi_sobol_mixed(trial,:) = parcel ! bookkeeping. ! comment out 8-18-2017
+                
+                parcel = mpi_sobol_mixed(i,:)
                 call sendjob(trial,slave,parcel) ! send from root to slave the trial parameter combination                
             enddo
             
