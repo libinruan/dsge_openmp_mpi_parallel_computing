@@ -1311,6 +1311,16 @@ subroutine linear_combination_sobal_sequence(linear_combination_sobol, sequence_
     !write(*,'(a,f6.3,a,i3,a,i3)') ' weight ', wgt, ' loc ', idx, ' list index ', sequence_index
     !write(*,*) ' --------------------------------------------- '
 end subroutine linear_combination_sobal_sequence
+
+subroutine linear_combination_sobol_sequence_corrected( vertex_output, sequence_index, unit_sobol_input, range_guess )
+    real(wp), dimension(:), intent(out) :: vertex_output
+    real(wp), dimension(:), intent(in) :: unit_sobol_input
+    real(wp), dimension(:,:), intent(in) :: range_guess
+    integer, intent(in) :: sequence_index
+    
+    vertex_output = (range_guess(:,2)+range_guess(:,1))/2._wp + (unit_sobol_input-0.5_wp)*(range_guess(:,2)-range_guess(:,1))
+    
+end subroutine linear_combination_sobol_sequence_corrected
     
 end module equilibrium
     

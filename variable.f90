@@ -249,8 +249,8 @@ module variable
     ! amoeba - break_list - mpi_exercise_mode == 0 Only.
     !real(wp), dimension(10) :: weight_list = [0.95_wp,0.9_wp,0.85_wp,0.8_wp,0.75_wp,0.7_wp,0.65_wp,0.6_wp,0.55_wp,0.5_wp] ! used for mpi_exercise_mode==1
     !integer, dimension(10) :: breaks_list = [1,101,201,301,401,501,601,701,801,901] ! used for mpi_exercise_mode==1
-    real(wp), dimension(10) :: weight_list = [0._wp,0._wp] ! 8-18-2017
-    integer, dimension(10) :: breaks_list = [1,10000]      ! 8-18-2017
+    real(wp), dimension(2) :: weight_list = [0._wp,0._wp] ! 8-18-2017 ! Useless now.
+    integer, dimension(2) :: breaks_list = [1,50000]      ! 8-18-2017 ! Useless now.
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
     logical :: printout13, printout14, printout15, printout16

@@ -5,6 +5,9 @@
 *.suo
 *.user
 *.sln.docstates
+*.u2d
+MPI_sandbox/
+Readme/
 
 # Build results
 
