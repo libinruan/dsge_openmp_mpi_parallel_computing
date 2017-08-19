@@ -241,8 +241,11 @@ program MPI_sandbox
                         if(i<=trylen-nslaves)then ! 8-2-2017 The boundary is correct. There is always nslaves trials unfinished until the end of the program. 
                             !parcel = mpi_sobol_scaled(:,i+nslaves) ! Correct. 7-3-2017, but discarded becaused we use linear combination to generate parcel. 8-2-2017.
                             trial = i + nslaves
-                            call linear_combination_sobal_sequence( parcel, trial, mpi_sobol_scaled(:,trial), origin_input, weight_list, breaks_list )   
-                            mpi_sobol_mixed(trial,:) = parcel                            
+                            !! 8-19-2017 comment out
+                            !call linear_combination_sobal_sequence( parcel, trial, mpi_sobol_scaled(:,trial), origin_input, weight_list, breaks_list )   
+                            !mpi_sobol_mixed(trial,:) = parcel                            
+                            
+                            parcel = mpi_sobol_mixed(trial,:) ! 8-19-2017 added
                             call sendjob( trial, slave, parcel ) ! 8-2-2017 Now, 'trial' is different from the value of 'slave.'
                         endif
                         exit ! leave the current loop 

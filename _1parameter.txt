@@ -1,12 +1,12 @@
 ! "nrow" = the size of ROW_WORLD, "4*noamoeba" = the size of AMOEBA_WORLD, and "ndim+1" = the size of CONTRACT_WORLD.
-rhoy             0.715 ! 
-vary             0.52  !
-rhoyh            0.677 !
-varyh            0.37  !
-deltak           0.109 !
-deltah           0.017 !
-rd               0.035 !
-alpha            0.247 ! Following Naka, housing capital is removed from the defintiion for capital income (p.15).0.26 perfect version. 
+rhoy             0.715  
+vary             0.52  
+rhoyh            0.677 
+varyh            0.37  
+deltak           0.109 
+deltah           0.017 
+rd               0.035 
+alpha            0.247 ! Following Naka, housing capital is removed from the defintiion for capital income (p.15).0.326 is the conventinal perfect version with a single type of capital.
 lambda           0.2  
 theta            0.1359087 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
 sigma            1.5 ! 1.5 Yang. 2.0 ! the larger the sigma, the flatter the curve becomes when the abscissa is away from the origin.  
@@ -154,6 +154,10 @@ printout16       false  ! true, read existing optimal points WITHOUT sobel seque
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
 mpi_exercise_mode   1   ! (integer) Single node mode, 0; Exploratory mode, 1; amoeba mode 2 (listnumber) 
+!
+!
+!
+!
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not.
 !
 ! (Test) Setting #1. -------------------------------------------------------------------------------------------------
@@ -181,11 +185,12 @@ mpi_exercise_mode   1   ! (integer) Single node mode, 0; Exploratory mode, 1; am
 !   Output2 (root): RootIntermCollect_xxx.txt (1001, similar to IOMat_xxx.txt with MPI ranking info), 
 !					RootUseless_xxx.txt (2001, blank)
 !   Output3: IOMat_xxx.txt (input, moment, penalty)
+!   Output4: FinalScaledSobel_xxx.txt (list of Sobol sequence starting with corresponding center to a set of given upper and lower bounds)
 !   nsbq: the length of the trial sobel sequence list 
 !   trylen: ...
 !   sblno1: ...
-!   weight list:
-!   breaks list:
+!   weight list: 8-19-2017 useless now.
+!   breaks list: 8-19-2017 useless now.
 !
 ! (Test) Setting #5. size of nodes = a single amoeba group.-----------------------------------------------------------
 !	Purpose: 
@@ -248,4 +253,3 @@ mpi_exercise_mode   1   ! (integer) Single node mode, 0; Exploratory mode, 1; am
 !   (1) setting printout16 to TRUE;
 !	(2) and set bestvertex_file correspondingly as in setting#6 (say, 1_001_restart_list.txt);
 !   (3) but remeber to change printout11 to false because we are in the test stage rather than production stage.
-

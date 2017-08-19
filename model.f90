@@ -3761,8 +3761,10 @@ contains
         svec   = sef*sw_bizinvestment
         entcap = sum(svec,tvec==.true.) ! 3.27.2017 Only sum up those figures not coming from idle capital.
         crpcap = totast/(1._wp+dfrac)-entcap ! Cagetti and De Nardi, TAUCfinalSS.f90, line 1273. a constant fraction of total capital. ! <========================<<
-        ! 3.27.2017 following cagetti and de nardi's 2009 AER paper
+        ! 3.27.2017 following cagetti and de nardi's 2009 AER paper. See their InitialSS.f90 in AER_2009_codes.zip (unzipped as MS200405121codes). Their model
+        ! also consider government debt accoutns for a fraction of total capital.
         ! totast = entcap + crpcap + dfrac*(entcap + crpcap) 
+        ! 8-18-2017 So we know the functional relationship: crpcap = f(totast, entcap, dfrac).
         
         svec   = sef*sw_laborsupply
         ! totefl = sum(svec,s3c(:,3)==0) ! Total efficiency unit of labor is provided by workers. Note that entrepreneurs' efficiency unit stay only in the entrepreneurial sector.
@@ -3777,6 +3779,7 @@ contains
         crpprd = wage*crplab + (rd+deltak)*crpcap ! 3.27.2017 Cobb-Douglas production function's property (TAUCfinal.f90 line 1281). Note that wage, rd, and deltak are all on five years basis.
         ! 3.28.2017 Any tax rates do not show up in the equation above, as formualted in Imorhoroglu (1995) a life-cycle analysis of social security.
         gdp = crpprd + entprd ! 5.10.2017 As in  Fern-Villa and Dirk Krueger, GDP doens't include housing service in their definition.
+        ! 8-18-2017 The definition of GDP is computed in the same way as in Cagetti and De Nardi AER_2009 paper.
 
         ! Cagetti: gdp = [wage*totlcorp+(rbar+delt)*totkcorp] + inck.
         ! Cagetti: `inck` (gross entr. output) includes wages paid, interest owed and depr. They collectively equal to the first term of my enrepreneur's profit (that is, the entrepreneurial production)
@@ -3830,9 +3833,9 @@ contains
         ! 5.9.2017 lvece and lvecw both are correct.
         allocate(lvece(sz),lvecw(sz))
         
-        ! 5.10.2017 cross sectional size (not depends on agent's decision)
+        ! 5.10.2017 cross sectional size (not depends on agent's decision). Do not consider retirees.
         lvece = s3c(:,3)>0.and.s3c(:,4)==1.and.abs(sw_buzcap_notuse-0._wp)<1.e-7_wp
-        lvecw = (lvece==.false..and.s3c(:,9)<=9) ! 5.10.2017 remove (s3c(:,3)==0.and.s3c(:,9)<=9).or. and s3c(:,3)/=0.and.s3c(:,4)==0
+        lvecw = (lvece==.false..and.s3c(:,9)<=9) ! 5.10.2017 remove this line: (s3c(:,3)==0.and.s3c(:,9)<=9).or. and s3c(:,3)/=0.and.s3c(:,4)==0
         
         szwok = count(lvecw)
         allocate(svec(szwok),rvec(szwok))
@@ -3958,13 +3961,14 @@ contains
         endif           
         
         if(exit_log1==.false.)then ! the steady state is obtained successfully.
-            momvec(1)  = crpcap/(crpcap+entcap)
+
+            momvec(1)  = crpcap/(crpcap+entcap) ! 8-18-2017 continue using this expression.
             momvec(2)  = sml_inv_per
             momvec(3)  = med_inv_per
             momvec(4)  = hug_inv_per
-            momvec(5)  = entsize
-            momvec(6)  = (crpcap+entcap)/gdp
-            momvec(7)  = (enthom+wokhom)/gdp
+            momvec(5)  = entsize ! 8-19-2017 based on agnet's job decision made in the end of last period.
+            momvec(6)  = (crpcap+entcap)/gdp ! 8-19-2017 wokfin + entfin ~= totast ~= (crpcap+entcap) + <government debt> = (crpcap+entcap)*(1+dfrac). 8-19-201 Correct. See Cagetti and DeNardi's 2009 AER code, line 2197 in InitialSS.f90.
+            momvec(7)  = (enthom+wokhom)/gdp ! 8-19-2017
             momvec(8)  = (entfin+enthom)/(entfin+enthom+wokfin+wokhom) ! 7-2-2017, including the amount belonging to retired people.
             momvec(9)  = ent_inc_per
             momvec(10) = medentwel/medwokwel
