@@ -211,7 +211,7 @@ mpi_exercise_mode   2   ! (integer) Single node mode, 0; Stage 1, Exploratory mo
 ! 	Output3 (amoeba members not in contract world): _Non-contract-member.txt
 !	printout11: False. Solve the test functions widely used in the field of operation research
 !   printout14: either Flase or True. (Now I prefer to use False because I have an academic guess on the ranges of input)
-!   If printout14 is True, the range of each input has to be specified.
+!   If printout14 is False, the range of each input has to be specified.
 !	printout16: True. Read a single potential best vertex (No Sobel restart) from a file specified by parameter Bestvertex_file (below). In this case,
 !   	slist and elist are irrelevant.
 !   ! If printout16 is set at False, slist, elist, and file _full_list_startingpoint.csv have to be provided.
