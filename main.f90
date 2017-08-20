@@ -231,9 +231,9 @@ program MPI_sandbox
                         if(i==1) write(my_id+1001,'(a,(12x,a),(x,a),(2x,a),(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"), &
                             & (10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"),(11x,"input1"),(11x,"input2"),(11x,"input3"), &
                             & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') &
-                            & "MyID","error", "#trial", "#list"
+                            & "MyID","error", "   #trial", "   #list"
                         
-                        write(my_id+1001,'(i4,(x,f16.7),(2x,i5),(2x,i5),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 8-2-2017. Indexeries maps the basic index number to the index number for the shifted list.
+                        write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 8-2-2017. Indexeries maps the basic index number to the index number for the shifted list.
                             & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_mixed(trial,:) ! 8-2-2017. "slave" is the node returunign the computing outcome.
                         
                         ! Check to see if one more new trial is available to be assigned to the responding slave node.
@@ -500,8 +500,8 @@ program MPI_sandbox
                 call sendjob(trial, slave, selected_input, 'head_group') ! 7-17-2017 trial is a new starting point's index no. from the integrated list of favorable starting points.
                 
                 ! Only my_id == 0 would prints out.
-                if(printout13) write(my_id+1001,'("Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
-                if(printout13) write(*,'(/,"Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
+                if(printout13) write(my_id+1001,'("Trial no. (refpts): ", i8, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
+                if(printout13) write(*,'(/,"Trial no. (refpts): ", i8, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
                 
             enddo ! i
             
@@ -563,8 +563,8 @@ program MPI_sandbox
                         selected_input = startpoint(15:24)
                         call sendjob(trial, slave, selected_input, 'head_group')
                         if(printout13) write(my_id+1001,'(a)') '-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
-                        if(printout13) write(my_id+1001,'("Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
-                        if(printout13) write(*,'("Trial no. (refpts): ", i3, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
+                        if(printout13) write(my_id+1001,'("Trial no. (refpts): ", i8, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
+                        if(printout13) write(*,'("Trial no. (refpts): ", i8, ", VERTEX ", <ndim>f12.7, " amoeba no.", i3, " (Total amoebas: ", i3,")")') trial, selected_input, slave, nslaves ! 
                     endif
                     
                 endif ! receiving, if statement
@@ -628,7 +628,7 @@ program MPI_sandbox
                     call MPI_SEND( bestobjval, 1, MPI_DOUBLE_PRECISION, 0, & ! [5] best objective vale
                         & msgtype, HEAD_WORLD, ierr )
                     
-                    write(my_id+1001,'(/,a,i5.5," head_id: ",i3.3," min_val: ",f12.7)') "Outcome for trial no.", trial, head_id, bestobjval
+                    write(my_id+1001,'(/,a,i8.8," head_id: ",i3.3," min_val: ",f12.7)') "Outcome for trial no.", trial, head_id, bestobjval
                     write(my_id+1001,'(a,/)') '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
                 enddo
                 
