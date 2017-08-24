@@ -466,7 +466,7 @@ module equilibrium
         delzh = 0._wp
         delzl = 0._wp
         
-        delzl = 0.176_wp    ! Set 
+        delzl    = 0.176_wp ! Set 
         delzh(1) = 0.087_wp ! Set based on the result from Excel optimization solver Feb 13, 2017. 3.12.2017 checked.
         delzh(2) = 0.103_wp ! Set 
         delzh(3) = 0.107_wp ! Set 
@@ -634,7 +634,7 @@ module equilibrium
                     
                     ! 4.21.2017 moved from the block outside the interest rate loop.
                     hmin = 0.5_wp*lowest_quintile_wokinc
-                    hmax = 15._wp*medwokinc ! 4.21.2017 The number 12. is eye-balled based on the SCF graph, figure 5 partial estimation of age profile based on SCF data in my dissertation.
+                    hmax = 15._wp*medwokinc ! 4.21.2017 The number 12. is eye-balled based on the SCF graph, figure 5 partial estimation of age profile based on SCF data in my dissertation. Yang seems to use 17 as the multiplier.
                     call grid(hv,hmin,hmax,2.5_wp) ! 09182016 
                     call grid(rhv,hmin,hmax,2.5_wp) ! keep it, not redundant or revision needed. 10102016
                     rhv = hv ! 10102016                    
