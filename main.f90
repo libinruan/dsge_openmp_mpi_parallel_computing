@@ -46,6 +46,8 @@ program MPI_sandbox
             msg = ' starting point search'
         elseif(mpi_exercise_mode==2)then
             msg = ' amoeba algorithm'
+        elseif(mpi_exercise_mode==3)then
+            msg = ' single node relay'
         else
             msg = ' -- not yet --'    
         endif
@@ -72,6 +74,18 @@ program MPI_sandbox
             write(*,*) ' Filename: ', bestvertex_file
             write(*,*) ' Best vertex: ', guessv
             
+            write(*,'(a,x,i6)') 'Trial:', trial
+            
+            do i = 1, ndim-1
+                write(*, '((i2),2x)', advance='no') i            
+            enddo ! i
+            write(*, '(i2,2x)') ndim
+            
+            do i = 1, ndim-1
+                write(*, '(i2,2x)', advance='no') i
+            enddo             
+            write(*, '(i2,2x)') ndim
+            write(*,'(a)') " test " 
         endif
   
     elseif(mpi_exercise_mode==-1)then ! MKL experiment (random number generator)
@@ -601,8 +615,22 @@ program MPI_sandbox
                     call MPI_RECV( selected_input, ndim, MPI_DOUBLE_PRECISION, 0, &
                         & msgtype, HEAD_WORLD, status, ierr )
                     
-                    if(printout13) write(my_id+1001,'(a,i3," vertex ",<ndim>f12.7)') 'Assigned trial: ', trial, selected_input ! 7-23-2017 checked.
+                    if(printout13)then
+                        write(my_id+1001,'(a,x,i6)') '[____] Starting Point Trial:', trial
                     
+                        do i = 1, ndim-1
+                            write(my_id+1001, '((12x,"Input",x,i2),2x)', advance='no') i            
+                        enddo ! i
+                        write(my_id+1001, '((12x,"Input",x,i2),2x)') ndim
+                        
+                        do i = 1, ndim-1
+                            write(my_id+1001, '(f20.15,2x)', advance='no') selected_input(i)   
+                        enddo
+                        write(my_id+1001, '(f20.15,2x)') selected_input(ndim)
+                        
+                        !write(my_id+1001,'(a,x,i6, ",", " vertex ",<ndim>f12.7)') 'Trial:', trial, selected_input ! 7-23-2017 checked.
+                    endif
+                        
                     !call MPI_BCAST( trial, 1, MPI_INTEGER, 0, AMOEBA_WORLD, mpi_err )
                     !call MPI_BCAST( selected_input, ndim, MPI_DOUBLE_PRECISION, 0, AMOEBA_WORLD, mpi_err ) ! 7-23-2017 maks sense.
                     call MPI_BCAST( trial, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err ) ! 7-30-2017 CONTRACT_WORLD-->ROW_WORLD
@@ -665,7 +693,63 @@ program MPI_sandbox
         endif
         
     elseif( mpi_exercise_mode==3 )then ! Should mimic what mpi_exercise_mode==0 and 2 did. 8-7-2017.   
-        ! open...
+        
+        solution_string = 'SingleNodeInputs.txt'   
+        !concisesolution_string = 'SingleNodeDetails.txt'
+        open(unit=my_id+1001, file=solution_string, action='write', position='append')
+        !open(unit=my_id+2001, file=concisesolution_string, action='write', position='append')        
+        
+        call read_parameter_model(para, '_1parameter.txt')
+        guessv(1) = kv1   
+        guessv(2) = prtk0 
+        guessv(3) = prtk1 
+        guessv(4) = prtk2 
+        guessv(5) = zbar  
+        guessv(6) = beta  
+        guessv(7) = theta 
+        guessv(8) = phi1  
+        guessv(9) = phi2  
+        guessv(10)= phi3 
+        modelmsg = 0
+        momvec = inf
+        obj_val_1st = inf
+        call search_equilibrium( guessv, momvec, obj_val_1st, 100, 100, modelmsg  )
+        if( modelmsg == 0 )then
+            write(my_id+1001, '(a,<ndim>f15.7)') '1guess  : ', guessv
+            write(my_id+1001, '(a,<ndim>f15.7)') '1targetv: ', targetv
+            write(my_id+1001, '(a,<ndim>f15.7)') '1moment : ', momvec
+            write(my_id+1001, '(a,f15.7)') '1penalty: ', obj_val_1st             
+        else
+            write(my_id+1001, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
+        endif ! modelmsg
+        
+        call read_parameter_model(para, '_1parameter.txt')
+        guessv(1) = kv1   
+        guessv(2) = prtk0 
+        guessv(3) = prtk1 
+        guessv(4) = prtk2 
+        guessv(5) = zbar  
+        guessv(6) = beta  
+        guessv(7) = theta 
+        guessv(8) = phi1  
+        guessv(9) = phi2  
+        guessv(10)= phi3 
+        modelmsg = 0
+        momvec = inf
+        obj_val_1st = inf
+        call search_equilibrium( guessv, momvec, obj_val_1st, 100, 100, modelmsg  )
+        if( modelmsg == 0 )then
+            write(my_id+1001, '(a,<ndim>f15.7)') '2guess  : ', guessv
+            write(my_id+1001, '(a,<ndim>f15.7)') '2targetv: ', targetv
+            write(my_id+1001, '(a,<ndim>f15.7)') '2moment : ', momvec
+            write(my_id+1001, '(a,f15.7)') '2penalty: ', obj_val_1st             
+        else
+            write(my_id+1001, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
+        endif ! modelmsg     
+        
+        close(my_id+1001)  
+        !close(my_id+2001)        
+        
     endif ! mpi_exercise_model
     
     !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one. Obsolete, 7-3-2017.
@@ -820,11 +904,23 @@ contains
                         & ndim, MPI_DOUBLE_PRECISION, CONTRACT_WORLD, mpi_err )                        
                                        
                     if( CONTRACT_ID == 0 )then ! checked! 7-22-2017
-                        write(my_id+1001,'("[amo0] counter:",i6,", assigned input with deviation ",<ndim>f12.7)') major_counter, vertex_list(:,contract_id+1)
-                        write( my_id+1001, '(a)') "List of generated initial vertices from amoeba member: "
-                        do j = 1, ndim                                                       
-                            write( my_id+1001, '("Row", i3, " input ", <ndim+1>f12.7)')  j, vertex_list(j,:) 
-                        enddo
+                        write( my_id+1001, '("[amo0] major_counter:",x,i6)') major_counter
+                        write( my_id+1001, '(7x,a)') "List of initial vertices (contract group): "
+                        !do j = 1, ndim                                                       
+                        !    write( my_id+1001, '("Row", i3, " input ", <ndim+1>f12.7)')  j, vertex_list(j,:) 
+                        !enddo
+                        
+                        ! 8-24-2017 Reformatting
+                        write( my_id+1001,'(a,x)', advance='no' ) "vertex" 
+                        do j = 1, ndim-1
+                            write( my_id+1001, '((14x,"dim",x,i2),2x)', advance='no' ) j
+                        enddo ! j
+                        write( my_id+1001, '((14x,"dim",x,i2))') ndim
+                        
+                        do j = 1, ndim+1 
+                            write( my_id+1001, '(i6,x,<ndim>(f20.15,2x))' ) j, vertex_list(:,j)
+                        enddo ! j
+                        
                     endif
                     
                 endif ! CONTRACT_WORLD/=MPI_COMM_NULL
