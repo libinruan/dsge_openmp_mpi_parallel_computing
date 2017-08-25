@@ -240,6 +240,7 @@ module equilibrium
                   tww(adim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &
                   cef(adim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &
                   dcef(adim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &            
+                  !scef(adim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), & 
                   cww(adim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &
                   cwf(adim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &
                   cwa(adim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &        
@@ -584,8 +585,6 @@ module equilibrium
             
             !benefit = merge( tauss*wage*AggEffLab/sum(popfrac(10:14)), tauss*wage*poppaysstaximplied/sum(popfrac(10:14)), iterar==1 ) ! 10122016.
 
-            
-            
             call coarse_SBE_profit_matrices(c_grs_mat,c_lab_vec,c_opt_vec) ! 09282016 3.4.2017   
             
             do while((epsigov>epsigovmin).and.(iteragov<=iteragovmax)) ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [2]
@@ -705,7 +704,13 @@ module equilibrium
                 twh = -99 ! discrete
                 twk = -99 ! discrete
                 tww = -99 ! tww: indicator to switch to be a labor in the beginning of the period. 1 as switches (nine states)
-                !sww = -99 ! indicates the begining distribution is invalid if sww=1 
+                
+                !sww = -99 ! indicates the begining distribution is invalid if sww=1 ! 8-24-2017
+                !swf = penalty
+                !swa = penalty
+                !swh = penalty
+                !swk = -99
+                !swc = penalty
                 
                 !! used in refined policy (xxxm); used in household decision (xxx_m)
                 uww   = -99
@@ -782,6 +787,7 @@ module equilibrium
                 errdist  = 1000._wp        
                 inv_dist_counter = 1
                 
+                ! 8-24-2014 Generate report on whether the combinations on the beginning of each period are valid or not.
                 call valid_beginning_period_mass(iterar,iteragov,iteratot) !! 4.2.2017 IMPORTANT! GENERATE "CVV," "(model.f90, ln.3186)", if a tested combination is valid, CVV = -99.
                 if(printout7) call print_coarse_2d_brent_mat(iterar,iteragov,iteratot) ! 4.2.2017 print out cwa, cwh, cwk, cw... outcome matrices including cvv.
                 ! 3.22.2017 s1c, c1s are both created here.
@@ -791,9 +797,16 @@ module equilibrium
                 call system_clock(tstart,trate,tmax)
                 do while(errdist >= err_dist .and. inv_dist_counter<=iterainvdist) ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [3]    
                     !dcef = cef ! 3.16.2017 ! move it inside the mass_transition.
+                    
+                    !! The primary of this mass distribution convergence loop. 8-24-2017
                     call mass_transition(exit_log1,errdist) ! 3.16.2017 "inv_dist_counter" is initialized in modelf.f90, ln.4725 ! 3.20.2017 Not yet only inv_dist_counter == 1. <----
                     
-                    if(inv_dist_counter==1) allocate(sef1(szperiod1),sef2(szperiod1), sef3(szperiod1) ) ! szperiod1 is set up in subroutine mass_transition. 
+                    if(inv_dist_counter==1)then
+                        allocate(sef1(szperiod1),sef2(szperiod1), sef3(szperiod1) ) ! szperiod1 is set up in subroutine mass_transition. 
+                        sef1 = 0._wp ! 8-24-2017
+                        sef2 = 0._wp ! 8-24-2017
+                        sef3 = 0._wp ! 8-24-2017
+                    endif 
                     
                     if(exit_log1==.true.)then
                         if(printout3) write(unit=my_id+1001,fmt='(/,a,/)') ' Distribution error. Exit. '
@@ -1235,7 +1248,7 @@ module equilibrium
         deallocate( sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, sw_ini_asset, sw_ini_house, sw_nonlineartax )
         deallocate( sw_worker_turned, sw_boss_turned, sw_aftertaxwealth, sw_taxableincome, sw_socialsecurity, sw_buzcap_notuse, sw_consumption ) ! csp_lorenz, xbi_lorenz
         deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax) ! 3.27.2017
-        deallocate( cww2, cwf2, cwc2, cwa2, cwh2, cwk2, rhv, rav, c_lab_vec, c_opt_vec, cwc, cef, ced, cvv, dcef, sef, def ) ! remeber to bring it back 10042016
+        deallocate( cww2, cwf2, cwc2, cwa2, cwh2, cwk2, rhv, rav, c_lab_vec, c_opt_vec, cwc, cef, ced, cvv, dcef, sef, def ) ! remove scef 8-24-2017 ! remeber to bring it back 10042016
         deallocate( s3c, c3s, swc2, id1 )
 
 0004    format (a,':',4(f8.3))        

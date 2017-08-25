@@ -182,7 +182,7 @@ module variable
     integer, dimension(:,:,:,:,:,:,:,:,:), allocatable :: c3s ! c2s is removed 3.31.2017.
     integer,  dimension(:,:,:,:,:,:,:,:,:), allocatable :: twh, twk, tww !, vtwh, vtwk ! vtwh, vtwk, tww: indicator to switch to be a labor in the beginning of the period. 1 as switches.
     real(wp), dimension(:,:,:,:,:,:,:,:,:), allocatable :: twa, twf !, vtwa ! Trick: if you index the sole element with zero in an allocatable matrix, be sure to use colon sign. for example, 0:0.
-    real(wp), dimension(:,:,:,:,:,:,:,:,:), allocatable :: cwa, cwf, cwh, cwc, cef, dcef
+    real(wp), dimension(:,:,:,:,:,:,:,:,:), allocatable :: cwa, cwf, cwh, cwc, cef, dcef !, scef ! 8-24-2017 Debug
     integer,  dimension(:,:,:,:,:,:,:,:,:), allocatable :: cwk, cww
     integer,  dimension(:,:,:,:,:,:), allocatable :: cvv
     

@@ -2473,7 +2473,7 @@ contains
                             ! step 1.
                             do l = 1, nupbnd
                                 kpx = merge(merge(twwmat(l,2)+kx,twwmat(l,2),5<=n.and.n<=6), 0, t<14) ! 3.16.2017 The 2nd variable in twwmat represents "kpx."
-                                ypx = twwmat(l,3) ! kpx
+                                ypx = twwmat(l,3) ! ypx
                                 opx = twwmat(l,4) ! opx                               
                                 twwvec(l) = cww( ax, hx, kx, zx, yx, kpx, ypx, opx, t) ! cww(ax,hx,kx,zx,yx,kpx,ypx,opx,t)   
                             enddo
@@ -2843,6 +2843,7 @@ contains
         logical, intent(inout) :: exit_log1
         real(wp), intent(out) :: error
         integer :: sn1
+        !real(wp) :: sum_accurate
         ! debug remember to remove the variables in the following block
         real(wp) :: sum5
         integer :: di
@@ -2853,7 +2854,7 @@ contains
         cef = 0._wp ! matrix initialization. 4.16.2017 Correct. Needs initialization here.
         sumerr = 0 ! error variable initialization. An integer.
         error = 100000._wp
-        if(inv_dist_counter==1)then
+        if(inv_dist_counter==1)then ! 8-24-2017 For the first round (inv_dist_counter==1), we assume "Uniform Distribution" in the beginning of the first period, and in the block below calculate the corresponding mass distirbution in the end of the first period.
             
             allocate(ivec(sz))
             ivec = .false.
@@ -2861,12 +2862,18 @@ contains
             
             szperiod1 = count(ivec) !<----------------- important. Length of period one. macro variable.
             allocate(nvec(szperiod1))
-            nvec = pack(s3c(:,10),ivec) ! 3.18.2017 shrink full vector to an appropriate subset. Trick: the size of the destination of packing must be explicit and exact.
-            
+            nvec = pack(s3c(:,10),ivec) ! 3.18.2017 shrink full vector to an appropriate subset. Trick: the size of the destination ("nvec") of packing must be explicit and exact.
+
+            ! 8-24-2017 We only allow people with {financial asset} = transbeq and {non-financial asset} = the minimum housing services have non-zero mass.
             call linwgt(rav,transbeq,xv,wv) ! 3.17.2017 Is it redundant? No, it is used in the block right below. 11:13 am 3.17.2017 Tempararily stop here.
             
             ! 3.18.2017 rav = av, checked.
             
+            !! Debug 8-24-2017
+            !sum_accurate = 0._wp ! 8-24-2017
+            !scef = 0._wp ! 8-24-2017
+            
+            ! 8-24-2017 NOTE!!! Don't use openmp here, because subsequent revision includes summation (of mass in a more accurate way) without taking care of the side effect of parallelization.
             !!$omp parallel do default(shared) private(n,t,biztrs) ! 4.12.2017 Too much overhead involoves if we use parallelism. Turn off openmp here.
             do q = 1, szperiod1
                 n   = nvec(q) ! nvec is the index list.
@@ -2888,18 +2895,26 @@ contains
                         !write(unit=127,fmt='(9i4,2f8.4)') ax,hx,kx,zx,yx,kpx,ypx,opx,t,biztrs,cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t)
                         cycle
                     else
-                        if(ax==xv(1))then ! 4.10.2017 stop here.
+                        if(ax==xv(1))then ! 4.10.2017 stop here. 
                             biztrs = merge( merge(pka(0,1),pka(0,2),opx==0), merge(pka(kx,1),pka(kx,2),opx==1), zx==0) ! 4.1.2017 Consistent with variable_space_v3.xlsx 4.11.2017 correctly following the lottery probability.
                             !!$omp critical
                             cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = wv(1)*py(yx,ypx)*biztrs
                             !!$omp end critical
                             !write(unit=127,fmt='(9i4,2f8.4)') ax,hx,kx,zx,yx,kpx,ypx,opx,t,biztrs,cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t)
+                            
+                            !! Debug ! 8-24-2017
+                            !scef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) ! 8-24-2017
+                            !sum_accurate = sum_accurate + cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) ! 8-24-2017
                         else ! ax==xv(2)
                             biztrs = merge( merge(pka(0,1),pka(0,2),opx==0), merge(pka(kx,1),pka(kx,2),opx==1), zx==0) ! 4.1.2017 consistent with variable_space_v3.xlsx 4.11.2017 correctly following the lottery probability.
                             !!$omp critical
                             cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = wv(2)*py(yx,ypx)*biztrs   
                             !!$omp end critical
                             !write(unit=127,fmt='(9i4,2f8.4)') ax,hx,kx,zx,yx,kpx,ypx,opx,t,biztrs,cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t)
+                            
+                            !! Debug ! 8-24-2017 
+                            !scef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) ! 8-24-2017
+                            !sum_accurate = sum_accurate + cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) ! 8-24-2017
                         endif
                     endif
                     !cef(ax,hx,kx,zx,yx,kpx,ypx,opx,t) = 1._wp ! comment out this line for distribution mass according to the linear interpolation result.
@@ -2913,16 +2928,21 @@ contains
             
             sum1 = sum(cef(:,:,:,:,:,:,:,:,1))
             cef(:,:,:,:,:,:,:,:,1) = cef(:,:,:,:,:,:,:,:,1)/sum1*popfrac(1)
-            !write(*,*) ' 1st end-of-period mass: mama ', sum(cef(:,:,:,:,:,:,:,:,1)), popfrac(1) ! 4.1.2017
+            
+            !! 8-24-2017 Checked. Conclusion: sum1 equals to sum_accurate, the later uses traditional way for summation; the former uses the intrisic funtion "sum".
+            !write(*,'(" Mama, I am here. ")') 
+            !write(*,'(3(a,f20.15,2x))') 'sum1  =', sum1, 'agg_sum1  =', sum(cef(:,:,:,:,:,:,:,:,1)), 'pop(1)=', popfrac(1) ! 4.1.2017
+            !write(*,'(2(a,f20.15,2x),/)') 'sumacc=', sum_accurate, 'agg_sumacc=', sum(scef(:,:,:,:,:,:,:,:,1)) ! 8-24-2017
             !if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'initial distribution ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
+            
             deallocate( ivec, nvec )
             
         else
-            
-            sef1 = sef1/sum(sef1)*popfrac(1) ! NORMALIZATION 10042016 (it is initialized in subroutine "intergenerational_transfer") ! 4.14.2017 END-of-1st period. correct.
+            ! 8-24-2017 sef1 is obtained in subroutine intergenerational transfer.
+            sef1 = sef1/sum(sef1)*popfrac(1) ! NORMALIZATION 10042016 (it is initialized in distribution loop of equilibrium.f90) ! 4.14.2017 END-of-1st period. correct.
             
             ! ADJUSTMENT FOR INVALID POINT WITH POSITIVE MASS BY MOVING THE MASS TO NEXT VALID POINT IN ITS NEIGHBORHOOD. 10102016
-            cef = 0._wp ! 4.22.2017
+            cef = 0._wp ! 4.22.2017 Initialization 8-24-2017
             ! 4.12.2017 sequence converted to matrix form. Lower part is the minor adjustment for invalid combination with mass (seems redundant, because intergenerational_transition screen out invalid transition.)
             do q = 1, szperiod1
                 !n   = nvec(q)
@@ -2965,7 +2985,7 @@ contains
         do tdx = 1, 13 ! current period
         !do tdx = 1, 1
             ivec = .false. ! initialization
-            ivec = s3c(:,9)==tdx ! get boolin 
+            ivec = s3c(:,9)==tdx ! get true or false sequence. 
             allocate( nvec(count(ivec==.true.)))
             nvec = pack(s3c(:,10),ivec) ! 3.17.2017 packing indices of combination series
             sum2 = 0._wp ! both of which are "shared."
@@ -3430,7 +3450,7 @@ contains
         call linwgt(rav,transbeq,xv,wv)
         
         !!! 3.24.2017 use parallel computing the time is only half of the time used by sequential version (0.34-0.205 vs 0.669 seconds).
-        !!$omp parallel do default(shared) private(zxi,yxi,t,i,pyhprob,j,l,pyprob,n,kpxi,opxi,idx) ! #1#
+        !$omp parallel do default(shared) private(zxi,yxi,t,i,pyhprob,j,l,pyprob,n,kpxi,opxi,idx) ! #1#
         dsum1 = 0._wp
         do q = 1, sz  
             ax  = s3c(q,1)
@@ -3481,23 +3501,23 @@ contains
                                     endif
                                 endif ! zxi
                                 idx = c3s(xv(j),1,kx,zxi,i,kpxi,l,opxi,1) ! the addresss at the end of period one for storeing the transfered mass 
-                                !!$omp atomic update ! #2#
+                                !$omp atomic update ! #2#
                                 sef1(idx) = sef1(idx) + wv(j)*cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)*(1._wp-survprob(t))*pyhprob*pyprob*pka(kx,n)    
                                 
                             enddo ! n
                         enddo ! l
                     else ! cvv "bad combination"
-                        !!$omp atomic update !#3#
+                        !$omp atomic update !#3#
                         sum0 = sum0 + wv(j)*cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)*(1._wp-survprob(t))*pyhprob ! Relative to the above eqa. for sef1, two items are absent: pyprob and pka.
                         
-                        !!$omp critical ! #4$
+                        !$omp critical ! #4$
                         !write(unit=128,fmt='(a,i4,a,8i4)') ' round: ', inv_dist_counter, ' bad combination: ', ax,hx,kx,zxi,yxi,kpx,ypx,opx
-                        !!$omp end critical ! #5#
+                        !$omp end critical ! #5#
                     endif ! cvv(.)
                 enddo ! j
             enddo ! i
         enddo ! q
-        !!$omp end parallel do ! #6#
+        !$omp end parallel do ! #6#
         
         !call system_clock(tend)
         !write(*,fmt='(a,f12.4,a)') ' time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
