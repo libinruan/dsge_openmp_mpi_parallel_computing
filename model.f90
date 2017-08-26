@@ -3436,7 +3436,7 @@ contains
         real(wp) :: wv(2), sum0, sum1, pyhprob, pyprob, sum2
         !real(wp), intent(out) :: error ! 4.14.2017 comment out
         integer :: tstart, tend, trate, tmax
-        real(wp) :: dsum1 ! debug
+        !real(wp) :: dsum1 ! debug
         
         !call system_clock(tstart,trate,tmax)
         !call system_clock(tstart)
@@ -3451,7 +3451,7 @@ contains
         
         !!! 3.24.2017 use parallel computing the time is only half of the time used by sequential version (0.34-0.205 vs 0.669 seconds).
         !$omp parallel do default(shared) private(zxi,yxi,t,i,pyhprob,j,l,pyprob,n,kpxi,opxi,idx) ! #1#
-        dsum1 = 0._wp
+        !dsum1 = 0._wp
         do q = 1, sz  
             ax  = s3c(q,1)
             hx  = s3c(q,2)
@@ -3464,7 +3464,7 @@ contains
             t   = s3c(q,9)
             
             !sum1 = sum1 + cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t)
-            dsum1 = dsum1 + cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t) ! debug
+            !dsum1 = dsum1 + cef(ax,hx,kx,zxi,yxi,kpx,ypx,opx,t) ! debug
             do i = 1, nmc ! child's labor efficiency at the beginning of period one.
                 
                 if(t>=10)then
@@ -3622,7 +3622,8 @@ contains
         sw_consumption   = 0._wp
         sw_worker_savtax = 0._wp
         sw_entpre_savtax = 0._wp
-        sw_entpre_biztax = 0._wp        
+        sw_entpre_biztax = 0._wp  
+        sw_taxableincome = 0._wp
         
         ! 3.27.2017 0.31 vs 0.7 parallel still outperform sequential.
         !!$omp parallel do default(shared) private(t,idx,capgain,intfund,bgp) 

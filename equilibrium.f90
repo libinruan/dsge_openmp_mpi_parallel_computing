@@ -669,6 +669,8 @@ module equilibrium
                     write(unit=my_id+1001,fmt='(3x,a)') 'rd(5y)'
                     write(unit=my_id+1001,fmt='(f9.4)') rd
                     
+
+                    !write(unit=my_id+1001,fmt='(2f12.6)') rbar, rbarimplied, 
                     write(unit=my_id+1001,fmt='(2x,a,6(x,a))') 'TRANSFER(S): ', 'transbeq   ', 'avgincw    ', 'benefit    ', 'taubal     ', 'hmin       ', 'hmax       '
                     write(unit=my_id+1001,fmt='(15x,6(f12.6))') transbeq, avgincw, benefit, taubal, hmin, hmax
                     write(unit=my_id+1001,fmt='(2x,a,3(x,a))') 'CONVERGENCE: ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
@@ -802,7 +804,7 @@ module equilibrium
                     call mass_transition(exit_log1,errdist) ! 3.16.2017 "inv_dist_counter" is initialized in modelf.f90, ln.4725 ! 3.20.2017 Not yet only inv_dist_counter == 1. <----
                     
                     if(inv_dist_counter==1)then
-                        allocate(sef1(szperiod1),sef2(szperiod1), sef3(szperiod1) ) ! szperiod1 is set up in subroutine mass_transition. 
+                        allocate(sef1(szperiod1),sef2(szperiod1),sef3(szperiod1) ) ! szperiod1 is set up in subroutine mass_transition. 
                         sef1 = 0._wp ! 8-24-2017
                         sef2 = 0._wp ! 8-24-2017
                         sef3 = 0._wp ! 8-24-2017

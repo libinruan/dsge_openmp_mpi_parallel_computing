@@ -61,7 +61,7 @@ epsirmin         5.e-05 ! 5.e-08
 iterarmax        40 ! 40 <----------------   
 rbar             0.035
 tbalwidth        0.3     
-epsigovmin       5.e-05 ! 5.e-12 
+epsigovmin       1.e-06 ! 8-25-2017 5.e-07 is too much. 
 iteragovmax      40 ! 40 <---------------- 
 taubalmin        0.07 ! 0.0345 Since our taubal seraching starts with the taubalmin, if we set this initial guess too low and we get a positive bal2gdp in the first round, then the program will go in the wrong direction by searching only the area smaller than the initial "too small" lower bound.
 taubalmax        0.08 ! 0.0363
@@ -153,7 +153,7 @@ printout15       false  ! Used in building stage. True, allow undefined area to 
 printout16       false  ! true, read existing optimal points WITHOUT sobel sequence (see parameter bestvertex_file); FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   2   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
 !
 !
 !
