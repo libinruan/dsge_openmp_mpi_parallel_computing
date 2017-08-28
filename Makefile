@@ -4,12 +4,12 @@ FC= mpiifort
 # ON MESABI, LOAD INTEL/2013.5 IMPI/INTEL MKL/11.0.5.192
 # MAYBE ON MESABI, LOAD INTEL/2015/UPDATE2 IMPI/INTEL 
 # --- RELEAE MODE OPTION 1 GOOD
-# FCFLAGS = -g -O3 -openmp -xCORE-AVX2 -mt_mpi -I$(MKLROOT)/include/intel64/lp64 -I$(MKLROOT)/include   
+FCFLAGS = -g -O3 -openmp -xCORE-AVX2 -mt_mpi -I$(MKLROOT)/include/intel64/lp64 -I$(MKLROOT)/include   
 # --- RELEAE MODE OPTION 2 GOOD    
 # FCFLAGS = -g -O3 -openmp -axAVX -mt_mpi -I$(MKLROOT)/include/intel64/lp64 -I$(MKLROOT)/include       
 
 # --- DEBUG MODE ---
-FCFLAGS = -g -check all -traceback -check noarg_temp_created -openmp -axAVX -mt_mpi -I$(MKLROOT)/include/intel64/lp64 -I$(MKLROOT)/include  
+# FCFLAGS = -g -check all -traceback -check noarg_temp_created -openmp -axAVX -mt_mpi -I$(MKLROOT)/include/intel64/lp64 -I$(MKLROOT)/include  
      
 LDFLAGS = $(MKLROOT)/lib/intel64/libmkl_blas95_lp64.a \
       $(MKLROOT)/lib/intel64/libmkl_lapack95_lp64.a \
