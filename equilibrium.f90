@@ -601,6 +601,8 @@ module equilibrium
                 endif ! bracketgov  
                 
                 write(unit=my_id+1001,fmt='(a,i4,x,a,i4,x,a)') 'iterar ', iterar, ', iteragov ', iteragov, '----------------------------------------------------------------------- '                
+                write(my_id+1001,'((14x,"iterar",2x),(12x,"iteragov",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(14x,"taubal",2x))') 
+                write(my_id+1001,'((i20,2x),(i20,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, taubal
                 
                 ! VARIABLES THAT NEED TO RENEW
                 if(iterar==1.and.iteragov==1)then
@@ -665,21 +667,42 @@ module equilibrium
                 
                 if(iterar==1.and.iteragov==1)then
 
-                    write(unit=my_id+1001,fmt='(a,i7.7,x,a,<ndim>f16.7)') 'No.',trial_id,'Inputs: ',guessv ! Note: trial_id falls in [1,trylen], not used directly for the list of "indexseries"
-                    write(unit=my_id+1001,fmt='(3x,a)') 'rd(5y)'
-                    write(unit=my_id+1001,fmt='(f9.4)') rd
+                    !! 8-25-2017 version 1
+                    !write(unit=my_id+1001,fmt='(a,i7.7,x,a,<ndim>f16.7)') 'No.',trial_id,'Inputs: ',guessv ! Note: trial_id falls in [1,trylen], not used directly for the list of "indexseries"
+                    !write(unit=my_id+1001,fmt='(3x,a)') 'rd(5y)'
+                    !write(unit=my_id+1001,fmt='(f9.4)') rd
+                    !! 8-25-2017 version 2                    
+                    write(my_id+1001,'("Trial no.",x,i7," ... Fresh Start ...")') trial_id 
+                    do i = 1, ndim-1
+                        write(my_id+1001,'((14x,"dim",i3,2x))',advance='no') i
+                    enddo ! i
+                    write(unit=my_id+1001,fmt='((15x,"dim",i3,2x))') ndim
+                    write(my_id+1001,'(<ndim>(e20.13,2x))') guessv
                     
+                    !write(unit=6,fmt='(3x,a)') 'rd(5y)'
+                    !write(unit=6,fmt='(f9.4)') rd                    
 
                     !write(unit=my_id+1001,fmt='(2f12.6)') rbar, rbarimplied, 
-                    write(unit=my_id+1001,fmt='(2x,a,6(x,a))') 'TRANSFER(S): ', 'transbeq   ', 'avgincw    ', 'benefit    ', 'taubal     ', 'hmin       ', 'hmax       '
-                    write(unit=my_id+1001,fmt='(15x,6(f12.6))') transbeq, avgincw, benefit, taubal, hmin, hmax
-                    write(unit=my_id+1001,fmt='(2x,a,3(x,a))') 'CONVERGENCE: ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
-                    write(unit=my_id+1001,fmt='(15x,3(f12.6),/)') fundiffnow, taubalmax, taubalmin
+                    
+                    !!! 8-25-2017 version 1
+                    !write(unit=my_id+1001,fmt='(2x,a,6(x,a))') 'TRANSFER(S): ', 'transbeq   ', 'avgincw    ', 'benefit    ', 'taubal     ', 'hmin       ', 'hmax       '
+                    !write(unit=my_id+1001,fmt='(15x,6(f12.6))') transbeq, avgincw, benefit, taubal, hmin, hmax
+
+                    !! 8-25-2017 version 2
+                    write(unit=my_id+1001,fmt='((15x,"rd-ty",2x),(12x,"transfer",2x),(13x,"avgincw",2x),(13x,"benefit",2x),(14x,"taubal",2x),(16x,"hmin",2x),(16x,"hmax",2x))') 
+                    write(unit=my_id+1001,fmt='(7(e20.13,2x))') rd, transbeq, avgincw, benefit, taubal, hmin, hmax                    
+                    
+                    !! 8-25-2017 comment out
+                    !write(unit=my_id+1001,fmt='(2x,a,3(x,a))') 'CONVERGENCE: ', 'fundiffnow  ', 'taubalmax   ', 'taubalmin   '
+                    !write(unit=my_id+1001,fmt='(15x,3(f12.6),/)') fundiffnow, taubalmax, taubalmin
                 endif
                 
                 staxw = staxwbase*avgincw**(-ptaxw) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
                 staxe = staxebase*avgincw**(-ptaxe) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
                 stax  = staxbase*(avgincw/50000._wp)**(-ptax) ! Obsolete. Naka uses average household income in 19990. unstable in my current model ! 1-31-2017 seems redundant
+                
+                write(my_id+1001,'((15x,"staxw",2x),(15x,"staxe",2x))') ! isye 
+                write(my_id+1001,'(2(e20.13,2x))') staxw, staxe ! isye
                 
                 ! boundary 072316
                 !hmin = hmin*gdp !   
@@ -700,25 +723,27 @@ module equilibrium
                 ! Initialization 072316 -----------------------------------------------------------------------------
                 !! used in coarse policy
                 
+                tww = -99 ! tww: indicator to switch to be a labor in the beginning of the period. 1 as switches (nine states)
                 twf = penalty ! the end of period distribution (nine states) in the "solving policy function" stage
                 wf  = penalty ! the beginning period distribution (six states) in the "solving policy function" stage
                 twa = penalty
                 twh = -99 ! discrete
                 twk = -99 ! discrete
-                tww = -99 ! tww: indicator to switch to be a labor in the beginning of the period. 1 as switches (nine states)
                 
-                !sww = -99 ! indicates the begining distribution is invalid if sww=1 ! 8-24-2017
-                !swf = penalty
-                !swa = penalty
-                !swh = penalty
-                !swk = -99
-                !swc = penalty
+                ! 8-24-2017 Used in convert_2d_outcome_into_series subroutine.
+                sww = -99 ! indicates the begining distribution is invalid if sww=1 ! 8-24-2017
+                swf = penalty
+                swa = penalty
+                swh = penalty
+                swk = -99
+                swc = penalty
                 
                 !! used in refined policy (xxxm); used in household decision (xxx_m)
                 uww   = -99
                 uwa   = penalty
                 uwh   = -99
                 uwk   = -99
+                
                 tbim  = penalty ! 0._wp
                 atwm  = penalty ! 0._wp
                 taxm  = penalty ! 0._wp
@@ -752,7 +777,7 @@ module equilibrium
                 cvv  = 0._wp ! default 1 means bad point. -99 indicates a good point. model.f90, ln.3316.
                 dcef = 0._wp
                 
-                if(num_procs==2) write(*,*) ' '
+                !if(num_procs==2) write(*,*) ' '
                 !!!!!!! ---- kernel ----- Option I 4.8.2017 fix the wrong indexing of parallel liss (0)
                 call solve_bellman_1014(exit_bellman) ! 072516 one more time 09122016 3.15-17.2017
                 write(unit=my_id+1001,fmt='(a)',advance='no') ' Bellman 10-14'
@@ -777,6 +802,7 @@ module equilibrium
                 
                 !!! bookkeeping. 3.15.2017 (model.f90 and line 4212)
                 call convert_2d_outcome_into_series('coarse') ! (1) `SAVING` THE OUTCOME FROM SOLVING THE BELLMAN EQUATIONS !!! Need to turn "on" in PRODUCTION mode !<-------
+                
                 !!!!!!! Useless block unless it is for testing the success of file IO.
                 !!!!!! ---- run in development stage with the kernel block above for inspection file I/o success.
                 !call convert_1d_file_into_matrix('coarse') ! (2) READ THOSE SAVED BELLMAN EQUATION SOLUTIONS
@@ -795,14 +821,15 @@ module equilibrium
                 ! 3.22.2017 s1c, c1s are both created here.
                 ! 3.16.2017 The subroutine is used for indicating whether ALL the related end-of-period combinations of a beginning-of-period combination are valid.
                 ! 3.16.2017 The subroutine has to work with subroutine make_next_period_index_combination defined above.
-                
+
                 call system_clock(tstart,trate,tmax)
+                
                 do while(errdist >= err_dist .and. inv_dist_counter<=iterainvdist) ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [3]    
                     !dcef = cef ! 3.16.2017 ! move it inside the mass_transition.
-                    
+                    !write(*,fmt='("iterainvdist:", i4)') iterainvdist ! 8-26-2017
                     !! The primary of this mass distribution convergence loop. 8-24-2017
                     call mass_transition(exit_log1,errdist) ! 3.16.2017 "inv_dist_counter" is initialized in modelf.f90, ln.4725 ! 3.20.2017 Not yet only inv_dist_counter == 1. <----
-                    
+
                     if(inv_dist_counter==1)then
                         allocate(sef1(szperiod1),sef2(szperiod1),sef3(szperiod1) ) ! szperiod1 is set up in subroutine mass_transition. 
                         sef1 = 0._wp ! 8-24-2017

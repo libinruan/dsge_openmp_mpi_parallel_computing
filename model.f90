@@ -2334,13 +2334,14 @@ contains
     end subroutine print_2d_end_of_period_dist_mat    
     
     ! 3.16.2017 check to see whether all the subsequent outcome related to a specific combination are valid.
-    subroutine valid_beginning_period_mass(iterar, iteragov, iteratot)
+    subroutine valid_beginning_period_mass(iterar, iteragov, iteratot) ! 8-26-2017 should begin here...
         implicit none
         integer, intent(in) :: iterar, iteragov, iteratot
         integer, dimension(:), allocatable :: twwvec
         integer, dimension(:,:), allocatable :: twwmat    
         integer :: t, n, yxi, l, nupbnd, m
         character(len=3) :: str1, str2
+        integer :: i ! printout for debug 8-26-2017
         
         !real(wp), dimension(:), allocatable :: nafvvec
         !integer :: t, l, n, m, nupbnd, ans_h,ans_k,yxi, i
@@ -2480,21 +2481,23 @@ contains
                             write(str2,fmt='(i3)') nupbnd
                             !write(unit=109,fmt='(a,'//str2//'i4)'), ' twwvec ', twwvec   
                             
-                            ! step 2.
+                            ! step 2. The essence of this subroutine
                             if(all(twwvec==-99)) cvv(ax,hx,kx,zx,yx,t) = -99 ! 4.1.2017 
                         
                         enddo
                     enddo
      
-                    !! ## Block for bginning period mass
-                    !if(printout3)then
-                    !    write(unit=081,fmt='(3i4,5a)') iterar, iteragov, iteratot, '--------------------','  kx','  zx','  yx','   t'
-                    !    write(unit=081,fmt='(20x,7i4)') kx,zx,yx,t
-                    !    write(unit=081,fmt='(4x,'//str1//'(i9))') (i,i=1,hdim)                     
+                    !! ## Block for bginning period mass ! 8-26-2017 match between files generated at different time 
+                    !if(printout2)then
+                    !    write(6,'(a)') ' Validity in the beginning of periods '
+                    !    write(unit=081,fmt='((4x,"iterar",2x),(2x,"iteragov",2x),(2x,"iteratot",2x),(8x,"kx",2x),(8x,"zx",2x),(8x,"yx",2x),(9x,"t",2x))')  
+                    !    write(unit=081,fmt='(7(i10,2x))') iterar, iteragov, iteratot, kx, zx, yx, t
+                    !    write(unit=081,fmt='(" no.",'//str1//'(x,i3))') (i,i=1,hdim)                     
                     !    do m = 1, fnadim
-                    !        write(unit=081,fmt='(i4,'//str1//'(x,f8.4))')   m, (nsav(m,i,kx,zx,yx,t),i=1,hdim)        
+                    !        !write(unit=081,fmt='(i4,'//str1//'(x,f8.4))')   m, (nsav(m,i,kx,zx,yx,t),i=1,hdim)        
+                    !        write(unit=081,fmt='(i4,'//str1//'(x,i3))')   m, (cvv(m,i,kx,zx,yx,t),i=1,hdim)        
                     !    enddo ! m
-                    !endif ! printout3
+                    !endif ! printout2
                     
                 enddo ! yxi
                 deallocate( twwvec, twwmat ) ! nafvvec
@@ -2530,12 +2533,18 @@ contains
                     swk(idx) = cwk(a,h,k,z,y,kp,yp,op,t)
                     swc(idx) = cwc(a,h,k,z,y,kp,yp,op,t)
                 enddo
-                !call ss(swf,'swf',20,7)
-                !call ss(swa,'swa',20,7)
-                !call ss(swh,'swh',20,7)
-                !call ss(swc,'swc',20,7)
-                !call ssi(sww,'sww')
-                !call ssi(swk,'swk')
+                
+                ! 8-25-2017 The accuracy is high to the right of decimal point at least 15 digits.
+                if(printout2)then
+                    call ssi(sww,'sww')
+                    call ss(swf,'swf',20,15)
+                    call ss(swa,'swa',20,15)
+                    call ss(swh,'swh',20,15)
+                    call ssi(swk,'swk')
+                    call ss(swc,'swc',20,15)
+                    write(6,'(a)') ' finish printing out sww, swf, swa, swh, swk and swc '
+                endif ! 8-25-2017 stop here.
+                
             case('test') ! used to see if the backup works normally. 3.15.2017
                 m = size(s3c(:,1))
                 do i = 1, m
@@ -2846,7 +2855,8 @@ contains
         !real(wp) :: sum_accurate
         ! debug remember to remove the variables in the following block
         real(wp) :: sum5
-        integer :: di
+        integer :: di, locmax(9)
+        character(len=3) :: str1
         
         call system_clock(tstart,trate,tmax) 
         exit_log1 = .false.
@@ -2927,13 +2937,22 @@ contains
             call system_clock(tend) 
             
             sum1 = sum(cef(:,:,:,:,:,:,:,:,1))
+            
             cef(:,:,:,:,:,:,:,:,1) = cef(:,:,:,:,:,:,:,:,1)/sum1*popfrac(1)
             
             !! 8-24-2017 Checked. Conclusion: sum1 equals to sum_accurate, the later uses traditional way for summation; the former uses the intrisic funtion "sum".
             !write(*,'(" Mama, I am here. ")') 
             !write(*,'(3(a,f20.15,2x))') 'sum1  =', sum1, 'agg_sum1  =', sum(cef(:,:,:,:,:,:,:,:,1)), 'pop(1)=', popfrac(1) ! 4.1.2017
             !write(*,'(2(a,f20.15,2x),/)') 'sumacc=', sum_accurate, 'agg_sumacc=', sum(scef(:,:,:,:,:,:,:,:,1)) ! 8-24-2017
-            !if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'initial distribution ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
+            !if(printout6) write(*,fmt='(a,i3,a,f12.4,a)') 'initial distribution ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'     
+            
+            !! 8-26-2017 to print out the mass sequence in the similar way as convert_2d_distribution_into_1d
+            !if(printout2)then
+            !    write(*,'(a)') ' initial mass distribution (uniform distribution) '
+            !    do i = 1, size(s3c(:,1))
+            !        write(unit=134,fmt='("no.",i10,2x,"mass=",e20.15)') s3c(i,10), cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9))       
+            !    enddo ! i
+            !endif ! printout2
             
             deallocate( ivec, nvec )
             
@@ -3408,7 +3427,7 @@ contains
                 endif ! t      
             enddo ! q
             !$omp end do !## 20
-            !$omp end parallel !## 21
+            !$omp end parallel !## 21           
                         
             if(sumerr>0) exit_log1 = .true. ! 10132016. ! 3.27.2017 It is highly unlikely to have an error issued. But if it does, then it'd better to stop the program.
             
@@ -3419,13 +3438,29 @@ contains
                 write(unit=128,fmt='(a,i3,(a,e25.15))'),   ' t+1 ', tdx+1, ' Result of transferred   ', sum(cef(:,:,:,:,:,:,:,:,tdx+1))
                 write(unit=128,fmt='(a,i3,(a,e25.15),/)'), ' t+1 ', tdx+1, ' Mass target             ', popfrac(tdx+1)
             endif
-        enddo ! tdx
+        enddo ! tdx    
+        
         deallocate( ivec )
         !call print_2period_cef() ! image of distribution
         
         if(inv_dist_counter>1)then
             error = maxval(dcef-cef)    
         endif ! inv_dist_counter
+        
+        ! 8-26-2017 to print out the mass sequence in the similar way as convert_2d_distribution_into_1d. 
+        ! 8-27-2017 should start here. locmax should be multi-dimensiona becuase of dim of dcef and cef.
+        if(printout2)then
+            locmax = maxloc(dcef-cef) 
+            write(*,'(a,f20.13,a,9i10)') ' final mass distribution, error = ', error, ' maxloc ', locmax
+            write(str1,fmt='(i3)') inv_dist_counter+300
+            open(unit=300+inv_dist_counter,file="output_"//str1//"_cef.txt",action="write",status="replace")
+            do i = 1, size(s3c(:,1))
+                write(unit=300+inv_dist_counter,fmt='(i10,x,9(i2,x),2(e25.13,x))') &
+                    & s3c(i,10), s3c(i,1),  s3c(i,2), s3c(i,3), s3c(i,4), s3c(i,5), s3c(i,6), s3c(i,7), s3c(i,8), s3c(i,9), cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9)), abs(dcef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9))-cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9)))       
+            enddo ! i
+            close(300+inv_dist_counter)
+        endif ! printout2     
+        
         dcef = cef ! 4.14.2017 for comparison in next round.
     end subroutine mass_transition  
     
@@ -4009,6 +4044,7 @@ contains
         
     end subroutine macro_statistics  
     
+    !! 8-1-2017
     subroutine grid_boundary_inspection( amin, amax, mass_vec )
         implicit none
         real(wp), intent(inout) :: amin, amax

@@ -25,7 +25,7 @@ program MPI_sandbox
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
     
-    !call start_files_for_writing() ! open files
+    call start_files_for_writing() ! open files. 8-26-2017 turned on
     
     call fmpi_init() ! USER-DEFINED SUBROUTINE IN TOOLBOX.F90 <------------------------
     call infinity_setting(inf)
@@ -759,7 +759,7 @@ program MPI_sandbox
     call system_clock(tend) 
     if(my_id==0) write(*,fmt='(/,a,f12.4,a,x,i3)') 'total time: ',real(tend-tstart,wp)/real(trate,wp), ' seconds', my_id
     
-    !call end_files_for_writing() ! close files  
+    call end_files_for_writing() ! close files ! 8-26-2017 
         
     !! experiment good. ===========================================
     !! 3.8.2017 Brent can handle all types of tricky probelms I faces, and the user-defined subroutine brent_localizer is good. 
@@ -1674,6 +1674,8 @@ contains
         open(unit=131,file="output_131_debug.txt",status="replace",action="write")
         open(unit=132,file="output_132_macro_stats.txt",status="replace",action="write")
         open(unit=133,file="output_133_debug_medinc.txt",status="replace",action="write")
+        open(unit=134,file="output_134_debug_cef.txt",status="replace",action="write")
+        open(unit=135,file="output_135_debug_cef.txt",status="replace",action="write")
     end subroutine start_files_for_writing
     
     subroutine end_files_for_writing
@@ -1805,6 +1807,8 @@ contains
         close(131)
         close(132)
         close(133)
+        close(134)
+        close(135)
     end subroutine end_files_for_writing
     
     end program MPI_sandbox
