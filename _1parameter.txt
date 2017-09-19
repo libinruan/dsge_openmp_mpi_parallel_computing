@@ -25,7 +25,7 @@ zlow             0.0 ! hard wired. Don't change it.
 hmin             0 
 hmax             16 ! 25; 120.0
 amin             -0.5  
-amax             20 ! 300 ! 70 ! 500 ! 700 ! 999.0 If scale 3 enteprise disappear then raise up the upper bound of financial assets.
+amax             50 ! 300 ! 70 ! 500 ! 700 ! 999.0 If scale 3 enteprise disappear then raise up the upper bound of financial assets.
 dfrac            0.27 ! See Cagetti and De Nardi 2009, TaucfinalSS.f90, lines 56, and 1273. the ratio of government debt to total capital
 gfrac            0.187 ! government spending. average ratio of "government purchases to GDP" over the 1990-1999 period. Cagetti and De Nardi 2009 pdf. 11.
 taubal           0.033
@@ -43,7 +43,7 @@ BossPropPopu     0.12
 rl               0.09  
 penalty          -1.e6 
 epsilon          1.e-3 ! used for housing utility
-err_dist         1.e-16
+err_dist         1.e-12
 gamma1           0.0505
 mu1              0.07  
 mu2              0.07  
@@ -58,11 +58,11 @@ length           5
 radjust          0.08  
 rweight          0.50  
 epsirmin         2.5e-4 ! 9-15-2017 5.e-05 too much ! 5.e-08
-iterarmax        1 ! 40 <----------------   
+iterarmax        40 ! 40 <----------------   
 rbar             0.035
 tbalwidth        0.3     
 epsigovmin       5.e-5 ! 9-14-2017 still too much 1.e-06 ! 8-25-2017 5.e-07 is too much. 
-iteragovmax      4 ! 40 <---------------- 
+iteragovmax      40 ! 40 <---------------- 
 taubalmin        0.07 ! 0.0345 Since our taubal seraching starts with the taubalmin, if we set this initial guess too low and we get a positive bal2gdp in the first round, then the program will go in the wrong direction by searching only the area smaller than the initial "too small" lower bound.
 taubalmax        0.08 ! 0.0363
 pertgov          0.04 ! good.
@@ -113,7 +113,7 @@ lower9           0.20   ! phi2: tech shock
 upper9           1.00   ! phi2: tech shock
 lower10          0.20   ! phi3: tech shock
 upper10          1.00   ! phi3: tech shock
-trylen          10000   ! (integer) Length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq. ! ############################################################
+trylen          30000   ! (integer) Length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq. ! ############################################################
 sblno1              1   ! (integer) The index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
 nrow         	   20   ! !!!(integer) "nrow has to be larger than or equal to (ndim+1) and 4*noamoeba," and "-np has to be nrow+1." The number of nodes involved in an individual amoeba group, including its amoeba head, the sub-amoeba groups, each of which contains 4 nodes. There are two possible scenario. One: ndim (size of target moments) plus one (the amoeba head) is smaller than total vertices in a single amoeba (i.e., 4 times noamoeba (the size of amoeba)). Two: it goes the other way around, ndim+1>=4*noamoeba. Both cases are acceptable to the program. 7-30-2017. 
 stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
@@ -126,7 +126,7 @@ amoerrcrt    	1.E-3   ! (real) 1.E-4
 amoitrcrt    	 1500   ! (integer) amoeba maximum interation. 500-1500.
 amoconvex    	  0.2   ! (real) Weight on the best single point (redundant) 
 amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combination with one best parameter inputs.
-nsbq 		    20000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
+nsbq 		    30000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
 slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
 elist               1   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
 noamoeba            5   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group. Note: noamoeba is actually the number of subgroup within an amoeba.
@@ -136,12 +136,12 @@ chunkmass       1.e-4   ! the upper threshold of a valid mass grid. | for adjust
 accumass        1.e10   ! parameter used for truncating tailing digits of a vairable in module macro_statistics.
 initau				4   ! multiplier of initial vertices ! for determining how spread the shape of the first vertex would be.
 testfunc_idx        4   ! 1, norm 2 measure; 2, Variably Dimensioned Function; 3, ; 4, Extended Rosenbrock Function (restart required to precisely approximate the answer). 
-printout1		 true   ! Subroutine 'print_basic_model_vectors' #################################################################################
-printout2		 true   ! WF and CWF (value function @ beginning & end of period); used for building stage; and 1 dimensional result sww, swa, ... ! Successful development version: True in 1, 3, 5, 6, and 7.	
+printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
+printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage; and 1 dimensional result sww, swa, ... ! Successful development version: True in 1, 3, 5, 6, and 7.	
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
 printout4        false  ! !##!OFF IN PRODUCTIVE MODE. printout_for_stata_lifecycle_plotting() [121]
 printout5        false  ! debug with process mark for convergence [104]
-printout6        true   ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round and mass transition. 
+printout6        false  ! !##!OFF IN PRODUCTIVE MODE. Show the computing time in solving all the bellman equations for each round and mass transition. 
 printout7		 false  ! !##!OFF IN PRODUCTION MODE. Print cww, cwf, cwa, cwh, cwk ... [115-119, 123-124]. 
 printout8        false  ! !##!ONLY USED IN SINGLE NODE DEBUG MODE. trace of mass transition across generations [128] 
 printout9        false  ! end-of-period distribution of 1) mass [129] & 2) nonlinear tax [130].
@@ -154,7 +154,7 @@ printout15       false  ! Used in building stage. True, allow undefined area to 
 printout16       false  ! true, read existing optimal points WITHOUT sobel sequence (see parameter bestvertex_file); FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+mpi_exercise_mode   1   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
 ! Remember to set the `-np` option to appropriate number.
