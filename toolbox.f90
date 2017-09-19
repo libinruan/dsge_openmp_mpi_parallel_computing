@@ -454,13 +454,13 @@ contains
         m = size(x,dim=1)
         n = size(x,dim=2)
         fname = y // '.txt'
-        write(sname,'(a,i8,a,i2.2,a,i2.2,a)') '(', n, 'ES', leng, '.', deci, '))'
+        write(sname,'(a,i8,a,i2.2,a,i2.2,a)') '(', n, 'e', leng, '.', deci, '))'
         open(unit=0,file=fname,action="write",status="replace",recl=(leng*n+10)) ! CHANGE THE RECL PARAMETER FOR EXAMPEL, F15.4 THEN USE 16*N+10
         do i = 1,m
             write(unit=0,fmt=sname) (x(i,j),j=1,n)    
         enddo 
         close(0)
-    end subroutine sm_science      
+    end subroutine sm_science   
     
     subroutine smi(x,y,opt)
     ! x: matrix to be stored; y: the file name without filename extension
@@ -491,11 +491,13 @@ contains
     ! or
     ! write(test,'(i6,a)') na,'mat'  !where na is an integer
     ! call ss(mat(1,:),trim(test)) 
+        implicit none
         real(wp), dimension(:), intent(in) :: x
         integer, optional, intent(in) :: leng, deci
         integer :: a, b
         character(len=*), intent(in) :: y ! arbitrary length input string
         character(len=40) :: sname, fname     ! string for format and filename
+        character(len=40) :: sa, sb
         integer :: n, i
         n=size(x)! # of columns in x
         fname=y//'.txt'  ! concatenate
@@ -506,7 +508,10 @@ contains
             a = 9
             b = 4
         endif
-        write(sname,'(a,i2.2,a,i2.2,a)') '(f', a, '.', b, ')'
+        write(sa,'(i2)') a
+        write(sb,'(i2)') b
+        sname = '(f'//trim(sa)//'.'//trim(sb)//')'
+        !write(sname,'(a,i2.2,a,i2.2,a)') '(f', a, '.', b, ')'
         !(above) integer to character: &
         !  setup the output format per line
         open(unit=0,file=fname,action="write",status='replace',recl=(a+10))               ! loop to save each row &
@@ -515,6 +520,23 @@ contains
         enddo    
         close(0)                               ! 
     end subroutine ss
+    
+    subroutine ss_science(x,y,leng,deci)
+        implicit none
+        real(wp), dimension(:), intent(in) :: x
+        character(len=*), intent(in) :: y
+        integer :: leng, deci
+        character(len=40) :: fname, sname
+        integer :: m,i
+        m = size(x)
+        fname = y//'.txt'
+        write(sname,'(a,i2.2,a,i2.2,a)') '(e', leng, '.', deci, ')'
+        open(unit=0,file=fname,action="write",status="replace",recl=(leng+10))
+        do i = 1, m
+            write(unit=0,fmt=sname) x(i)
+        enddo 
+        close(0)
+    end subroutine ss_science
 
     subroutine ssi(x,y) ! save sequence x in .txt format with filename y
     !e.g. call ss(mat(:,1),'mat')

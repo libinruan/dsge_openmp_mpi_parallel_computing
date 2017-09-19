@@ -12,7 +12,9 @@ program MPI_sandbox
     use equilibrium
     implicit none
     integer :: tstart, tend, trate, tmax, i, j, index_pt, index_rcv
-    character(len=200) :: msg
+    ! character(len=200) :: msg
+    character(:), allocatable :: msg
+    real(wp) :: temp(2), accu ! debug
     
     ! The mpi_exercise_mode == 1 case: Coarse search
     logical :: exit_log1
@@ -25,7 +27,7 @@ program MPI_sandbox
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
     
-    call start_files_for_writing() ! open files. 8-26-2017 turned on
+    !call start_files_for_writing() ! open files. 8-26-2017 turned on
     
     call fmpi_init() ! USER-DEFINED SUBROUTINE IN TOOLBOX.F90 <------------------------
     call infinity_setting(inf)
@@ -38,7 +40,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,136) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,137) ! works. 
             write(*,*) ' '
         endif
         
@@ -98,6 +100,12 @@ program MPI_sandbox
             erridx = vdrnguniform(approach,river,1,stoch,0._wp,1000._wp)
             write(*,*) 'my_id = ', my_id, ' random number = ', stoch
         enddo
+        
+        ! accuracy experiment
+        accu = 1.e8_wp
+        temp = [0.5555555555_wp, 0.6666666666_wp]
+        print*, "temp1: ", int(temp*accu)
+        print*, "temp2: ", int(temp*accu)/accu
         
     elseif(mpi_exercise_mode==0)then ! Stage 0. Building Stage with only a single node.
         
@@ -699,6 +707,7 @@ program MPI_sandbox
         open(unit=my_id+1001, file=solution_string, action='write', position='append')
         !open(unit=my_id+2001, file=concisesolution_string, action='write', position='append')        
         
+        i = 100
         call read_parameter_model(para, '_1parameter.txt')
         guessv(1) = kv1   
         guessv(2) = prtk0 
@@ -713,7 +722,9 @@ program MPI_sandbox
         modelmsg = 0
         momvec = inf
         obj_val_1st = inf
-        call search_equilibrium( guessv, momvec, obj_val_1st, 100, 100, modelmsg  )
+        write(msg,fmt='(i3)') i ! either 100 or 200
+        open(unit=4000+i,file="output_parameter_inspection_"//trim(msg)//".txt",action="write",status="replace")
+        call search_equilibrium( guessv, momvec, obj_val_1st, 100, i, modelmsg  )
         if( modelmsg == 0 )then
             write(my_id+1001, '(a,<ndim>f15.7)') '1guess  : ', guessv
             write(my_id+1001, '(a,<ndim>f15.7)') '1targetv: ', targetv
@@ -722,7 +733,9 @@ program MPI_sandbox
         else
             write(my_id+1001, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
         endif ! modelmsg
+        close(4000+i)
         
+        i = 200
         call read_parameter_model(para, '_1parameter.txt')
         guessv(1) = kv1   
         guessv(2) = prtk0 
@@ -737,7 +750,9 @@ program MPI_sandbox
         modelmsg = 0
         momvec = inf
         obj_val_1st = inf
-        call search_equilibrium( guessv, momvec, obj_val_1st, 100, 100, modelmsg  )
+        write(msg,fmt='(i3)') i ! either 100 or 200
+        open(unit=4000+i,file="output_parameter_inspection_"//trim(msg)//".txt",action="write",status="replace")
+        call search_equilibrium( guessv, momvec, obj_val_1st, 100, i, modelmsg  )
         if( modelmsg == 0 )then
             write(my_id+1001, '(a,<ndim>f15.7)') '2guess  : ', guessv
             write(my_id+1001, '(a,<ndim>f15.7)') '2targetv: ', targetv
@@ -746,7 +761,7 @@ program MPI_sandbox
         else
             write(my_id+1001, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
         endif ! modelmsg     
-        
+        close(4000+i)
         close(my_id+1001)  
         !close(my_id+2001)        
         
@@ -759,7 +774,7 @@ program MPI_sandbox
     call system_clock(tend) 
     if(my_id==0) write(*,fmt='(/,a,f12.4,a,x,i3)') 'total time: ',real(tend-tstart,wp)/real(trate,wp), ' seconds', my_id
     
-    call end_files_for_writing() ! close files ! 8-26-2017 
+    !call end_files_for_writing() ! close files ! 8-26-2017 
         
     !! experiment good. ===========================================
     !! 3.8.2017 Brent can handle all types of tricky probelms I faces, and the user-defined subroutine brent_localizer is good. 

@@ -57,12 +57,12 @@ kdim             4
 length           5 
 radjust          0.08  
 rweight          0.50  
-epsirmin         5.e-05 ! 5.e-08
-iterarmax        40 ! 40 <----------------   
+epsirmin         2.5e-4 ! 9-15-2017 5.e-05 too much ! 5.e-08
+iterarmax        1 ! 40 <----------------   
 rbar             0.035
 tbalwidth        0.3     
-epsigovmin       1.e-06 ! 8-25-2017 5.e-07 is too much. 
-iteragovmax      40 ! 40 <---------------- 
+epsigovmin       5.e-5 ! 9-14-2017 still too much 1.e-06 ! 8-25-2017 5.e-07 is too much. 
+iteragovmax      4 ! 40 <---------------- 
 taubalmin        0.07 ! 0.0345 Since our taubal seraching starts with the taubalmin, if we set this initial guess too low and we get a positive bal2gdp in the first round, then the program will go in the wrong direction by searching only the area smaller than the initial "too small" lower bound.
 taubalmax        0.08 ! 0.0363
 pertgov          0.04 ! good.
@@ -131,8 +131,9 @@ slist               1   ! the start index of the list of starting points. Note: 
 elist               1   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
 noamoeba            5   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group. Note: noamoeba is actually the number of subgroup within an amoeba.
 maxdist			1.e-6   ! 1.e-4; maximum distance allowed among vertices in a single amoeba
-tinymass		1e-12   ! the lower threshold of a valid mass grid. | for adjustment of extremem cases in population distribution.
-chunkmass        1e-2   ! the upper threshold of a valid mass grid. | for adjustment of extremem cases in population distribution.
+tinymass		    0   ! the lower threshold of a valid mass grid. | for adjustment of extremem cases in population distribution. ! 9-11-2017 Set it to Zero, that is, we don't do any truncation. Tested.
+chunkmass       1.e-4   ! the upper threshold of a valid mass grid. | for adjustment of extremem cases in population distribution. ! 9-11-2017 Reset the parameter from 1e-2 to 1e-4 to reasonably extend the lower bound.
+accumass        1.e10   ! parameter used for truncating tailing digits of a vairable in module macro_statistics.
 initau				4   ! multiplier of initial vertices ! for determining how spread the shape of the first vertex would be.
 testfunc_idx        4   ! 1, norm 2 measure; 2, Variably Dimensioned Function; 3, ; 4, Extended Rosenbrock Function (restart required to precisely approximate the answer). 
 printout1		 true   ! Subroutine 'print_basic_model_vectors' #################################################################################
@@ -155,8 +156,8 @@ listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point
 bestvertex_file  1_001_restart_list.txt
 mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
 !
-!
-!
+! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
+! Remember to set the `-np` option to appropriate number.
 !
 ! tausvflag		 true   ! it controls whther the interest income tax is levied or not.
 !
