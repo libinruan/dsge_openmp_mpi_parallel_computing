@@ -160,8 +160,10 @@ contains
                     !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017
                     
                     inc = inc + bgp ! 4.9.2017
-                    inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
-                                      merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
+                    ! merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp)
+                    !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
+                    inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                                      merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
                           + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 4.9.2017                    
                     
                     ! 3.26.2017 From left to right are the cases listed below:
@@ -502,8 +504,9 @@ contains
                                 !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                            
                                 
                                 inc = inc + bgp ! 4.10.2017
-                                inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
-                                                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
+                                !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017   
+                                inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                                                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
                                       + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                               
                                 
                                 !inc = inc + a + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h + (1._wp-taubp)*c_grs_mat(ax, kx, zx, yx, t) - ttaxent(inc) + transbeq
@@ -1011,8 +1014,9 @@ contains
                         !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 3.26.2017                    
 
                         inc = inc + bgp ! 4.10.2017
-                        inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
-                                          merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
+                        !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
+                        inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                                          merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
                               + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 4.10.2017
                         
                         !capgain = merge(rd*intfund, 0._wp, rd*intfund>0._wp)
@@ -1373,6 +1377,9 @@ contains
         write(str2,fmt='(i5)') adim        
         allocate( nv(ndim) ) ! , c_lab_vec(kdim-1), c_opt_vec(kdim-1) )
         !c_prf_mat = 0._wp
+        c_grs_mat = 0._wp ! 9-14-2017
+        c_lab_vec = 0._wp ! 9-14-2017
+        c_opt_vec = 0._wp ! 9-14-2017
         
         ! 3.26.2017 production and labor employment obtained here should be only used when business shock is postiive.
         do n = 1, kdim-1
@@ -1441,7 +1448,7 @@ contains
                                 c_grs_mat(ax,kx,zx,yx,t) = -(1._wp+r)*extfund ! 3.26.2017 Still needs to pay back the money borrowed. Which should be negative.
                             endif ! zx
 
-                            bizincm = c_grs_mat(ax,kx,zx,yx,t) ! used in the proint-out block
+                            bizincm = c_grs_mat(ax,kx,zx,yx,t) ! used in the print-out block
                             
                             !write(unit=110,fmt='(4x,a,4x,a,4x,a,7x,a)') 'labcost','clabvec','efflabt','yvyx'
                             !write(unit=110,fmt='(4e11.4)') labcost, c_lab_vec(kx), efflab(t), yv(yx)
@@ -1646,8 +1653,9 @@ contains
                             !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 3.26.2017 
                             
                             inc = inc + bgp ! 4.10.2017
-                            inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
-                                              merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
+                            !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
+                            inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                                              merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
                                   + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 4.10.2017                            
                             
                             !inc = merge(wage*labsup,0._wp,zx==0) + merge(0._wp,capgain,tausvflag) + c_grs_mat(ax,kx,zx,yx,t) ! taxable income
@@ -2537,12 +2545,12 @@ contains
                 ! 8-25-2017 The accuracy is high to the right of decimal point at least 15 digits.
                 if(printout2)then
                     call ssi(sww,'sww')
-                    call ss(swf,'swf',20,15)
-                    call ss(swa,'swa',20,15)
-                    call ss(swh,'swh',20,15)
+                    call ss(swf,'swf',20,8)
+                    call ss(swa,'swa',20,8)
+                    call ss(swh,'swh',20,8)
                     call ssi(swk,'swk')
-                    call ss(swc,'swc',20,15)
-                    write(6,'(a)') ' finish printing out sww, swf, swa, swh, swk and swc '
+                    call ss(swc,'swc',20,8)
+                    !write(6,'(a)') ' finish printing out sww, swf, swa, swh, swk and swc '
                 endif ! 8-25-2017 stop here.
                 
             case('test') ! used to see if the backup works normally. 3.15.2017
@@ -2815,6 +2823,7 @@ contains
         !call system_clock(tend)
         !write(*,fmt='(a,f12.4,a,f12.9)') ' 2d-1d time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds', sum(sef(1:5000))          
         !call ss(sef,'sef',25,12)
+        !call ss_science(sef,'sef_e',20,13) ! verified. 9-11-2017 
     end subroutine convert_2d_distribution_into_1d
     
     subroutine convert_2d_macro_statistics_into_1d()
@@ -2842,12 +2851,13 @@ contains
         
     end subroutine convert_2d_macro_statistics_into_1d    
     
-    subroutine mass_transition(exit_log1,error) ! 3.16.2017 4:08 pm stop here. 3.17.2017 3:13 pm begin here again.
+    subroutine mass_transition(exit_log1,error,idxr,idxg,idxt,trial_id) ! 3.16.2017 4:08 pm stop here. 3.17.2017 3:13 pm begin here again.
         implicit none
         
         integer :: sz, sz2, q, n, tdx, kd, kdold, kpxn, kpxni, zpxn, ypxn, i, opxn, idx, axi, xv(2), j, sumerr, erridx
         real(wp) :: sum0, sum1, sum2, sum3, sum4, crnmat(4,4), beqsum, wv(2), biztrs, pz2prob
         logical :: flag1
+        integer, intent(in) :: idxr, idxg, idxt, trial_id
         integer :: tstart, tend, trate, tmax
         logical, intent(inout) :: exit_log1
         real(wp), intent(out) :: error
@@ -2856,7 +2866,7 @@ contains
         ! debug remember to remove the variables in the following block
         real(wp) :: sum5
         integer :: di, locmax(9)
-        character(len=3) :: str1
+        character(len=3) :: str1, str_idxr, str_idxg, str_idxt
         
         call system_clock(tstart,trate,tmax) 
         exit_log1 = .false.
@@ -2864,6 +2874,7 @@ contains
         cef = 0._wp ! matrix initialization. 4.16.2017 Correct. Needs initialization here.
         sumerr = 0 ! error variable initialization. An integer.
         error = 100000._wp
+        
         if(inv_dist_counter==1)then ! 8-24-2017 For the first round (inv_dist_counter==1), we assume "Uniform Distribution" in the beginning of the first period, and in the block below calculate the corresponding mass distirbution in the end of the first period.
             
             allocate(ivec(sz))
@@ -3447,19 +3458,36 @@ contains
             error = maxval(dcef-cef)    
         endif ! inv_dist_counter
         
-        ! 8-26-2017 to print out the mass sequence in the similar way as convert_2d_distribution_into_1d. 
-        ! 8-27-2017 should start here. locmax should be multi-dimensiona becuase of dim of dcef and cef.
+        !! 8-26-2017 to print out the mass sequence in the similar way as convert_2d_distribution_into_1d. 
+        !! 8-27-2017 should start here. locmax should be multi-dimensiona becuase of dim of dcef and cef.
+        !if(printout2)then
+        !    locmax = maxloc(dcef-cef) 
+        !    write(*,'(a,f20.13,a,9i10)') ' final mass distribution, error = ', error, ' maxloc ', locmax
+        !    write(str1,fmt='(i3)') inv_dist_counter+300
+        !    open(unit=300+inv_dist_counter,file="output_"//str1//"_cef.txt",action="write",status="replace")
+        !    do i = 1, size(s3c(:,1))
+        !        write(unit=300+inv_dist_counter,fmt='(i10,x,9(i2,x),2(e25.13,x))') &
+        !            & s3c(i,10), s3c(i,1),  s3c(i,2), s3c(i,3), s3c(i,4), s3c(i,5), s3c(i,6), s3c(i,7), s3c(i,8), s3c(i,9), cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9)), abs(dcef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9))-cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9)))       
+        !    enddo ! i
+        !    close(300+inv_dist_counter)
+        !endif ! printout2     
+
+        ! 9-18-2017
         if(printout2)then
-            locmax = maxloc(dcef-cef) 
-            write(*,'(a,f20.13,a,9i10)') ' final mass distribution, error = ', error, ' maxloc ', locmax
-            write(str1,fmt='(i3)') inv_dist_counter+300
-            open(unit=300+inv_dist_counter,file="output_"//str1//"_cef.txt",action="write",status="replace")
+            !locmax = maxloc(dcef-cef) 
+            !write(*,'(a,f20.13,a,9i10)') ' final mass distribution, error = ', error, ' maxloc ', locmax
+            !write(str1,fmt='(i3)') inv_dist_counter+300
+            write(str1, fmt='(i3)') trial_id+300
+            write(str_idxr,fmt='(i3.3)') idxr
+            write(str_idxg,fmt='(i3.3)') idxg
+            write(str_idxt,fmt='(i3.3)') idxt
+            open(unit=5000,file="output_"//str1//"_"//str_idxr//"-"//str_idxg//"-"//str_idxt//"_cef.txt",action="write",status="replace")
             do i = 1, size(s3c(:,1))
-                write(unit=300+inv_dist_counter,fmt='(i10,x,9(i2,x),2(e25.13,x))') &
-                    & s3c(i,10), s3c(i,1),  s3c(i,2), s3c(i,3), s3c(i,4), s3c(i,5), s3c(i,6), s3c(i,7), s3c(i,8), s3c(i,9), cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9)), abs(dcef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9))-cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9)))       
+                write(unit=5000,fmt='(i10,x,9(i2,x),(e25.13,x))') &
+                    & s3c(i,10), s3c(i,1),  s3c(i,2), s3c(i,3), s3c(i,4), s3c(i,5), s3c(i,6), s3c(i,7), s3c(i,8), s3c(i,9), cef(s3c(i,1),s3c(i,2),s3c(i,3),s3c(i,4),s3c(i,5),s3c(i,6),s3c(i,7),s3c(i,8),s3c(i,9))
             enddo ! i
-            close(300+inv_dist_counter)
-        endif ! printout2     
+            close(5000)
+        endif ! printout2             
         
         dcef = cef ! 4.14.2017 for comparison in next round.
     end subroutine mass_transition  
@@ -3621,24 +3649,42 @@ contains
         !write(*,fmt='(a,f12.4,a,f12.4)') ' lump sum transfer time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds. transbeqimplied: ', transbeqimplied          
     end subroutine lump_sum_transfer
     
-    subroutine macro_statistics(momvec,idxr,idxg,idxt,exit_log1,msg)
+    subroutine macro_statistics(momvec,idxr,idxg,idxt,exit_log1,msg,trial_id)
         implicit none
         integer :: sz, q, idx, lsz, i, j
-        real(wp) :: inc, capgain, intfund, bgp
+        real(wp) :: capgain, intfund, bgp ! 9-12-2017 capgain is useless. bgp refers to business gross profit. ! 9-17-2017 inc should be removed.
         logical, dimension(:), allocatable :: lvece, lvecw, tvec
         real(wp), dimension(:), allocatable :: svec, rvec
-        real(wp), dimension(:), intent(out) :: momvec
-        integer, intent(in) :: idxr, idxg, idxt
+        integer, intent(in) :: idxr, idxg, idxt,trial_id ! (iterar, iteragov, iteratot)
         integer :: szwok, szent
+        integer :: tstart, tend, trate, tmax
+        character(len=4) :: str1
+        character(len=3) :: str2
+        ! real(wp) :: r_govbal
+        ! output
+        real(wp), dimension(:), intent(out) :: momvec
         logical, intent(inout) :: exit_log1
         character(len=*), intent(out) :: msg
-        integer :: tstart, tend, trate, tmax
         
         call system_clock(tstart,trate,tmax)
         call system_clock(tstart)        
         
+        ! 9-18-2017
+        sef = int(sef*accumass)/accumass
+        
         sz = size(s3c(:,1))
-        allocate( svec(sz), tvec(sz) )
+        allocate( svec(sz), tvec(sz) ) ! svec: real, tvec: logical.
+        
+        tvec = .false. ! 9-12-2017
+        svec = 0._wp   ! 9-12-2017
+        term_2 = 0._wp ! 9-17-2017
+        term_3 = 0._wp
+        term_4 = 0._wp
+        term_5 = 0._wp
+        term_6 = 0._wp
+        term_7 = 0._wp
+        term_8 = 0._wp
+        term_9 = 0._wp
         
         ! macro statistics ! 4.16.2017 moved from equilibrium.f90 This movement solved a NaN-in-tottax problem.
         sw_laborsupply   = 0._wp
@@ -3661,7 +3707,7 @@ contains
         sw_taxableincome = 0._wp
         
         ! 3.27.2017 0.31 vs 0.7 parallel still outperform sequential.
-        !!$omp parallel do default(shared) private(t,idx,capgain,intfund,bgp) 
+        !$omp parallel do default(shared) private(t,idx,capgain,intfund,bgp) 
         do q = 1, sz
             ax  = s3c(q,1)
             hx  = s3c(q,2)
@@ -3671,11 +3717,11 @@ contains
             kpx = s3c(q,6)
             ypx = s3c(q,7)
             opx = s3c(q,8)
-            t   = s3c(q,9)
-            idx = s3c(q,10)
+            t   = s3c(q,9)  ! 9-12-2017 not in the list of threadprivate.
+            idx = s3c(q,10) ! 9-12-2017 not in the list of threadprivate.
             
             if(sef(idx)<=0._wp) cycle ! "sef" (and "cef") is obtained from subroutine convert_2d_distribution_into_1d. 
-            
+            !atw = 0._wp
             sw_ini_asset(idx) = rav(ax) ! 4.15.2015 Sum over the beginning-of-period financial asset holdings. Correct. 
             sw_ini_house(idx) = rhv(hx) ! 4.15.2017 Sum over the beginning-of-period housing asset holdings. Correct. 
             
@@ -3701,7 +3747,7 @@ contains
                     if(zx==0)then ! choose to be a worker.
                         sw_labordemand(idx) = 0._wp 
                         sw_production(idx) = 0._wp
-                        sw_bizinvestment(idx) = kv(kx) ! IDLE CAPITAL <------ Bug 10122016 kept in the entrepreneurial sector, but not put into production
+                        sw_bizinvestment(idx) = 0._wp ! 9-13-2017 kv(kx) ! IDLE CAPITAL <------ Bug 10122016 kept in the entrepreneurial sector, but not put into production
                         sw_buzcap_notuse(idx) = kv(kx) ! 3.25.2017 ! 4.15.2017 consistent with the formulation of disposable income. 
                         sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx))
                     else ! good shocks
@@ -3716,7 +3762,7 @@ contains
                         sw_laborsupply(idx) = efflab(t)*yv(yx) ! 0._wp ! 10122016 Supplied to the other enterprise or corporate sector.  
                         sw_labordemand(idx) = 0._wp
                         sw_production(idx) = 0._wp
-                        sw_bizinvestment(idx) = kv(kx) ! idle capital being locked in the entrepreneurial sector.
+                        sw_bizinvestment(idx) = 0._wp ! 9-13-2017 removed kv(kx) ! idle capital being locked in the entrepreneurial sector.
                         sw_buzcap_notuse(idx) = kv(kx) ! 3.25.2017
                         sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx)) ! 3.27.2017 sw_ini_asset(idx) rather than sw_ini_asset(ax)                       
                     else ! good shocks zx>0._wp
@@ -3741,22 +3787,33 @@ contains
             endif ! kx == 0 or not (worker/retiree or entrepreneur)
             
             ! ===================================Income section=============================================== 3.26.2017 4:51 pm stop here. 4.15.2017 stop here. 9:20 pm.
-            if(kx==0)then ! worker
+            if(kx==0)then ! worker or retirees.
                 !capgain = merge(rd*a, 0._wp, rd*a>0._wp)   
                 !inc = merge(benefit,0._wp,t>=10) + merge(0._wp,capgain,tausvflag) + wage*sw_laborsupply(idx)
                 
-                inc = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) ! 3.27.2017
-                sw_taxableincome(idx) = inc 
-                sw_nonlineartax(idx) = ttaxwok(inc)
+                sw_taxableincome(idx) = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) ! 3.27.2017 ! 9-12-2017 Interest income will be taxed below.
+                !sw_taxableincome(idx) = inc ! 9-17-2017 
+                !term_2(idx) = sw_taxableincome(idx)
+                !term_3(idx) = inc
+                !term_4(idx) = length*ftaxwok(sw_taxableincome(idx)/length)
+                !term_5(idx) = length*ftaxwok(inc/length) ! 9-17-2017 OK.
+                !term_6(idx) = taubal*sw_taxableincome(idx)
+                !term_7(idx) = taubal*inc
+                !term_8(idx) = ttaxwok(sw_taxableincome(idx))
+                !term_9(idx) = ttaxwok(inc)
+                
+                !sw_nonlineartax(idx) = ttaxwok(inc)
+                sw_nonlineartax(idx) = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
                 sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx) ! 3.25.2017        
                 sw_worker_savtax(idx) = merge(tausv*rd*a,0._wp,a>0._wp)
                 
                 !inc = inc + a + (1._wp-tauk)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx)
                 
-                inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - sw_socialsecurity(idx) ! 3.27.2017
+                !inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - sw_socialsecurity(idx) ! 9-17-2017 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
+                sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx)) + transbeq - sw_socialsecurity(idx) ! 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
                 !inc = inc + a + rd*merge(0._wp, a, a>=0._wp) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx) ! 3.25.2017
-                sw_aftertaxwealth(idx) = inc
-                sw_worker_turned(idx) = merge( 1._wp, 0._wp, s3c(idx,3)==0.and.swk(idx)==1) ! 4.16.2017, 3.25.2017 swk=cwk. If cwk==1, the career next peirod is to work for a wage.
+                !sw_aftertaxwealth(idx) = inc ! 9-17-2017
+                sw_worker_turned(idx) = merge( 1._wp, 0._wp, s3c(idx,3)==0.and.swk(idx)==1) ! 4.16.2017, 3.25.2017 swk=cwk. If cwk==1, the career "NEXT" peirod is to work for a wage.
             else ! kx>0 Boss
                 intfund = merge(sw_ini_asset(idx)-kv(kx), 0._wp, sw_ini_asset(idx)-kv(kx)>0._wp) ! 3.27.2017 sw_ini_asset(idx) rather than sw_ini_asset(ax). ! sw_bizloan(idx) ! Bug intfund wrong!! 10122016 
                 
@@ -3765,19 +3822,30 @@ contains
                 !inc = merge(benefit,0._wp,t>=10) + merge(0._wp,capgain,tausvflag) + wage*sw_laborsupply(idx) ! 3.25.2017 always rent labor out for a wage eventhough he is self-employed. Move c_grs_mat to later computation.
                 
                 bgp = c_grs_mat(ax, kx, zx, yx, t) 
-                inc = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + bgp ! 4.16.2017 add bgp.
-                sw_taxableincome(idx)  = inc 
-                sw_nonlineartax(idx) = ttaxent(inc)
+                sw_taxableincome(idx) = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + bgp ! 4.16.2017 add bgp. 
+                !sw_taxableincome(idx)  = inc ! 9-17-2017 OK.
+                !term_2(idx) = sw_taxableincome(idx)
+                !term_3(idx) = inc
+                !term_4(idx) = length*ftaxent(sw_taxableincome(idx)/length)
+                !term_5(idx) = length*ftaxent(inc/length) ! 9-17-2017 OK.
+                !term_6(idx) = taubal*sw_taxableincome(idx)
+                !term_7(idx) = taubal*inc
+                !term_8(idx) = ttaxent(sw_taxableincome(idx))
+                !term_9(idx) = ttaxent(inc)
+                
+                !sw_nonlineartax(idx) = ttaxent(inc)
+                sw_nonlineartax(idx) = ttaxent(sw_taxableincome(idx)) ! 9-17-2017
                 sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
                 
                 sw_entpre_savtax(idx) = merge(merge(tausv*rd*a,tausv*rd*kv(kx),intfund>0._wp), &
                                               merge(tausv*rd*intfund,0._wp,intfund>0._wp),zx==0)
                 !sw_entpre_biztax(idx) = merge(taubp*bgp,0._wp,zx==1) ! 4.16.2017 comment out 
-                inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*kv(kx), intfund>0._wp), &
-                                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                           0._wp, intfund>0._wp), zx==0) &
-                      + (1._wp-deltah)*h - ttaxent(inc) + transbeq - sw_socialsecurity(idx) ! 4.16.2017 revision
+                !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*kv(kx), intfund>0._wp), & ! removed 9-12-2017
+                sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*kv(kx), (1._wp+(1._wp-tausv)*rd)*kv(kx)+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                                         0._wp, intfund>0._wp), zx==0) &
+                      + (1._wp-deltah)*h - ttaxent(sw_taxableincome(idx)) + transbeq - sw_socialsecurity(idx) ! 4.16.2017 revision
                       !+ merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - sw_socialsecurity(idx) ! 3.27.2017  
-                sw_aftertaxwealth(idx) = inc                
+                !sw_aftertaxwealth(idx) = inc ! 9-17-2017               
                 sw_boss_turned(idx) = merge( 1._wp, 0._wp, (s3c(idx,3)/=0.and.swk(idx)==0)) ! 3.27.2017 it is only a portion of the whole population exiting entrepreneurship.
                 
                 !! 3.25.2017 comment out.
@@ -3794,13 +3862,15 @@ contains
             ! if(sw_nonlineartax(idx)/=sw_nonlineartax(idx)) write(unit=128,fmt='(9(a,x,f8.4),(a,x,f8.4))') 'ax',ax,'hx',hx,'kx',kx,'zx',zx,'yx',yx,'kpx',kpx,'ypx',ypx,'opx',opx,'t',t,' consumpt ', sw_nonlineartax(idx)
             ! write(unit=128,fmt='(i8,9(a,x,i4,", "),2(a,x,f8.4))') idx, 'ax',ax,'hx',hx,'kx',kx,'zx',zx,'yx',yx,'kpx',kpx,'ypx',ypx,'opx',opx,'t',t,' consumpt ', sw_nonlineartax(idx), ' mass ', sef(idx)
         enddo ! q
-        !!$omp end parallel do
+        !$omp end parallel do
         
         !call system_clock(tend)
         !!if(printout6) write(unit=120,fmt='(a,i3,a,f12.4,a)') 'solve bellman period ',t,', time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'         
         !if(printout6) write(*,fmt='(a,f12.4,a)') 'solve macro statistic time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'    
         
-        tvec = (abs(sw_buzcap_notuse-0._wp)<1.e-10_wp).and.s3c(:,3)>0.and.s3c(:,4)==1 ! 5.9.2017 Note: s3c(:,3): k; s3c(:,4): z.
+        !tvec = (abs(sw_buzcap_notuse-0._wp)<1.e-10_wp).and.s3c(:,3)>0.and.s3c(:,4)==1 ! 5.9.2017 Note: s3c(:,3): k; s3c(:,4): z. ! 9-13-2017 this is entrepreneur's version uses sw_buzcap_notuse<0
+        tvec = s3c(:,3)>0.and.s3c(:,4)==1 ! 9-13-2017 Entrepreneurs running a business.
+        
         ! 4.16.2017 12:05pm stop here.
         totast = dot_product(sef,sw_ini_asset) ! 4.16.2017 Actually, total financial assets.
         
@@ -3814,8 +3884,8 @@ contains
         wokhom = sum(svec,tvec==.false.) ! 3.27.2017 added s3c condition. 7-2-2017 Including retired people.
         enthom = sum(svec,tvec==.true.) ! 3.27.2017 added s3c condition.
         
-        svec   = sef*sw_bizinvestment
-        entcap = sum(svec,tvec==.true.) ! 3.27.2017 Only sum up those figures not coming from idle capital.
+        svec   = sef*sw_bizinvestment ! 9-13-2017 definition of bizinvestment defined above is updated. only z>0 people have positive bizinvestment.
+        entcap = sum(svec,tvec==.true.) ! 3.27.2017 Only sum up those figures not coming from idle capital. ! 8-14-2017 ok.
         crpcap = totast/(1._wp+dfrac)-entcap ! Cagetti and De Nardi, TAUCfinalSS.f90, line 1273. a constant fraction of total capital. ! <========================<<
         ! 3.27.2017 following cagetti and de nardi's 2009 AER paper. See their InitialSS.f90 in AER_2009_codes.zip (unzipped as MS200405121codes). Their model
         ! also consider government debt accoutns for a fraction of total capital.
@@ -3830,8 +3900,9 @@ contains
         entlab = sum(svec,tvec==.true.) ! 3.27.2017 screen out the contribution that comes from entrepreneurs whose business is not in operation ! total external efficiency units of labor demanded by entreprises.
         crplab = totefl - entlab 
         
-        tottax = sum(sef*sw_nonlineartax)
-        entprd = sum(sef*sw_production) 
+        tottax = sum(sef*sw_nonlineartax) ! 9-13-2017 it needs revision, because it doesn't contain social security taxes and capital gain tax from savings interest.
+        
+        entprd = sum(sef*sw_production) ! 9-12-2017 Actually it is the production of entrepreneurial sector.
         crpprd = wage*crplab + (rd+deltak)*crpcap ! 3.27.2017 Cobb-Douglas production function's property (TAUCfinal.f90 line 1281). Note that wage, rd, and deltak are all on five years basis.
         ! 3.28.2017 Any tax rates do not show up in the equation above, as formualted in Imorhoroglu (1995) a life-cycle analysis of social security.
         gdp = crpprd + entprd ! 5.10.2017 As in  Fern-Villa and Dirk Krueger, GDP doens't include housing service in their definition.
@@ -3840,14 +3911,19 @@ contains
         ! Cagetti: gdp = [wage*totlcorp+(rbar+delt)*totkcorp] + inck.
         ! Cagetti: `inck` (gross entr. output) includes wages paid, interest owed and depr. They collectively equal to the first term of my enrepreneur's profit (that is, the entrepreneurial production)
         
+        
         ! 3.27.2017 corporate tax and capital income tax needs to be added into the tax revenue. Stop here. 4:09 pm <---------------
-        !sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax
+        !sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! There is no business taxes right?!
         totsvt = sum(sef*sw_worker_savtax) + sum(sef*sw_entpre_savtax)
         !totbpt = sum(sef*sw_entpre_biztax) ! 4.16.2017 comment out
         
         !govbal = (totsvt + totbpt + tottax) - gfrac*gdp - rd*dfrac*(crpcap+entcap) ! 3.27.2017 excluding SS benefit, because it runs in the way like pay as you go.
 
         govbal = (totsvt + tottax) - gfrac*gdp - rd*dfrac*(crpcap+entcap) ! 4.16.2017 TAUCfinal.f90 line 1280 + 1445.
+        ! r_govbal = nint(govbal*10e14_wp)/10e14_wp
+        write(4000+trial_id,fmt='("macro-0",8x,11(e21.14,x))') totsvt, tottax, gfrac, gdp, rd, dfrac, crpcap, entcap, (totsvt + tottax), gfrac*gdp, rd*dfrac*(crpcap+entcap)
+        write(4000+trial_id,fmt='("macro-1",8x,9(e21.14,x))') totefl, entlab, crplab, tottax, entprd, crpprd, gdp, govbal !, r_govbal
+        
         ! 3.27.2017 Note that Cagetti and De Nardi regard "SS transfer" as an item of government expenses and therefore formulated in the equation above.
         ! 3.27.2017 But in my model, Social security system runs in the way like pay as you go and therefore it is self-financed from the socail security tax.
         ! 3.27.2017 Therefore, in my formulation of variable "govbal" I don't include the revenue from socail security tax.
@@ -3864,7 +3940,7 @@ contains
         ent_wel_per  = (entfin+enthom)/(wokfin+entfin+wokhom+enthom)
         
         deallocate( svec, tvec )      
-        
+          
         !if(exit_log1==.false.)then ! There is no warning flag raised. 3.29.2017 stop here. ! 4.22.2017 comment out so that I know the program has something wrong.
             
         ! 3.28.2017 group size at the "END" of period
@@ -3879,6 +3955,8 @@ contains
         chgw2e  = sum(sef,s3c(:,3)==0.and.swk==1.and.s3c(:,9)<=9) + sum(sef,s3c(:,3)/=0.and.s3c(:,4)==0.and.swk==1.and.s3c(:,9)<=9) ! a subset of the above 4.17.2017 `swk` is generated in the subroutine `convert_2d_outcome_into_series.` with `coarse` flag.
         w2erat  = chgw2e/woksize
         
+        write(4000+trial_id,fmt='("macro-2",8x,8(e21.14,x))') govbal2gdp, hug_inv_per, med_inv_per, sml_inv_per, ent_wel_per, woksize, chgw2e, w2erat
+        
         ! All entrepreneurs
         entsize = sum(sef,s3c(:,3)/=0) ! 4.17.2017 original ent size including "bad" luck entrepreneurs. 
         ! Entrepreneurs who are hit by bad business shock
@@ -3888,14 +3966,19 @@ contains
         ! 4.17.2017 aggregate stats --------------------------------------
         ! 5.9.2017 lvece and lvecw both are correct.
         allocate(lvece(sz),lvecw(sz))
+        lvece = .false.
+        lvecw = .false.
         
-        ! 5.10.2017 cross sectional size (not depends on agent's decision). Do not consider retirees.
-        lvece = s3c(:,3)>0.and.s3c(:,4)==1.and.abs(sw_buzcap_notuse-0._wp)<1.e-7_wp
-        lvecw = (lvece==.false..and.s3c(:,9)<=9) ! 5.10.2017 remove this line: (s3c(:,3)==0.and.s3c(:,9)<=9).or. and s3c(:,3)/=0.and.s3c(:,4)==0
+        !! 5.10.2017 cross sectional size (not depends on agent's decision). Do not consider retirees.
+        !lvece = s3c(:,3)>0.and.s3c(:,4)==1.and.abs(sw_buzcap_notuse-0._wp)<1.e-7_wp
+        !lvecw = (lvece==.false..and.s3c(:,9)<=9) ! 5.10.2017 remove this line: (s3c(:,3)==0.and.s3c(:,9)<=9).or. and s3c(:,3)/=0.and.s3c(:,4)==0
+        lvece = s3c(:,3)>0.and.s3c(:,4)==1                   ! 9-15-2017
+        lvecw = (s3c(:,3)==0.or.s3c(:,4)==0).and.s3c(:,9)<=9 ! 9-15-2017
         
         szwok = count(lvecw)
         allocate(svec(szwok),rvec(szwok))
-        
+        svec = 0._wp
+        rvec = 0._wp
         ! Method 1 causes stack overflow in laptop. Ok on cluster.
         !svec = pack(sef,lvecw==.true.)
         !rvec = pack(sw_taxableincome,lvecw==.true.)
@@ -3927,6 +4010,8 @@ contains
         ! Extended.
         szent = count(lvece)
         allocate(svec(szent),rvec(szent))
+        svec = 0._wp
+        rvec = 0._wp
         j = 0 
         do i = 1, sz
             if(lvece(i)==.true.)then
@@ -3940,6 +4025,8 @@ contains
         
         med_wel_e2w = medentwel/medwokwel
         
+        write(4000+trial_id,fmt='("macro-3",8x,8(e21.14,x))') entsize, chge2w, e2wrat, medwokinc, lowest_quintile_wokinc, medwokwel, medentwel, med_wel_e2w
+        
         entcsp = sum(sef*sw_consumption,lvece) ! 4.17.2017 It excludes bad luck entrepreneurs.
         wokcsp = sum(sef*sw_consumption,lvecw) ! 4.17.2017 It includes entrepreneur-turned workers and retirees.
         
@@ -3949,8 +4036,8 @@ contains
         all_income  = entinc + wokinc ! sum(sef*sw_taxableincome)
         ent_inc_per = entinc/all_income
         
-        entaxw = sum(sef*sw_aftertaxwealth,lvece)
-        wokaxw = sum(sef*sw_aftertaxwealth,lvecw)
+        entaxw = sum(sef*sw_aftertaxwealth,lvece) ! <--- 9-15-2017
+        wokaxw = sum(sef*sw_aftertaxwealth,lvecw) ! <--- 9-15-2017
         
         ! 4.17.2017 stats per capita -------------------------------------
         entsize = sum(sef,lvece)
@@ -3967,6 +4054,8 @@ contains
         mean_wokcsp = wokcsp/woksize
         mean_entaxw = entaxw/entsize
         mean_wokaxw = wokaxw/woksize
+        
+        write(4000+trial_id,fmt='("macro-4",8x,8(e21.14,x),2(11x,i10,x))') wokinc, all_income, ent_inc_per, entaxw, wokaxw, entsize, woksize, sum(sw_aftertaxwealth), count(lvece), count(lvecw)
         
         ! 5.10.2017 Update zone 
         ! nakajima 2010, pdf p.34 ------------------------------------------------------------------------
@@ -4042,71 +4131,143 @@ contains
             momvec = penalty    
         endif 
         
+        write(4000+trial_id,fmt='("macro-5",8x,8(e21.14,x))') rimplied, sumsstax, benefitimplied, momvec(1:5)
+        
+        write(4000+trial_id,fmt='("macro-6",8x,5(e21.14,x))') momvec(6:10)
+        
+        !!if(iteratot==1)then
+        !    write(str1,fmt='(i4)') trial_id+5000
+        !    write(str2,fmt='(i3.3)') idxt
+        !    open(unit=5000+trial_id,file="output_"//str1//"-"//str2//"_taxelements.txt",action="write",status="replace")
+        !    do i = 1, size(s3c(:,1))
+        !        write(unit=5000+trial_id,fmt='(9e25.18)') sw_aftertaxwealth(i), sef(i), sw_aftertaxwealth(i)*sef(i)
+        !    enddo ! i
+        !    close(5000+trial_id)
+        !!endif ! iteratot
+        
     end subroutine macro_statistics  
     
-    !! 8-1-2017
+    !!! 8-1-2017 version 1.
+    !subroutine grid_boundary_inspection( amin, amax, mass_vec )
+    !    implicit none
+    !    real(wp), intent(inout) :: amin, amax
+    !    integer :: sz_list, size_av, i
+    !    integer :: valid_lower_limit, valid_upper_limit
+    !    real(wp) :: mass_lower_limit, mass_upper_limit, temp, damin, damax
+    !    real(wp), dimension(:), intent(out) :: mass_vec
+    !    logical, dimension(:), allocatable :: tvec
+    !    sz_list = size(s3c(:,1))
+    !    size_av = size(av)
+    !    
+    !    damin = amin
+    !    damax = amax
+    !    
+    !    allocate( tvec(sz_list) )
+    !    
+    !    ! To aggregate the corresponding mass for a specific level of financial asset holdings.
+    !    do i = 1, size_av
+    !        tvec = .false.
+    !        tvec = s3c(:,1)==i
+    !        mass_vec(i) = sum(sef,tvec)
+    !    enddo
+    !    
+    !    valid_lower_limit = 1
+    !    valid_upper_limit = size_av
+    !    mass_lower_limit = mass_vec(valid_lower_limit)
+    !    mass_upper_limit = mass_vec(valid_upper_limit)
+    !    
+    !    ! Lower bound. Stage 1. Shrink from the bottom of the array up until the mass of the new bottom grid is larger than a predetermined threshold (tinymass).
+    !    do i = 1, size_av-1 ! 8-1-2017 should start here.
+    !        if( mass_vec(i)<tinymass .and. mass_vec(i+1)>=tinymass )then ! the case that the grid may need to shrink.
+    !            valid_lower_limit = i+1 ! update.
+    !            mass_lower_limit = mass_vec(i+1)
+    !            exit ! Exit the loop as long as we find the "first" grid with mass larger than a threshold and being preceeded by a grid with mass smaller than the threshold.
+    !        endif
+    !    enddo 
+    !    amin = av( valid_lower_limit )
+    !    
+    !    ! Lower bound. Stage 2. Extend from the bottom of the array if the current bottom grid's mass is larger than a threshold (chunkmass).
+    !    if( mass_lower_limit>chunkmass )then
+    !        temp = 0.5_wp*abs( av(valid_lower_limit+1)-av(valid_lower_limit) )            
+    !        amin = av(valid_lower_limit) - temp
+    !    endif
+    !
+    !    ! Upper bound, Stage 1. Shrink from the top of the array down until the mass of the new top grid is larger than a predetermined threshold (tinymass).
+    !    do i = size_av, 2, -1
+    !        if( mass_vec(i)<tinymass .and. mass_vec(i-1)>=tinymass )then
+    !            valid_upper_limit = i-1
+    !            mass_upper_limit = mass_vec(i-1)
+    !            exit
+    !        endif
+    !    enddo ! i
+    !    amax = av( valid_upper_limit )
+    !    
+    !    ! Upper bound , Stage 2. Extend from the top of the array if the current top grid's mass is larer than a threshold (chunkmass).
+    !    if( mass_upper_limit>chunkmass )then
+    !        temp = 0.5_wp*abs( av(valid_upper_limit)-av(valid_upper_limit-1) )
+    !        amax = av(valid_upper_limit) + temp
+    !    endif 
+    !    
+    !    deallocate( tvec )
+    !end subroutine grid_boundary_inspection
+    
     subroutine grid_boundary_inspection( amin, amax, mass_vec )
         implicit none
         real(wp), intent(inout) :: amin, amax
-        integer :: sz_list, size_av, i
-        integer :: valid_lower_limit, valid_upper_limit
-        real(wp) :: mass_lower_limit, mass_upper_limit, temp, damin, damax
         real(wp), dimension(:), intent(out) :: mass_vec
-        logical, dimension(:), allocatable :: tvec
-        sz_list = size(s3c(:,1))
+        real(wp) :: temp
+        integer :: size_list, size_av, i, size_idxvec, idx_max, idx_min
+        integer, dimension(:), allocatable :: intvec, idxvec
+        logical, dimension(:), allocatable :: logvec
+        
+        !write(*,'(a)') ' enter grid inspection '
+        
+        size_list = size(s3c(:,1)) 
         size_av = size(av)
         
-        damin = amin
-        damax = amax
+        allocate( logvec(size_list), intvec(size_list) )
+        intvec = [(i,i=1,size_list)]
         
-        allocate( tvec(sz_list) )
+        ! vector of a repeated group with members indexed in increasing order, [1,2,...,size_av] 8-28-2017
+        intvec = mod(intvec,size_av)
+        where(intvec==0) intvec=size_av
         
-        ! To aggregate the corresponding mass for a specific level of financial asset holdings.
+        logvec = .false.
+        logvec = sef>tinymass
+        size_idxvec = count(logvec)
+        allocate( idxvec(size_idxvec) )
+        idxvec = pack(intvec,logvec)
+        ! search for the maximum index of financial asset holding
+        idx_max = maxval(idxvec)
+        ! search for the minimum index of financial asset holding
+        idx_min = maxval(-idxvec)
+        idx_min = -idx_min
+        
+        ! return (to be updated)
+        amax = av(idx_max)
+        amin = av(idx_min)
+        
+        !! calculate distribution of financial asset holdings
+        !mass_vec = 0._wp
         do i = 1, size_av
-            tvec = .false.
-            tvec = s3c(:,1)==i
-            mass_vec(i) = sum(sef,tvec)
-        enddo
-        
-        valid_lower_limit = 1
-        valid_upper_limit = size_av
-        mass_lower_limit = mass_vec(valid_lower_limit)
-        mass_upper_limit = mass_vec(valid_upper_limit)
-        
-        ! Lower bound. Stage 1. Shrink from the bottom of the array up until the mass of the new bottom grid is larger than a predetermined threshold (tinymass).
-        do i = 1, size_av-1 ! 8-1-2017 should start here.
-            if( mass_vec(i)<tinymass .and. mass_vec(i+1)>=tinymass )then ! the case that the grid may need to shrink.
-                valid_lower_limit = i+1 ! update.
-                mass_lower_limit = mass_vec(i+1)
-                exit ! Exit the loop as long as we find the "first" grid with mass larger than a threshold and being preceeded by a grid with mass smaller than the threshold.
-            endif
-        enddo 
-        amin = av( valid_lower_limit )
-        
-        ! Lower bound. Stage 2. Extend from the bottom of the array if the current bottom grid's mass is larger than a threshold (chunkmass).
-        if( mass_lower_limit>chunkmass )then
-            temp = 0.5_wp*abs( av(valid_lower_limit+1)-av(valid_lower_limit) )            
-            amin = av(valid_lower_limit) - temp
-        endif
-
-        ! Upper bound, Stage 1. Shrink from the top of the array down until the mass of the new top grid is larger than a predetermined threshold (tinymass).
-        do i = size_av, 2, -1
-            if( mass_vec(i)<tinymass .and. mass_vec(i-1)>=tinymass )then
-                valid_upper_limit = i-1
-                mass_upper_limit = mass_vec(i-1)
-                exit
-            endif
+            mass_vec(i) = sum(sef,s3c(:,1)==i)            
         enddo ! i
-        amax = av( valid_upper_limit )
         
-        ! Upper bound , Stage 2. Extend from the top of the array if the current top grid's mass is larer than a threshold (chunkmass).
-        if( mass_upper_limit>chunkmass )then
-            temp = 0.5_wp*abs( av(valid_upper_limit)-av(valid_upper_limit-1) )
-            amax = av(valid_upper_limit) + temp
-        endif 
+        ! if having fat tail, expand the corresponding limit (by raising it if it is a upper bound, and vice versa.)
+        if(mass_vec(idx_max)>chunkmass)then
+            temp = 0.5_wp*abs( av(idx_max)-av(idx_max-1) )
+            amax = amax + temp ! increase up a little bit the upper bound
+        endif
         
-        deallocate( tvec )
-    end subroutine grid_boundary_inspection
+        if(mass_vec(idx_min)>chunkmass)then
+            temp = 0.5_wp*abs( av(idx_min)-av(idx_min+1) )
+            amin = amin - temp ! lower down a little bit the lower bound
+        endif
+        
+        deallocate( idxvec, logvec, intvec )
+        
+        !write(*,'(a)') ' exit grid inspection '
+    end subroutine 
     
     subroutine read_series2series(vec,fname)
         implicit none

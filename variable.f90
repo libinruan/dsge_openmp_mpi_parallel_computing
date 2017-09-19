@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(136)
-    real(wp) :: para(136), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(137)
+    real(wp) :: para(137), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -84,7 +84,9 @@ module variable
                 maxdist = 5.e-6, &
                 tinymass = 1.e-2, &
                 chunkmass = 3.e-2, &
-                initau = 4._wp
+                initau = 4._wp, &
+                length = 5._wp, &
+                accumass = 1.e-10
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -95,7 +97,7 @@ module variable
                 kdim = 4, &
                 ndim = 10, & ! number of targets
                 nsbq = 10000, & ! total number of raw sobol sequence's rows
-                length = 5, &
+                ! length = 5, &
                 iterasvmax = 10, &
                 sdim   = 5, &
                 nsdim = 100, &
@@ -113,7 +115,7 @@ module variable
     integer  :: iterar   = 1
     integer  :: iteratot = 1
     integer  :: iterarmax = 40 ! maximum number of iterations on rbar
-    real(wp) :: rbar = 0.035
+    real(wp) :: rbar ! = 0.035, this value is hard wired in equilibirum.f90 line 545.
     real(wp) :: rbarmax ! [domain]
     real(wp) :: rbarmin ! [domain]
     real(wp) :: fundiffnow ! [image]
@@ -168,11 +170,12 @@ module variable
     !real(wp), dimension(:), allocatable :: afv ! asset refined grid ! 4.1.2017
     real(wp), dimension(:,:), allocatable :: py, pyh, pz2, pka, pyb ! wint ! wint, aint: interpolated weight and coarse grids ! pt18
     real(wp), dimension(:,:), allocatable :: range_guess
+    real(wp), dimension(:), allocatable :: term_2, term_3, term_4, term_5, term_6, term_7, term_8, term_9 ! debug 9-17-2017
     integer,  dimension(:,:), allocatable :: xl14, bl1014, bd14, xl1013, xl9, xl18, bd9, bd18 ! 4.1.2017 afint
     integer,  dimension(:,:), allocatable :: bldum, bd1013
     integer,  dimension(:,:), allocatable :: s1c, s3c ! s2c is removed 3.31.2017
-    logical, dimension(:), allocatable :: ivec
-    integer, dimension(:), allocatable :: nvec
+    logical,  dimension(:), allocatable :: ivec
+    integer,  dimension(:), allocatable :: nvec
     
     !integer,  dimension(:,:), allocatable :: fxl14, fbl1014, fbd14, fxl1013, fxl9, fxl18, fbd9, fbd18
     !integer,  dimension(:,:), allocatable :: fbldum, fbd1013          
@@ -1003,7 +1006,12 @@ contains
                        i = i + 1
                        read( value_string,*) testfunc_idx
                        labstr(i) = 'testfunc_idx'
-                       para(i) = testfunc_idx                       
+                       para(i) = testfunc_idx          
+                   case('accumass') ! 137
+                       i = i + 1
+                       read( value_string,*) accumass
+                       labstr(i) = 'accumass'
+                       para(i) = accumass                          
                 end select
             enddo
         else
