@@ -7,8 +7,11 @@
 *.sln.docstates
 *.u2d
 MPI_sandbox/
+Data/
 Readme/
 _full_list_startingpoint-old.csv
+_full_list_startingpoint-old1.csv
+_full_list_startingpoint-old2.csv
 _1parameter - standard.txt
 
 # Build results

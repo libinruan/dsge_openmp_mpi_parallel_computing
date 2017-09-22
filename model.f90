@@ -3921,8 +3921,8 @@ contains
 
         govbal = (totsvt + tottax) - gfrac*gdp - rd*dfrac*(crpcap+entcap) ! 4.16.2017 TAUCfinal.f90 line 1280 + 1445.
         ! r_govbal = nint(govbal*10e14_wp)/10e14_wp
-        write(4000+trial_id,fmt='("macro-0",8x,11(e21.14,x))') totsvt, tottax, gfrac, gdp, rd, dfrac, crpcap, entcap, (totsvt + tottax), gfrac*gdp, rd*dfrac*(crpcap+entcap)
-        write(4000+trial_id,fmt='("macro-1",8x,9(e21.14,x))') totefl, entlab, crplab, tottax, entprd, crpprd, gdp, govbal !, r_govbal
+        !write(4000+trial_id,fmt='("macro-0",8x,11(e21.14,x))') totsvt, tottax, gfrac, gdp, rd, dfrac, crpcap, entcap, (totsvt + tottax), gfrac*gdp, rd*dfrac*(crpcap+entcap)
+        !write(4000+trial_id,fmt='("macro-1",8x,9(e21.14,x))') totefl, entlab, crplab, tottax, entprd, crpprd, gdp, govbal !, r_govbal
         
         ! 3.27.2017 Note that Cagetti and De Nardi regard "SS transfer" as an item of government expenses and therefore formulated in the equation above.
         ! 3.27.2017 But in my model, Social security system runs in the way like pay as you go and therefore it is self-financed from the socail security tax.
@@ -3955,7 +3955,7 @@ contains
         chgw2e  = sum(sef,s3c(:,3)==0.and.swk==1.and.s3c(:,9)<=9) + sum(sef,s3c(:,3)/=0.and.s3c(:,4)==0.and.swk==1.and.s3c(:,9)<=9) ! a subset of the above 4.17.2017 `swk` is generated in the subroutine `convert_2d_outcome_into_series.` with `coarse` flag.
         w2erat  = chgw2e/woksize
         
-        write(4000+trial_id,fmt='("macro-2",8x,8(e21.14,x))') govbal2gdp, hug_inv_per, med_inv_per, sml_inv_per, ent_wel_per, woksize, chgw2e, w2erat
+        !write(4000+trial_id,fmt='("macro-2",8x,8(e21.14,x))') govbal2gdp, hug_inv_per, med_inv_per, sml_inv_per, ent_wel_per, woksize, chgw2e, w2erat
         
         ! All entrepreneurs
         entsize = sum(sef,s3c(:,3)/=0) ! 4.17.2017 original ent size including "bad" luck entrepreneurs. 
@@ -4025,7 +4025,7 @@ contains
         
         med_wel_e2w = medentwel/medwokwel
         
-        write(4000+trial_id,fmt='("macro-3",8x,8(e21.14,x))') entsize, chge2w, e2wrat, medwokinc, lowest_quintile_wokinc, medwokwel, medentwel, med_wel_e2w
+        !write(4000+trial_id,fmt='("macro-3",8x,8(e21.14,x))') entsize, chge2w, e2wrat, medwokinc, lowest_quintile_wokinc, medwokwel, medentwel, med_wel_e2w
         
         entcsp = sum(sef*sw_consumption,lvece) ! 4.17.2017 It excludes bad luck entrepreneurs.
         wokcsp = sum(sef*sw_consumption,lvecw) ! 4.17.2017 It includes entrepreneur-turned workers and retirees.
@@ -4055,7 +4055,7 @@ contains
         mean_entaxw = entaxw/entsize
         mean_wokaxw = wokaxw/woksize
         
-        write(4000+trial_id,fmt='("macro-4",8x,8(e21.14,x),2(11x,i10,x))') wokinc, all_income, ent_inc_per, entaxw, wokaxw, entsize, woksize, sum(sw_aftertaxwealth), count(lvece), count(lvecw)
+        !write(4000+trial_id,fmt='("macro-4",8x,8(e21.14,x),2(11x,i10,x))') wokinc, all_income, ent_inc_per, entaxw, wokaxw, entsize, woksize, sum(sw_aftertaxwealth), count(lvece), count(lvecw)
         
         ! 5.10.2017 Update zone 
         ! nakajima 2010, pdf p.34 ------------------------------------------------------------------------
@@ -4131,9 +4131,9 @@ contains
             momvec = penalty    
         endif 
         
-        write(4000+trial_id,fmt='("macro-5",8x,8(e21.14,x))') rimplied, sumsstax, benefitimplied, momvec(1:5)
+        !write(4000+trial_id,fmt='("macro-5",8x,8(e21.14,x))') rimplied, sumsstax, benefitimplied, momvec(1:5)
         
-        write(4000+trial_id,fmt='("macro-6",8x,5(e21.14,x))') momvec(6:10)
+        !write(4000+trial_id,fmt='("macro-6",8x,5(e21.14,x))') momvec(6:10)
         
         !!if(iteratot==1)then
         !    write(str1,fmt='(i4)') trial_id+5000

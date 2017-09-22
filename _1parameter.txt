@@ -154,7 +154,7 @@ printout15       false  ! Used in building stage. True, allow undefined area to 
 printout16       false  ! true, read existing optimal points WITHOUT sobel sequence (see parameter bestvertex_file); FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   1   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+mpi_exercise_mode   2   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
 ! Remember to set the `-np` option to appropriate number.
@@ -240,12 +240,13 @@ mpi_exercise_mode   1   ! (integer) Single node mode, 0; Stage 1, Exploratory mo
 !   bestvertex_file: xxx, if printout16 set to be True. Otherwise, _full_list_startingpoint.csv need to be provided.
 !   	Note if you just finish MPI_exercise_mode=1 and planning to start MPI_exercise_mode=2, you need to create a 1_001_restart_list.txt based on
 !		the sorted output of MPI_exercise_mode=1, which stores the list of potential starting points (that is, RootIntermCollect_xx_xx.txt).
+!   noamoeba: number of sub-amoeba-group associated with a amoeba head.
 !   nrow: xxx. The number of nodes contained in a amoeba group. The size of unknown parameters is 10, 
 !		for example. Suppose we ask for two subgroup within each ameoba to perform algorithm. Since [one amoeba head] + 
 !		4 times 2 = 9 < (10+1), so we set the basic ameoba required number of node to 11 for "nrow" . 
 ! 		On the other hand, if we ask for four amoeba subgroup for this 10 unknown parameter 
-!		question (the same question), we would set 4 times 4 plus 1 = 17 (just use 17 
-!		becuase it exceeds the minimum number of required amoeba nodes, 11). The command line -np would be 12 and 18, 
+!		question (the same question), we would set 4 times 4 = 16 (just use 16 
+!		becuase it exceeds the minimum number of required amoeba nodes, 11). The command line -np would be 12 and 17, 
 !		respectively.
 !       In short, nrow = <number of amoebas>*max(dimension+1,<number of sub-amoeba-groups>*4).
 !                 -np (the option in command line) <nrow + 1>.
