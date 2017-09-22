@@ -219,7 +219,7 @@ module equilibrium
         msg = " "
         exit_bellman = .false.
         
-        write(4000+trial_id,fmt='("initial",8x,10(e21.14,x))')  kv1, prtk0, prtk1, prtk2, zbar, beta, theta, phi1, phi2, phi3
+        !write(4000+trial_id,fmt='("initial",8x,10(e21.14,x))')  kv1, prtk0, prtk1, prtk2, zbar, beta, theta, phi1, phi2, phi3
         
         ! 4.1.2017 fnadim, fnhdim, adim, hdim all need to keep. Hard to disentangle these variables, although their functions are overlapping each other's.
         fnadim = adim ! 3.16.2017 Hardwired for preventing program complexity. 
@@ -404,13 +404,13 @@ module equilibrium
         ! See Social Security Administration 2015, table 4.C6, pg. 4.50. Feb 13, 2017
         ! See the folder: E:\GoogleDrive\R_projects\research\thesis\Efficiency_units 
         
-        write(4000+trial_id,fmt='("#1",13x,2i3,8(e21.14,x))') fnadim, fnhdim, beta, yv, survprob(10:12)
+        !write(4000+trial_id,fmt='("#1",13x,2i3,8(e21.14,x))') fnadim, fnhdim, beta, yv, survprob(10:12)
         
         call set_efficiency_untis( efflab, '_efficiency_units.txt' ) ! I use the estimated 17.5 Hansen weight as model labor efficiency of the age group of 20 years ago.
         ! 22.5 Hansen weight as that of the age group of 25 years old. Feb 13, 2017
         ! See the folder: E:\GoogleDrive\R_projects\research\thesis\Efficiency_units
         
-        write(4000+trial_id,fmt='("#2",13x,10(e21.14,x))') efflab(1:10)
+        !write(4000+trial_id,fmt='("#2",13x,10(e21.14,x))') efflab(1:10)
         
         ! #########################################################################################
         ! ## Fraction of population # no population growth is considered 072316
@@ -419,7 +419,7 @@ module equilibrium
             popfrac(i) = popfrac(i-1)*survprob(i-1) ! note: survprob is conditional probability of death    
         enddo
         popfrac = popfrac/sum(popfrac) ! normalization; the sum of the alive in the beginning of each age cohort    
-        write(4000+trial_id,fmt='("#3",13x,10(e21.14,x))') popfrac(5:14)
+        !write(4000+trial_id,fmt='("#3",13x,10(e21.14,x))') popfrac(5:14)
         
         ! #########################################################################################
         ! business scale vector 072316 Meh 2005 pdf-13.
@@ -440,8 +440,8 @@ module equilibrium
         pka(:,1) = 1._wp - pka(:,2) ! probability of stay put.
         !call kron(pka,py,pt18) ! redundant
         
-        write(4000+trial_id,fmt='("#4",13x,8(e21.14,x))') kv, probtk
-        write(4000+trial_id,fmt='("#5",13x,8(e21.14,x))') pka(:,2), pka(:,1)
+        !write(4000+trial_id,fmt='("#4",13x,8(e21.14,x))') kv, probtk
+        !write(4000+trial_id,fmt='("#5",13x,8(e21.14,x))') pka(:,2), pka(:,1)
         
         ! #########################################################################################
         ! # business technology shock levls (z2) and transition probability (phi), Meh, p.700 072316
@@ -490,8 +490,8 @@ module equilibrium
         deltak = deltak*length 
         deltah = deltah*length       
         
-        write(4000+trial_id,fmt='("#6",13x,12(e21.14,x))') phi, pz2(:,1), pz2(:,2)
-        write(4000+trial_id,fmt='("#7",13x,10(e21.14,x))') delzh, delzl, deltak, deltah
+        !write(4000+trial_id,fmt='("#6",13x,12(e21.14,x))') phi, pz2(:,1), pz2(:,2)
+        !write(4000+trial_id,fmt='("#7",13x,10(e21.14,x))') delzh, delzl, deltak, deltah
         
         !! ## transfer depreciation rates to 5 year basis 072316
         !do i = 1, 3
@@ -567,7 +567,7 @@ module equilibrium
         taubalrbarmax=taubalmax
         taubalrbarmin=taubalmin
         
-        write(4000+trial_id,fmt='("#8",13x,10(e21.14,x))') staxebase, staxwbase, staxbase, AggEffLab, hv(1), hv(hdim), av(1), av(adim), taubalrbarmax, taubalrbarmin
+        !write(4000+trial_id,fmt='("#8",13x,10(e21.14,x))') staxebase, staxwbase, staxbase, AggEffLab, hv(1), hv(hdim), av(1), av(adim), taubalrbarmax, taubalrbarmin
         call make_next_period_index_combination() ! 3.15.2017 checked. keep it. moved here from the inner loop. KEEP IT!! THE OPERATION CONTAINS COMBINATION INFO.
         ! 4.1.2017 revision made to introduce "end-of-period" outcomes for people are young, would-be entrepreneurs and still have the opportunity to conceive new entrepreneurial idea  
         
@@ -605,13 +605,13 @@ module equilibrium
             ! "five-year" rental rate of labor efficiency. formular is checked 1-30-2017
             wage    = (1._wp - alpha)*((rd+deltak)/(alpha))**(alpha/(alpha - 1._wp)) ! # 2' 08272016 See proof in housing_v9.lyx or pdf.        
             
-            write(4000+trial_id,fmt='("#9",13x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsir, epsirmin, iterar, iterarmax, iteragov, epsigov, bracketgov, noneedtaubalmax, rd, rl, gamma5, wage
+            !write(4000+trial_id,fmt='("#9",13x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsir, epsirmin, iterar, iterarmax, iteragov, epsigov, bracketgov, noneedtaubalmax, rd, rl, gamma5, wage
             
             !benefit = merge( tauss*wage*AggEffLab/sum(popfrac(10:14)), tauss*wage*poppaysstaximplied/sum(popfrac(10:14)), iterar==1 ) ! 10122016.
 
             call coarse_SBE_profit_matrices(c_grs_mat,c_lab_vec,c_opt_vec) ! 09282016 3.4.2017   
             
-            write(4000+trial_id,fmt='("#10-biz",8x,3(e21.14,x))') sum(c_grs_mat), sum(c_lab_vec), sum(c_opt_vec)
+            !write(4000+trial_id,fmt='("#10-biz",8x,3(e21.14,x))') sum(c_grs_mat), sum(c_lab_vec), sum(c_opt_vec)
             
             do while((epsigov>epsigovmin).and.(iteragov<=iteragovmax)) ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [2]
                 
@@ -631,7 +631,7 @@ module equilibrium
                 write(my_id+1001,'((14x,"iterar",2x),(12x,"iteragov",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(14x,"taubal",2x))') 
                 write(my_id+1001,'((i20,2x),(i20,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, taubal
                 
-                write(4000+trial_id,fmt='("#11",12x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsigov, epsigovmin, iteragov, iteragovmax, bracketgov, taubal, iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax
+                !write(4000+trial_id,fmt='("#11",12x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsigov, epsigovmin, iteragov, iteragovmax, bracketgov, taubal, iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax
                 
                 ! VARIABLES THAT NEED TO RENEW
                 if(iterar==1.and.iteragov==1)then
@@ -649,7 +649,7 @@ module equilibrium
                     benefit  = tauss*wage*AggEffLab/sum(popfrac(10:14))
                     !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 1 '
                     
-                    write(4000+trial_id,fmt='("#12-1",10x,8(e21.14,x))') kndata, crplab, crpcap, crpprd, gdp, transbeq, avgincw, benefit
+                    !write(4000+trial_id,fmt='("#12-1",10x,8(e21.14,x))') kndata, crplab, crpcap, crpprd, gdp, transbeq, avgincw, benefit
                     
                 elseif((iterar/=1.and.iteragov==1))then ! iteragov 5.10.2017
                     
@@ -672,7 +672,7 @@ module equilibrium
                     call grid(rhv,hmin,hmax,2.5_wp) ! keep it, not redundant or revision needed. 10102016
                     rhv = hv ! 10102016            
                     
-                    write(4000+trial_id,fmt='("#12-2",10x,5(e21.14,x))') transbeq, avgincw, benefit, hmin, hmax
+                    !write(4000+trial_id,fmt='("#12-2",10x,5(e21.14,x))') transbeq, avgincw, benefit, hmin, hmax
                     
                     ! NOTE: Nakajima (2010) leaves the Social Security tax rate to be determined such that when the government is balancing the budget 
                     ! in each period, the model replicates the replacement ratio.
@@ -811,7 +811,7 @@ module equilibrium
                 cvv  = 0._wp ! default 1 means bad point. -99 indicates a good point. model.f90, ln.3316.
                 dcef = 0._wp
                 
-                write(4000+trial_id,fmt='("#13",12x,5(e21.14,x))') staxw, staxe, stax
+                !write(4000+trial_id,fmt='("#13",12x,5(e21.14,x))') staxw, staxe, stax
                 
                 !if(num_procs==2) write(*,*) ' '
                 !!!!!!! ---- kernel ----- Option I 4.8.2017 fix the wrong indexing of parallel liss (0)
@@ -908,7 +908,7 @@ module equilibrium
                     !call convert_2d_distribution_into_1d() ! #2 ! DON'T COMMENTED OUT. USED IN MACRO_STATISTICS SUBROUTINE. 9-11-2017 Done! Seems redundant. Should be removed.
                     call macro_statistics( momvec, iterar, iteragov, iteratot, exit_log1, msg,trial_id) ! #3 4.21.2017 I don't know why the medwokinc (involving allocatable array) causes error but subroutine compute_lorenz below doesn't. Maybe in the future I can use subroutine that includes the alloctable array to replace the use of alloctable array in the main program.
                     
-                    write(4000+trial_id,fmt='("#14",12x,10(e21.14,x),3(16x,i5,x))') momvec, iterar, iteragov, iteratot
+                    !write(4000+trial_id,fmt='("#14",12x,10(e21.14,x),3(16x,i5,x))') momvec, iterar, iteragov, iteratot
                     
                     !call grid_boundary_inspection() ! moved outside 9-11-2017
                     !call convert_2d_macro_statistics_into_1d() ! SHOULD BE COMMENTED OUT IN PRODUCTION MODE
@@ -926,12 +926,12 @@ module equilibrium
                     ! ###### Note: govbal2gdp is the outcome of solving the model, see model.f90 around line 5429. ######
                     epsigov = min(abs(govbal2gdp), abs(taubalmax - taubalmin)*10.0_wp)
                     
-                    write(4000+trial_id,fmt='("#15",12x,4(e21.14,x))') epsigov, govbal2gdp, taubalmax, taubalmin
+                    !write(4000+trial_id,fmt='("#15",12x,4(e21.14,x))') epsigov, govbal2gdp, taubalmax, taubalmin
                     
                     !if(printout5) write(unit=104,fmt='(3i3,a,f8.4)') iterar, iteragov, iteratot, ' epsir=abs(fundiffnow) ', epsir
                     if(printout5) write(unit=104,fmt='("## ",3i3,6x,a,x,f8.4,/)') iterar, iteragov, iteratot, 'epsigov1:', epsigov
 			        if(epsigov>epsigovmin)then
-                        write(4000+trial_id,fmt='("#16",12x,2(e21.14,x))') epsigov, epsigovmin
+                        !write(4000+trial_id,fmt='("#16",12x,2(e21.14,x))') epsigov, epsigovmin
 			        	!using bisection algorithm to update taubal
     		        	if(bracketgov==1)then
 			        		if(govbal2gdp>0.0)then
@@ -943,20 +943,20 @@ module equilibrium
 			        			! note bracketgov still ==1 ! [Image]
                                 !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 6 '
                                 if(printout5) write(unit=104,fmt='(4(a,x,f8.4,x),a)') 'taubal', taubal, ' taubalmin = taubalmax - ', pertgov, ' = ', taubalmin, '  taubalmax:', taubalmax, ' bracketgov==1, obtained bal>0, save bal2gdp as bal2gdpmax, interval needs to move downward '
-                                write(4000+trial_id,fmt='("#17",12x,5(e21.14,x),(17x,i4,x))') bracketgov, govbal2gdp, govbal2gdpmax, taubalmax, taubalmin, noneedtaubalmax
+                                !write(4000+trial_id,fmt='("#17",12x,5(e21.14,x),(17x,i4,x))') bracketgov, govbal2gdp, govbal2gdpmax, taubalmax, taubalmin, noneedtaubalmax
 			        		else
 			        			govbal2gdpmin=govbal2gdp
        		        			bracketgov=2
                                 !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 7 '
                                 if(printout5) write(unit=104,fmt='(2(a,x,f8.4,x),a)') 'taubal', taubal, 'govbal2gdpmin:',govbal2gdpmin,' bracketgov == 1, used taubalmin obtained govbal<0, so save bal2gdp as bal2gdpmin '
-                                write(4000+trial_id,fmt='("#18",12x,(17x,i4,x),4(e21.14,x),(17x,i4,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, noneedtaubalmax
+                                !write(4000+trial_id,fmt='("#18",12x,(17x,i4,x),4(e21.14,x),(17x,i4,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, noneedtaubalmax
 			        		endif
 			        		
         	        		if((govbal2gdp<=0.0).and.(noneedtaubalmax==1))then ! this block will be activated when, for example, 1st round we have Max, 2nd round we happends to have Min.
 			        			bracketgov=0
                                 !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 8 '
                                 if(printout5) write(unit=104,fmt='(10x,a,x,f8.4,x,a)') 'taubal', taubal, ' already got bal2gdp>0 (saved as bal2gdpmax) last round, this round got bal2gdp<0 (with the input taubalmin). Start finding root '
-                                write(4000+trial_id,fmt='("#19",12x,(17x,i4,x),4(e21.14,x),(17x,i4,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, noneedtaubalmax
+                                !write(4000+trial_id,fmt='("#19",12x,(17x,i4,x),4(e21.14,x),(17x,i4,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, noneedtaubalmax
         	        		endif     
 			        	elseif(bracketgov==2)then
         	        		if(govbal2gdp<0.0)then ! This means we've already found MIN, found another MIN this time, and still need to find MAX.
@@ -967,13 +967,13 @@ module equilibrium
                                 !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 9 '
                                 !if(printout5) write(unit=104,fmt='(a,f8.4,a,f8.4,a)') 'taubalmin', taubalmin, 'taubalmax', taubalmax, ' bracketgov == 2 (meant to obtain bal2gdp>0), but still obtain bal2gdp<0. move interval upward '
                                 if(printout5) write(unit=104,fmt='(4(a,x,f8.4,x),a)') 'taubal', taubal, 'taubalmin:', taubalmin, 'taubalmax = taubalmax + ', pertgov, ' = ', taubalmax, ' bracketgov==1, obtained bal>0, save bal2gdp as bal2gdpmax, interval needs to move downward section (1) '                                
-                                write(4000+trial_id,fmt='("#20",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, pertgov
+                                !write(4000+trial_id,fmt='("#20",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, pertgov
        		        		else
 			        			govbal2gdpmax=govbal2gdp	! It means we found the designated Max in this round, and should ready for tri 
         	        		    bracketgov=0 ! bracketgov=0: computed BOTH taubalmin and taubalmax 
                                 !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 10 '
                                 if(printout5) write(unit=104,fmt='(4(a,x,f8.4,x),a)') 'taubal', taubal, 'bal2gdpmax', govbal2gdpmax,' bracketgov == 2 for bal2gdp>0 does catch bal2gdp>0. save bal2gdp as govbal2gdpmax '
-                                write(4000+trial_id,fmt='("#21",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmax, taubalmax, taubalmin, pertgov
+                                !write(4000+trial_id,fmt='("#21",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmax, taubalmax, taubalmin, pertgov
 	       	        		endif
     		        	else
         	        		! convergence criterion       
@@ -982,13 +982,13 @@ module equilibrium
                     			govbal2gdpmax=govbal2gdp
                                 !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 11 '
                                 if(printout5) write(unit=104,fmt='((x,a,x,f8.4),a,4(x,a,x,f8.4))') 'taubal', taubal, ' obtain bal2gdp>0 in contraction, renew taubalmax and bal2gdpmax', 'taubalmin',taubalmin,'taubalmax',taubalmax,'bal2gdpmin',govbal2gdpmin,'bal2gdpmax',govbal2gdpmax  
-                                write(4000+trial_id,fmt='("#22",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmax, taubalmax, taubalmin, pertgov
+                                !write(4000+trial_id,fmt='("#22",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmax, taubalmax, taubalmin, pertgov
         	        		else
                     			taubalmin=taubal ! Negative balance means we need to raise the lower boundary of tax rate of state.
                     			govbal2gdpmin=govbal2gdp
                                 !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 12 '
                                 if(printout5) write(unit=104,fmt='((x,a,x,f8.4),a,4(x,a,x,f8.4))') 'taubal', taubal, ' obtain bal2gdp<0 in contraction, renew taubalmin and bal2gdpmin', 'taubalmin',taubalmin,'taubalmax',taubalmax,'bal2gdpmin',govbal2gdpmin,'bal2gdpmax',govbal2gdpmax  
-                                write(4000+trial_id,fmt='("#23",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, pertgov
+                                !write(4000+trial_id,fmt='("#23",12x,(17x,i4,x),5(e21.14,x))') bracketgov, govbal2gdp, govbal2gdpmin, taubalmax, taubalmin, pertgov
         	        		endif		
     		        	endif
                     endif  
@@ -1003,7 +1003,7 @@ module equilibrium
 		            	epsir=min(abs(fundiffnow),abs(rbarmax-rbarmin)) ! < less strict convergence constraint.  
                         if(printout5) write(unit=104,fmt='(3i3,a,f8.4)') iterar, iteragov, iteratot, ' epsir=min(abs(fundiffnow),abs(rbarmax-rbarmin)) ', epsir
                     endif	 
-		            write(4000+trial_id,fmt='("#24",12x,4(e21.14,x),(17x,i4,x))') rbarimplied, rbar, fundiffnow, epsir, bracketr 
+		            !write(4000+trial_id,fmt='("#24",12x,4(e21.14,x),(17x,i4,x))') rbarimplied, rbar, fundiffnow, epsir, bracketr 
                     
                     ! keep track ###
                     
@@ -1060,7 +1060,7 @@ module equilibrium
 		        				taubalrbarmax = taubal ! <============== used for interpolating the interval of state tax rate (used in the inner loop) based on the input "rbar" from the outer loop.
 		        			!END IF
                             if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 19 '    
-                            write(4000+trial_id,fmt='("#25",12x,(17x,i4,x),7(e21.14,x))') bracketr, fundiffnow, rbarmax, radjust, rbar, taubalmax, taubalmin, taubalrbarmax
+                            !write(4000+trial_id,fmt='("#25",12x,(17x,i4,x),7(e21.14,x))') bracketr, fundiffnow, rbarmax, radjust, rbar, taubalmax, taubalmin, taubalrbarmax
                         else ! ======================================================================================================
 		        			! mission <1>: update rbar
                             if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 20 '
@@ -1081,7 +1081,7 @@ module equilibrium
 		        				taubalrbarmin = taubal ! used for the secant method that maps the input of the otter loop (rbar) to the middle point of searching interval of the inner loop
                                 if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 23 '
 		        			!END IF
-                            write(4000+trial_id,fmt='("#26",12x,(17x,i4,x),7(e21.14,x))') bracketr, fundiffnow, rbarmin, radjust, rbar, taubalmax, taubalmin, taubalrbarmin
+                            !write(4000+trial_id,fmt='("#26",12x,(17x,i4,x),7(e21.14,x))') bracketr, fundiffnow, rbarmin, radjust, rbar, taubalmax, taubalmin, taubalrbarmin
 		        		endif  
 		        	elseif (bracketr == 21) then
 		        		! In this round (round 2), we are designated to search for fundiffnow>=0
@@ -1099,7 +1099,7 @@ module equilibrium
 		        		    &(rbar-rbarmin)/(rbarmax - rbarmin) ! use the Secant method to obtain a new middle point for the state tax rate interval.
 		        		    taubalmin = taubalinterp - tbalwidth*ABS(taubalrbarmax-taubalrbarmin)
 		        		    taubalmax = taubalinterp + tbalwidth*ABS(taubalrbarmax-taubalrbarmin)
-                            write(4000+trial_id,fmt='("#27",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmax, fundiffmax, rbar, taubalrbarmax, taubalinterp, taubalmin, taubalmax
+                            !write(4000+trial_id,fmt='("#27",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmax, fundiffmax, rbar, taubalrbarmax, taubalinterp, taubalmin, taubalmax
 		        			!END IF
                         else ! unfornunately, we didn't find the target (the rbar) which leads to fundiffnow>=0)
                             if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 25 '
@@ -1111,7 +1111,7 @@ module equilibrium
 		        			taubalmin = taubal - 0.0001
 		        			taubalrbarmin = taubal
 		        			!END IF
-                            write(4000+trial_id,fmt='("#28",12x,6(e21.14,x))') rbarmin, fundiffmin, rbar, taubalmax, taubalmin, taubalrbarmin
+                            !write(4000+trial_id,fmt='("#28",12x,6(e21.14,x))') rbarmin, fundiffmin, rbar, taubalmax, taubalmin, taubalrbarmin
 		        		endif
 		        	elseif(bracketr==22)then
 		        		if(fundiffnow<0.0)then !found min
@@ -1126,7 +1126,7 @@ module equilibrium
 		        			taubalmin=taubalinterp-tbalwidth*ABS(taubalrbarmax-taubalrbarmin)
 		        			taubalmax=taubalinterp+tbalwidth*ABS(taubalrbarmax-taubalrbarmin)		    				
 		        			!END IF
-                            write(4000+trial_id,fmt='("#29",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmin, fundiffmin, rbar, taubalrbarmin, taubalinterp, taubalmin, taubalmax
+                            !write(4000+trial_id,fmt='("#29",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmin, fundiffmin, rbar, taubalrbarmin, taubalinterp, taubalmin, taubalmax
                         else ! still have a fundiffnow>-0
                             if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 27 '
 		        			rbarmax=rbar
@@ -1139,7 +1139,7 @@ module equilibrium
 		        				taubalmin=taubal-pertgov
 		        				taubalrbarmax=taubal ! change taubalrbarmin to taubalrbarmax. 2-4-2017. Correct. 5-5-2017.
 		        			!END IF
-                            write(4000+trial_id,fmt='("#30",12x,6(e21.14,x))') rbarmax, fundiffmax, rbar, taubalmax, taubalmin, taubalrbarmax
+                            !write(4000+trial_id,fmt='("#30",12x,6(e21.14,x))') rbarmax, fundiffmax, rbar, taubalmax, taubalmin, taubalrbarmax
 		        		end if
 		        	else	! if have bounds. 
 		        		if(fundiffnow>0.0_wp)then
@@ -1156,7 +1156,7 @@ module equilibrium
 		        			taubalinterp=taubalrbarmin+(taubalrbarmax-taubalrbarmin)*(rbar-rbarmin)/(rbarmax-rbarmin)
 		        			taubalmin=taubalinterp-tbalwidth*ABS(taubalrbarmax-taubalrbarmin)
 		        			taubalmax=taubalinterp+tbalwidth*ABS(taubalrbarmax-taubalrbarmin)
-                            write(4000+trial_id,fmt='("#31",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmax, fundiffmax, rbar, taubalrbarmax, taubalinterp, taubalmin, taubalmax
+                            !write(4000+trial_id,fmt='("#31",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmax, fundiffmax, rbar, taubalrbarmax, taubalinterp, taubalmin, taubalmax
 		        			!endif
                         else ! fundiffnow<=0
                             if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 29 '
@@ -1168,7 +1168,7 @@ module equilibrium
 		        			taubalinterp=taubalrbarmin+(taubalrbarmax-taubalrbarmin)*(rbar-rbarmin)/(rbarmax-rbarmin)
 		        			taubalmin=taubalinterp-tbalwidth*abs(taubalrbarmax-taubalrbarmin)
 		        			taubalmax=taubalinterp+tbalwidth*abs(taubalrbarmax-taubalrbarmin)
-                            write(4000+trial_id,fmt='("#32",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmin, fundiffmin, rbar, taubalrbarmin, taubalinterp, taubalmin, taubalmax
+                            !write(4000+trial_id,fmt='("#32",12x,(17x,i4,x),7(e21.14,x))') bracketr, rbarmin, fundiffmin, rbar, taubalrbarmin, taubalinterp, taubalmin, taubalmax
 		        			!endif
 		        		endif
                     endif
@@ -1427,7 +1427,7 @@ subroutine linear_combination_sobol_sequence_corrected( vertex_output, sequence_
     real(wp), dimension(:), intent(in) :: unit_sobol_input
     real(wp), dimension(:,:), intent(in) :: range_guess
     integer, intent(in) :: sequence_index
-    
+    ! scale from [0,1] to [range_guess(:,1),range_guess(:,2)]
     vertex_output = (range_guess(:,2)+range_guess(:,1))/2._wp + (unit_sobol_input-0.5_wp)*(range_guess(:,2)-range_guess(:,1))
     
 end subroutine linear_combination_sobol_sequence_corrected

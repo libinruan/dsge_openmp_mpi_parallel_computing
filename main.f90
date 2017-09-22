@@ -352,7 +352,7 @@ program MPI_sandbox
         !! 7-29-2017 ### Note that variable "nrow" is probably larger than (ndim+1) so that we have a large size of vertices under the inspection of amoeba algorithm. For example, we have a parameter 
         !! space of only 10 dimension. We ask for a specification that simultaneously 4 vertices be examined in the amoeba algorithm style. In this case, 4 times 4 nodes are required for
         !! the amoeba algorithm for each starting point ( the resulting 16 nodes includes the amoeba head with rank of 0 in respective amoeba group). Suppose in this case that we only 
-        !! have only one amoeba group, and then the total nodes we require for the setup of the program is 4*4+1 = 17. Why acquires one more node such that the total is 17? The additional
+        !! have only one amoeba group, and then the total nodes we require for the setup of the program is 4*4 + 1 = 17. Why acquires one more node such that the total is 17? The additional
         !! node serves as the MPI root of the whole MPI implementation. In the command line, we type, in this case, "mpiexec -np 17 MPI_Sandbox."
         
         ! 7-29-2017
