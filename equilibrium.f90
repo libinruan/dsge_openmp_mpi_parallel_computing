@@ -75,6 +75,16 @@ module equilibrium
         deallocate( centroid_vec, dist_vec )
     end subroutine maximum_distance_vertices
     
+    subroutine maximum_penalty_distance( vec, ans )
+        implicit none
+        real(wp), dimension(:), intent(in) :: vec
+        real(wp), intent(out) :: ans
+        real(wp) :: big, sml
+        big = maxval(vec)
+        sml = minval(vec)
+        ans = abs(big-sml)
+    end subroutine 
+    
     function objective_value( mom, tar )
         real(wp) :: objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
