@@ -40,7 +40,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,137) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,139) ! works. 
             write(*,*) ' '
         endif
         
@@ -303,6 +303,7 @@ program MPI_sandbox
                 
                 modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
                 call read_parameter_model(para,'_1parameter.txt') ! 7-9-2017
+                parcel = int(parcel*accupara)/accupara ! 9-24-2017
                 call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
                 
                 msgtype = 2 ! tag 2 is used for sending feedback.
@@ -824,15 +825,16 @@ contains
         integer :: ndim, num_vertices, amo_msgtype, major_counter, good_msg_count
         integer :: shrink_counter, subworst_idx, i, j
         real(wp) :: plus_deviation, minus_deviation, true_deviation, sim_objval, best_val
-        real(wp) :: tryfun, vr, ve, vcr, vco
+        real(wp) :: tryfun, vr, ve, vcr, vco, temp_dist, temp_ans
         real(wp), dimension(:), allocatable :: sim_moments, ray_objval, dup_ray_objval, centroid, best_posi, temp_contract_vertex
         real(wp), dimension(:), allocatable :: worst_valvec, less_worse_valvec, try_vec, current_best
         real(wp), dimension(:), allocatable :: trymoms_vec, tryfun_vec, subworst_posi, distance_vec, old_objval_vec
         real(wp), dimension(:,:), allocatable :: vertex_list, mat_moments, worst_mat, try_mat, trymoms_mat
         real(wp), dimension(:,:), allocatable :: old_vertex_list, old_mat_moments
-        integer, dimension(:), allocatable :: rankinglist, ray_modelmsg, old_ray_modelmsg ! Bug.
+        integer, dimension(:), allocatable :: rankinglist, ray_modelmsg, old_ray_modelmsg, trymsg_vec ! Bug. ! 9-23-2017
         logical, dimension(:), allocatable :: shrink_signal_ray
-        integer :: shrink_flag, mid_output_count
+        integer :: shrink_flag, mid_output_count, trymsg ! 9-23-2017
+        character(len=4) :: str_amoeba
         
         ndim = size(bestvertex)
         num_vertices = ndim + 1 ! 8-2-2017 Not necessary equal to the number of nodes involved in the amoeba operation.
@@ -840,7 +842,7 @@ contains
         allocate( vertex_list(ndim,ndim+1), sim_moments(ndim), mat_moments(ndim,ndim+1), ray_objval(ndim+1), ray_modelmsg(ndim+1), rankinglist(ndim+1) )
         allocate( dup_ray_objval(ndim+1), centroid(ndim), best_posi(ndim), selected_input(ndim) )
         allocate( worst_mat(ndim,noamoeba), worst_valvec(noamoeba), less_worse_valvec(noamoeba), subworst_posi(ndim) )
-        allocate( trymoms_vec(ndim), trymoms_mat(ndim,4*noamoeba), try_vec(ndim), try_mat(ndim,4*noamoeba), tryfun_vec(4*noamoeba) )
+        allocate( trymoms_vec(ndim), trymoms_mat(ndim,4*noamoeba), try_vec(ndim), try_mat(ndim,4*noamoeba), tryfun_vec(4*noamoeba), trymsg_vec(4*noamoeba) )
         allocate( shrink_signal_ray(noamoeba), distance_vec(ndim+1), old_vertex_list(ndim,ndim+1), old_objval_vec(ndim+1), old_mat_moments(ndim,ndim+1) )
         allocate( old_ray_modelmsg(ndim+1), current_best(ndim), temp_contract_vertex(ndim) )
         
@@ -854,6 +856,8 @@ contains
         shrink_counter = 0
         shrink_flag = 0
         mid_output_count = 0
+        temp_dist = 0._wp
+        temp_ans = 0._wp
         
         selected_input = selected_input_dup
         
@@ -915,11 +919,12 @@ contains
                         
                     endif ! CONTRACT_ID/=0
                        
+                    selected_input = int(selected_input*accupara)/accupara ! 9-24-2017
                     call MPI_ALLGATHER( selected_input, ndim, MPI_DOUBLE_PRECISION, vertex_list, & ! 7-21-2017 checked. 
                         & ndim, MPI_DOUBLE_PRECISION, CONTRACT_WORLD, mpi_err )                        
                                        
                     if( CONTRACT_ID == 0 )then ! checked! 7-22-2017
-                        write( my_id+1001, '("[amo0] major_counter:",x,i6)') major_counter
+                        write( my_id+1001, '("[amo0] major_counter:",x,i6, x,"mid_output_count:",i6)') major_counter, mid_output_count
                         write( my_id+1001, '(7x,a)') "List of initial vertices (contract group): "
                         !do j = 1, ndim                                                       
                         !    write( my_id+1001, '("Row", i3, " input ", <ndim+1>f12.7)')  j, vertex_list(j,:) 
@@ -950,16 +955,18 @@ contains
             endif ! amo_msgtype == 0 initial allocation.
             
             if( amo_msgtype == 1 )then ! Evaluation and sorting by contract group.
-                write(my_id+1001,'(/,a)') '[amo1] evaluation and sorting by contract group'
+                write(my_id+1001, '(/,"#### [amo1] major_counter:",x,i6, x,"mid_output_count:",i6)') major_counter, mid_output_count
+                write(my_id+1001,'(a,/)') '[amo1] Purpose: evaluation and sorting by contract group'
                 ! Evaluation with CONTRACT_GROUP
                 if( CONTRACT_WORLD/=MPI_COMM_NULL )then ! 8-2-2017 Consistent with the statement made in line 735 (the MPI_ALLGATHER function askS the CONSTARCT_WORLD for the operation).
                     
                     if( major_counter/=1 )then ! 7-28-2017 checked. The shrinking outcome is idnetical across vertices in the contract world.
                         do i = 1, ndim+1
-                            write(my_id+1001,'(" new input ", <ndim>f12.7)') vertex_list(:,i)
+                            write(my_id+1001,'(" Input ", <ndim>f12.7)') vertex_list(:,i)
                         enddo                            
                     endif
                     
+                    vertex_list(:,contract_id+1) = int(vertex_list(:,contract_id+1)*accupara)/accupara ! 9-24-2017
                     selected_input = vertex_list(:,CONTRACT_ID+1)
                     !write(my_id+1001,'(/,"[amo1] counter ", i3, " input ", <ndim>f12.7)') major_counter, selected_input
                     
@@ -970,7 +977,7 @@ contains
                     !if( contract_id == 1 ) modelmsg = 1 ! Used for debug. Comment out.
                     
                     if(printout13 .and. contract_id==0 )then
-                        write(my_id+1001, '(/,"[amo1] individual output of search_equilibrium. My_ID:", i4, ", major_count: ",i6)') my_id, major_counter
+                        write(my_id+1001, '(/,"#### [amo1] output of search_equilibrium. My_ID:", i4, ", major_count: ",i6, x, " mid_output_count: ",i6)') my_id, major_counter, mid_output_count
                         write(my_id+1001, '(" my_id ", i3, " contract_id ", i3, " sim_val ",f16.7," modelmsg ", i3)') my_id, contract_id, sim_objval, modelmsg 
                         write(my_id+1001, '(" input  ", <ndim>f12.7 )') selected_input ! 7-23-2017 check for input. Correct!
                         write(my_id+1001, '(" moment ", <ndim>f12.7 )') sim_moments
@@ -988,7 +995,7 @@ contains
                     
                     ! BEFORE SORTING ! 7-24-2017 Double checked with other output.
                     if( printout13 .and. contract_id==0 )then ! 7-23-2017 checked. 
-                        write(my_id+1001,'(/,a)') "[amo1] collected vertex_ist:"
+                        write(my_id+1001,'(/,a)') "[amo1] (continued) gathered vertex_ist:"
                         do i = 1, ndim+1
                             write(my_id+1001,'("nonsorted-val ", f20.7, " msg ", i3, " input ", <ndim>f20.7, " mom ", <ndim>f20.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
                         enddo
@@ -996,27 +1003,39 @@ contains
                     write(my_id+1001,'(a)') " "
                     
                     ! 8-6-2017
-                    if(shrink_flag==1)then
+                    if(shrink_flag==1)then ! 9-23-2017 It means the program focus comes from amo_msgtype == 4.
                         
-                        do i = ndim+1, 2, -1
+                        
+                        if( printout13 .and. contract_id==0 )then
+                            write(my_id+1001,'("Comparision:")') 
+                            do i = 1, ndim+1
+                                write(my_id+1001,'("ray_objval: ", f16.7, x, "old_objval_vec: ", f16.7, x, " old_input ", <ndim>f12.7, " old_mom ", <ndim>f12.7)')  ray_objval(i), old_objval_vec(i), old_vertex_list(:,i), old_mat_moments(:,i)        
+                            enddo ! i
+                        endif ! printout13 .and. contract_id==0                        
+                        
+                        do i = ndim+1, 2, -1 ! Starting from the worst vertex, compare the newly-obatined value with its old one and update if it does improve. Once found one from the worst vertices imporved, stop this update procedure.
                             if(ray_objval(i)<old_objval_vec(i))then
                                 do j = 1, i-1
-                                    ray_objval(j)    = old_objval_vec(j) 
-                                    vertex_list(:,j) = old_vertex_list(:,j)
-                                    mat_moments(:,j) = old_mat_moments(:,j)
-                                    ray_modelmsg(j)  = old_ray_modelmsg(j)
+                                    ray_objval(j)    = old_objval_vec(j)    ! 9-26-2017 store for next comparison.
+                                    vertex_list(:,j) = old_vertex_list(:,j) ! 9-26-2017 store for next comparison.
+                                    mat_moments(:,j) = old_mat_moments(:,j) ! 9-26-2017 store for next comparison.
+                                    ray_modelmsg(j)  = old_ray_modelmsg(j)  ! 9-26-2017 store for next comparison.
                                 enddo ! j
+                                if( printout13 .and. contract_id==0 )then
+                                    write(my_id+1001,'(/,"Shrinkage update happens from the last up to ", x, i4, x, " vertex.")') i
+                                endif ! printout13 and contract_id==0
                                 exit
                             endif ! ray_objval(i)<old_objval_vec(i)
                         enddo ! i
                         
                         if( printout13 .and. contract_id==0 )then
+                            write(my_id+1001,'(/)') 
                             do i = 1, ndim+1
-                                write(my_id+1001,'("contraction   ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)        
+                                write(my_id+1001,'("Update, unsorted: ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)        
                             enddo ! i
                         endif ! printout13 .and. contract_id==0
                         
-                        shrink_flag = 0 ! set it back to default value.
+                        shrink_flag = 0 ! set it back to default value. ! 9-24-2017
                         
                     endif ! shrink_flag                    
                 
@@ -1030,24 +1049,34 @@ contains
                             mat_moments(j,:) = mat_moments(j,rankinglist) ! sorted mat_moments (Simmulated moments))
                         enddo
                 
+                        if( printout13 .and. contract_id==0 )then
+                            write(my_id+1001,'(/)') 
+                            do i = 1, ndim+1
+                                write(my_id+1001,'("Sorted: ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)        
+                            enddo ! i
+                        endif ! printout13 .and. contract_id==0                        
+                        
                         good_msg_count = count( ray_modelmsg==0 ) ! 0 means the triral vertex leads to a valid output.
                         
                         ! EVALUATION
                         if( good_msg_count == ndim+1 )then ! every vertex returns a valid result. ! [REVISION NEEDED] 
-                            write(my_id+1001,'(/,a)') '[amo1] prepare for AMOEBA [-->amo3]'
+                            write(my_id+1001,'(/,a)') '[amo1] No abnormal ray_modelmsg. Prepare for AMOEBA [-->amo3]'
                             amo_msgtype = 3 ! enter amoeba stage      
                             
                             ! new block 8-3-2017 to check whether the amoeba is small engough to exit the algorithm.
                             call maximum_distance_vertices( vertex_list, noamoeba, distance_vec)
-                            
+                            call maximum_penalty_distance( ray_objval,temp_ans) ! 9-24-2017
                             !if(maximum_distance_vertices(vertex_list,noamoeba)>maxdist)then ! 7-30-2017 Has not fallen into the neighborhood.
                             if(maxval(distance_vec(2:ndim+1))>maxdist*sum(vertex_list(:,1)**2._wp)**0.5_wp)then
                                 amo_msgtype = 3 ! Keep staying in amo_msgtype = 3.
+                                
+                                if(temp_ans<errvalfc) amo_msgtype = 10 ! 9-24-2017
                             else
                                 amo_msgtype = 10 ! Normal stop
                             endif 
                             
-                            write(my_id+1001,'(a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp                            
+                            write(my_id+1001,'(a," max|v-v1|: ", e15.7, " previous one: ", e15.7, " |v1|: ",f12.7,/)') 'Distance: ', maxval(distance_vec(2:ndim+1)), temp_dist, sum(vertex_list(:,1)**2._wp)**0.5_wp                            
+                            temp_dist = maxval(distance_vec(2:ndim+1)) ! update 9-24-2017
                             
                             ! Bookkepping for restarts.
                             if( AMOEBA_ID==0 )then
@@ -1057,11 +1086,13 @@ contains
                                     write(my_id+3001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
                                     current_best = vertex_list(:,1)
                                 else
-                                    if( maxval(abs(current_best-vertex_list(:,1)))>1.e-8_wp )then ! There exist some changes in value of any digits.
+                                    !temp = maxval(abs(current_best-vertex_list(:,1))) 
+                                    !if( temp >1.e-8_wp )then ! There exist some changes in value of any digits.
                                         write(my_id+2001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
                                         write(my_id+3001,'(i5,f24.14,<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1) 
+                                        write(my_id+1001,'("mid_output_count: ",i5,x,"current lowest: ",f24.14,x,"best point: ",<ndim>f24.14)') mid_output_count, ray_objval(1), vertex_list(:,1)
                                         current_best = vertex_list(:,1)
-                                    endif
+                                    !endif
                                 endif ! mid_output_count==1
                             endif
                             
@@ -1095,12 +1126,13 @@ contains
                     call MPI_BCAST(    vertex_list, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )
                 endif
                 
-                if( printout13 .and. contract_id==0 )then ! 7-28-2017 That other vertices have the same info is checked. 7-23-2017 checked. ! 7-24-2017 Double checked with other output.
-                    write(my_id+1001,'(a)') "[amo1] After broadcast, every node has been updated."
-                    do i = 1, ndim+1
-                        write(my_id+1001,'("sorted-value  ", f20.7, " msg ", i3, " input ", <ndim>f20.7, " mom ", <ndim>f20.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
-                    enddo
-                endif                
+                ! if( printout13 .and. contract_id==0 )then ! 7-28-2017 That other vertices have the same info is checked. 7-23-2017 checked. ! 7-24-2017 Double checked with other output.
+                !     write(my_id+1001,'(/,a)') "[amo1] After broadcast, every node has been updated."
+                !     do i = 1, ndim+1
+                !         write(my_id+1001,'("sorted-value  ", f20.7, " msg ", i3, " input ", <ndim>f20.7, " mom ", <ndim>f20.7)')  ray_objval(i), ray_modelmsg(i), vertex_list(:,i), mat_moments(:,i)
+                !     enddo
+                ! endif                
+                
             endif ! amo_msgtype == 1 7-28-2017 fully checked.
             
             ! 8-3-2017 What differentiates this block from block 4? This shrinkage is performed by individual nodes in the contract world, but the shrinkage in block 4 is performed by All the nodes in the contract world.
@@ -1110,7 +1142,7 @@ contains
                 
                 if( CONTRACT_WORLD/=MPI_COMM_NULL )then                    
                     
-                    if(contract_id/=0) write(my_id+1001,'(/,a,a,i4,a,i6)') '[amo2] contract shrinking toward the best ', ' shrink_counter ', shrink_counter, ' major_count: ', major_counter  
+                    if(contract_id/=0) write(my_id+1001,'(/,a,a,i4,a,i6,a,i6)') '[amo2] contract shrinking toward the best ', ' shrink_counter: ', shrink_counter, ' major_count: ', major_counter, ' mid_output_count: ', mid_output_count
                     
                     do i = 1, ndim ! ["Discrimination strategy" compared to amo_msgtype == 4] 8-5-2017. Only shrink those bad vertices toward the best point. ! 7-24-2017 Double checked with other output.
                         
@@ -1145,7 +1177,8 @@ contains
                     if(printout13 .and. contract_id == 0)then
                         write(my_id+1001,'(/,a)') "[amo2] Prepare to be re-evaluated --> [amo1]"
                         call maximum_distance_vertices( vertex_list, noamoeba, distance_vec)                        
-                        write(my_id+1001,'(a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp
+                        write(my_id+1001,'(a," max|v-v1|: ", e15.7, " previous one: ", e15.7, " |v1|: ",f12.7,/)') 'Distance: ', maxval(distance_vec(2:ndim+1)), temp_dist, sum(vertex_list(:,1)**2._wp)**0.5_wp                            
+                        temp_dist = maxval(distance_vec(2:ndim+1)) ! update 9-24-2017
                     endif
                     
                     amo_msgtype = 1 ! Evaluation and Sorting by contract group.
@@ -1179,12 +1212,14 @@ contains
                 enddo
                 
                 if( printout13 .and. CONTRACT_ID==0 )then ! 7-28-2017 checked. 7-24-207 checked.
-                    write( my_id+1001, '(/,a,i6)') "[amo3] Amoeba preparation (matrix initialization), major_counter: ", major_counter
-                    write( my_id+1001, '(a, <ndim>f12.7)') "centroid:    ", centroid
-                    write( my_id+1001, '(a, <ndim>f12.7, a, f16.7)') "best vertex: ", best_posi, " the minimum penalty: ", best_val                                
+                    write( my_id+1001, '(/,a,i6,a,i6)') "[amo3] Amoeba preparation (matrix initialization), major_counter: ", major_counter, "mid_output_count: ", mid_output_count
+                    write( my_id+1001, '(a, <ndim>f12.7)') "[amo3] centroid of the good vertices: ", centroid
+                    write( my_id+1001, '(a, <ndim>f12.7)') "[amo3] current best vertex: ", best_posi 
+                    write( my_id+1001, '(a, f16.7,/)') "[amo3] current minimum penalty: ", best_val                                
                     do j = 1, noamoeba
-                        write( my_id+1001, '("no.",i2.2, " FUN ", f20.7, " INPUT ", <ndim>f20.7,  " Next_Val ", f20.7)') j, worst_valvec(j), worst_mat(:,j), less_worse_valvec(j)
+                        write( my_id+1001, '("[amo3] Worst no.",i2.2, " penalty: ", f20.7, " point: ", <ndim>f20.7,  " Less_worse_Val ", f20.7)') noamoeba-j+1, worst_valvec(j), worst_mat(:,j), less_worse_valvec(j)
                     enddo ! j
+                    write(my_id+1001,'(/)') 
                 endif ! printout13 .and. amoeba_id==0
                 
                 if( AMOEBA_WORLD/=MPI_COMM_NULL )then ! 7-24-2017 newly added
@@ -1205,7 +1240,9 @@ contains
                         ! Core computation
                         modelmsg = 0
                         call read_parameter_model(para, '_1parameter.txt')
-                        call search_equilibrium( try_vec, trymoms_vec, tryfun, my_id, my_id, modelmsg )                     
+                        !call search_equilibrium( try_vec, trymoms_vec, tryfun, my_id, my_id, modelmsg ) ! 9-23-2017 comment out
+                        try_vec = int(try_vec*accupara)/accupara
+                        call search_equilibrium( try_vec, trymoms_vec, tryfun, my_id, my_id, trymsg ) ! 9-23-2017
 
                     endif
                     
@@ -1217,11 +1254,29 @@ contains
                         &            trymoms_mat, ndim, MPI_DOUBLE_PRECISION, 0, AMOEBA_WORLD, mpi_err )
                     call MPI_GATHER( tryfun, 1, MPI_DOUBLE_PRECISION, &
                         &        tryfun_vec, 1, MPI_DOUBLE_PRECISION, 0, AMOEBA_WORLD, mpi_err )
+                    call MPI_GATHER( trymsg, 1, MPI_INTEGER, &
+                        &        trymsg_vec, 1, MPI_INTEGER, 0, AMOEBA_WORLD, mpi_err )
                     
                     if( AMOEBA_ID == 0 .and. printout13 )then
-                        write( my_id+1001, '(/,a)') "Amoeba subgroup preliminary outcome:"    
+                        write( my_id+1001, '(/,a)') "[amo3] Amoeba subgroup preliminary outcome: "   
+                        i = 0
                         do j = 1, 4*noamoeba
-                            write( my_id+1001, '("NO.",i2.2," FUN ",f20.7," INPUT ",<ndim>f20.7," MOMENT ",<ndim>f20.7)') j, tryfun_vec(j), try_mat(:,j), trymoms_mat(:,j)
+                            
+                            if(mod(j,4)==1)then ! r
+                                str_amoeba = '  r '
+                            elseif(mod(j,4)==2)then ! e
+                                str_amoeba = '  e '
+                            elseif(mod(j,4)==3)then ! cr
+                                str_amoeba = ' cr '
+                            else ! mod(j,4)==0 ! co 
+                                str_amoeba = ' co '
+                            endif ! if
+                            
+                            if(mod(j,4)==1)then
+                                i = i + 1
+                                write( my_id+1001, '("[amo3] original -- penalty: ", e15.7, " input: ", <ndim>e15.7)') worst_valvec(i), worst_mat(:,i)      
+                            endif ! if 
+                            write( my_id+1001, '("[amo3] no.",i2.2,x,a,x," penalty: ",e15.7," input: ", <ndim>e15.7, " moment: ",<ndim>e15.7)') j, str_amoeba, tryfun_vec(j), try_mat(:,j), trymoms_mat(:,j)
                         enddo
                     endif
                     
@@ -1236,69 +1291,82 @@ contains
                         
                         if( vr<best_val )then ! CASE 1 Reflection is the improvement ove the initial best point.
                             if( ve<best_val )then ! Go extension.
-                                if(contract_id==0) write(my_id+1001,'(a,i3)') " (0) ve, case:", j 
+                                if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (0)  e "
                                 vertex_list(:,subworst_idx) = try_mat(:,2+(j-1)*4) 
                                 ray_objval(subworst_idx)    = ve 
+                                ray_modelmsg(subworst_idx)  = trymsg_vec(2+(j-1)*4) ! 9-23-2017
                                 mat_moments(:,subworst_idx) = trymoms_mat(:,2+(j-1)*4) 
-                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
                             elseif( ve>=best_val )then ! Go reflection.
-                                if(contract_id==0) write(my_id+1001,'(a,i3)') " (1) vr, case:", j
+                                if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (1)  r "
                                 vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
                                 ray_objval(subworst_idx)    = vr
+                                ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
                                 mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4) 
-                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
                             endif
                         elseif( vr>=best_val )then
                             if( vr<less_worse_valvec(j) )then ! CASE 2 Go reflection. 
-                                if(contract_id==0) write(my_id+1001,'(a,i3)') " (2) vr, case:", j
+                                if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (2)  r "
                                 vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
                                 ray_objval(subworst_idx)    = vr
+                                ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
                                 mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)
-                                if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
                             elseif( vr>=less_worse_valvec(j) )then ! Case 3 Go contraction.
                                 if( vr<worst_valvec(j) .and. vcr<vr )then ! combination of A^R and M.
-                                    if(contract_id==0) write(my_id+1001,'(a,i3)') " (3) vcr, case:", j
+                                    if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (3) cr "
                                     vertex_list(:,subworst_idx) = try_mat(:,3+(j-1)*4)
                                     ray_objval(subworst_idx)    = vcr
+                                    ray_modelmsg(subworst_idx)  = trymsg_vec(3+(j-1)*4) ! 9-23-2017
                                     mat_moments(:,subworst_idx) = trymoms_mat(:,3+(j-1)*4)
-                                    if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                    if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
                                 elseif( worst_valvec(j)<=vr .and. vco<worst_valvec(j) )then ! combination of A_J and M.
-                                    if(contract_id==0) write(my_id+1001,'(a,i3)') " (4) vco, case:", j
+                                    if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (4) co "
                                     vertex_list(:,subworst_idx) = try_mat(:,4+(j-1)*4)
                                     ray_objval(subworst_idx)    = vco
+                                    ray_modelmsg(subworst_idx)  = trymsg_vec(4+(j-1)*4) ! 9-23-2017
                                     mat_moments(:,subworst_idx) = trymoms_mat(:,4+(j-1)*4)
-                                    if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
+                                    if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
                                 else ! Case 4 Shrink signal. 
                                     if( vr<worst_valvec(j) )then ! Bug exists in last version. 7-25-2017
-                                        if(contract_id==0) write(my_id+1001,'(a,i3)') " (5) vr, case:", j
+                                        if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (5)  r "
                                         vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
                                         ray_objval(subworst_idx)    = vr
+                                        ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
                                         mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)    
-                                        if(contract_id==0) write(my_id+1001,'("INPUT ",<ndim>f12.7," VAL ",f16.7," MOM ",<ndim>f12.7)') vertex_list(:,subworst_idx), ray_objval(subworst_idx), mat_moments(:,subworst_idx) 
-                                    else
-                                        if(contract_id==0) write(my_id+1001,'(a,i3)') " (6) v_original, case:", j
-                                        ! Keep the vertex intact and 
+                                        if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
+                                    else ! In this case, no update happens.
+                                        if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (6)  o "
+                                        !!! Keep the vertex intact 9-23-2017
+                                        !! vertex_list(:,subworst_idx) = keep the same as in the last round. 
+                                        !! ray_objval(subworst_idx)    = keep the same as in the last round.
+                                        !! mat_moments(:,subworst_idx) = keep the same as in the last round.
                                     endif ! vr<worst_valvec
-                                    shrink_signal_ray(j) = .true.
+                                    
+                                    shrink_signal_ray(j) = .true. ! 9-23-2017 raise the flag of unsuccessful update on a vertex.
+                                    
                                 endif
                             endif    
                         endif                            
                     enddo ! j: the do loop over all the worst vertices. 
                     
-                endif ! AMEOBA_WORLD /= MPI_COMM_NULL !<=========================
+                endif ! AMEOBA_WORLD /= MPI_COMM_NULL
                 
                 if( contract_id == 0 .and. printout13 )then
+                    write(my_id+1001,'(/,"[amo3] right after subgroup computation")') 
                     do i = 1, num_vertices
-                        write(my_id+1001,'("VAL ",f20.7," INPUT ", <ndim>f20.7, " MOMENTS ", <ndim>f20.7)') ray_objval(i), vertex_list(:,i), mat_moments(:,i)
+                        write(my_id+1001,'(" unsorted post-amoeba pentalty: ",f20.7," point: ", <ndim>f20.7, " moments: ", <ndim>f20.7)') ray_objval(i), vertex_list(:,i), mat_moments(:,i)
                     enddo ! i
                     
-                    write(my_id+1001,'(a,<noamoeba>l3)') 'Shrink_single_ray: ', shrink_signal_ray
+                    write(my_id+1001,'(a,<noamoeba>l3,/)') '[amo3] Shrink_single_ray, T, shrinkage needed; F, otherwise. -- ', shrink_signal_ray
                 endif ! 
                 
                 if( count(shrink_signal_ray) == noamoeba )then ! The worst case contraction is needed in next step.
                     
                     amo_msgtype = 4 ! Shrink. toward the best
                     if(contract_id==0) write(my_id+1001,'(a,/)') '[amo3]-->[amo4] leave for shrinking... '
+                    
                 else ! At least one processor finds that Case 1 or 2 applies or A^C takes place in Case 3.
                     
                     ! ordering the result.
@@ -1325,13 +1393,18 @@ contains
                     ! check if the exit critieria satisfies. 
                     call maximum_distance_vertices( vertex_list, noamoeba, distance_vec)
                     !if(maximum_distance_vertices(vertex_list,noamoeba)>maxdist)then ! 7-30-2017 Has not fallen into the neighborhood.
+                    call maximum_penalty_distance( ray_objval,temp_ans) ! 9-24-2017
                     if(maxval(distance_vec(2:ndim+1))>maxdist*sum(vertex_list(:,1)**2._wp)**0.5_wp)then                    
                         amo_msgtype = 3 ! Keep staying in amo_msgtype = 3.
+                        
+                        if(temp_ans<errvalfc) amo_msgtype = 10
                     else
                         amo_msgtype = 10 ! Natural stop.
                     endif
                     
-                    write(my_id+1001,'(a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp                
+                    !write(my_id+1001,'(a," max|v-v1|: ",f12.7," |v1|: ",f12.7)') 'Distance: ', maxval(distance_vec(2:ndim+1)), sum(vertex_list(:,1)**2._wp)**0.5_wp                
+                    write(my_id+1001,'(a," max|v-v1|: ", e15.7, " previous one: ", e15.7, " |v1|: ",e15.7,/)') 'Distance: ', maxval(distance_vec(2:ndim+1)), temp_dist, sum(vertex_list(:,1)**2._wp)**0.5_wp                            
+                    temp_dist = maxval(distance_vec(2:ndim+1)) ! update 9-24-2017                    
                     
                 endif
                 
@@ -1343,9 +1416,9 @@ contains
                 call MPI_BCAST( major_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
                 call MPI_BCAST( shrink_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
                 call MPI_BCAST( ray_modelmsg, ndim+1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( ray_objval, ndim+1, MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( mat_moments, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )
-                call MPI_BCAST( vertex_list, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )    
+                call MPI_BCAST( ray_objval, ndim+1, MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )          ! 9-23-2017 carry over.
+                call MPI_BCAST( mat_moments, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )  ! 9-23-2017 carry over.
+                call MPI_BCAST( vertex_list, ndim*(ndim+1), MPI_DOUBLE_PRECISION, 0, ROW_WORLD, mpi_err )  ! 9-23-2017 carry over.  
                 
             endif ! amo_msgtype = 3 (Amoeba)
             
@@ -1362,7 +1435,7 @@ contains
                     if( printout13 .and. contract_id == 0 )then
                         write(my_id+1001, '(a)') "[amo4] Before shrinking. "
                         do j = 1, num_vertices
-                            write(my_id + 1001, '("Vertex        ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(j), ray_modelmsg(j), vertex_list(:,j), mat_moments(:,j)                            
+                            write(my_id + 1001, '(" unsorted post-ameoba penalty: ", f16.7, " msg ", i3, " input ", <ndim>f12.7, " mom ", <ndim>f12.7)')  ray_objval(j), ray_modelmsg(j), vertex_list(:,j), mat_moments(:,j)                            
                         enddo ! j
                     endif ! if
                     
@@ -1380,12 +1453,14 @@ contains
                     !temp_contract_vertex = amotau*vertex_list(:,1) + (1._wp-amotau)*vertex_list(:,contract_id+1) ! 8-9-2017
                     temp_contract_vertex = vertex_list(:,1) + amotau*(vertex_list(:,contract_id+1)-vertex_list(:,1)) ! 8-9-2017
                     
+                    temp_contract_vertex = int(temp_contract_vertex*accupara)/accupara ! 9-24-2017
                     call MPI_GATHER( temp_contract_vertex, ndim, MPI_DOUBLE_PRECISION, &
                         &                     vertex_list, ndim, MPI_DOUBLE_PRECISION, 0, CONTRACT_WORLD, mpi_err )
                     
                 endif
                 
                 if(contract_id/=0) write(my_id+1001,'(a,/)') '[amo4]-->[amo1] for post-shrinkage evaluation '
+                
                 amo_msgtype = 1 ! Bug. Missing. 7-26-2017 EVALUATION.
                 
                 !call MPI_BCAST( amo_msgtype, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
@@ -1430,7 +1505,7 @@ contains
         deallocate( vertex_list, sim_moments, mat_moments, ray_objval, ray_modelmsg, rankinglist, dup_ray_objval )
         deallocate( centroid, best_posi, worst_mat, worst_valvec, less_worse_valvec, try_vec, trymoms_vec, subworst_posi )
         deallocate( try_mat, tryfun_vec, trymoms_mat, shrink_signal_ray, selected_input, distance_vec, old_vertex_list )
-        deallocate( old_objval_vec, old_mat_moments, old_ray_modelmsg, current_best, temp_contract_vertex )
+        deallocate( old_objval_vec, old_mat_moments, old_ray_modelmsg, current_best, temp_contract_vertex, trymsg_vec )
         
     end subroutine amoeba_algorithm
     

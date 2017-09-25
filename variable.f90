@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(137)
-    real(wp) :: para(137), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(139)
+    real(wp) :: para(139), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -86,7 +86,9 @@ module variable
                 chunkmass = 3.e-2, &
                 initau = 4._wp, &
                 length = 5._wp, &
-                accumass = 1.e-10
+                accumass = 1.e10, &
+                accupara = 1.e5, &
+                errvalfc = 2.e-3
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -1011,7 +1013,17 @@ contains
                        i = i + 1
                        read( value_string,*) accumass
                        labstr(i) = 'accumass'
-                       para(i) = accumass                          
+                       para(i) = accumass  
+                   case('accupara') ! 138
+                       i = i + 1
+                       read( value_string,*) accupara
+                       labstr(i) = 'accupara'
+                       para(i) = accupara
+                   case('errvalfc') ! 139
+                       i = i + 1
+                       read( value_string,*) errvalfc
+                       labstr(i) = 'errvalfc'
+                       para(i) = errvalfc
                 end select
             enddo
         else
