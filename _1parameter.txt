@@ -154,6 +154,7 @@ printout13	     true   ! amoeba intermediate message
 printout14       false  ! true, set the degree of each deviation as four times the maximum coordinate; false, the usual method I have been using, based on constraints
 printout15       false  ! Used in building stage. True, allow undefined area to create extreme penalty of value infinity; 
 printout16       true   ! true, read existing optimal points WITHOUT sobel sequence (see parameter bestvertex_file); FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
+printout17       false  ! True, every generation receives bequest; False, only the newborn receives bequest. 9-30-2017
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
 mpi_exercise_mode   2   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 

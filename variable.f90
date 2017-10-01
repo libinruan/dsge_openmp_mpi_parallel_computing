@@ -77,6 +77,7 @@ module variable
                 rho2 = 0.025, & ! transaction costs of buying a house
                 b2gratio = 0.02, &
                 transbeq, &
+                !transbeq_new, &
                 nmul = 5, &
                 tauk = 0.4, &
                 gsdim = 3.5, & ! the grid parameter for small region Brent optimization.	
@@ -258,7 +259,7 @@ module variable
     integer, dimension(2) :: breaks_list = [1,50000]      ! 8-18-2017 ! Useless now.
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
-    logical :: printout13, printout14, printout15, printout16
+    logical :: printout13, printout14, printout15, printout16, printout17
     logical :: receiving, status(mpi_status_size)
     character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -320,6 +321,8 @@ contains
                         read( value_string, * ) printout15
                    case ('printout16')     
                         read( value_string, * ) printout16
+                   case ('printout17')     
+                        read( value_string, * ) printout17                        
                    case ('listnumber')
                         read(value_string, *  ) listnumber
                    case ('bestvertex_file')

@@ -558,6 +558,8 @@ module equilibrium
         taubalmin = 0.0345_wp ! 9-15-2017                                         ! the reason why program can not replicate the result. 9-16-2017
         taubalmax = 0.0363_wp ! 9-15-2017                                         ! the reason why program can not replicate the result. 9-16-2017
         taubal = 0.033_wp ! 9-16-2017                                             ! the reason why program can not replicate the result. 9-16-2017
+        transbeq = 0._wp     ! 9-30-2017
+        !transbeq_new = 0._wp ! 9-30-2017
         
         !call evenly_distributed_since(av,10)
         !call set_grids_for_nonhousing_asset(rav,3.5_wp,'refined')
@@ -654,7 +656,9 @@ module equilibrium
                     crpprd   = crpcap**alpha*crplab**(1._wp-alpha) ! one period         
                     gdp      = crpprd/CorpOutFrac ! one period, aggregate output. Needs to be updated. # 3 
                     
-                    transbeq = b2gratio*gdp ! <------------------------------------------------------------ should be revised 10132016.       
+                    transbeq = b2gratio*gdp ! 9-30-2017 ! <------------------------------------------------------------ should be revised 10132016.       
+                    !transbeq_new = b2gratio*gdp ! 9-30-2017
+                    
                     avgincw  = wage*dot_product(yv,sy)/5._wp ! wage*AggEffLab/0.73_wp ! *0.86_wp ! initial guess. assume #retiree/(#worker+#retiree+#entrepreneur) = 0.15 and #entrepreneur/(#worker+#retiree+#entrepreneur)=0.12, so population share of worker is 0.73, work force share of worker is 0.73/(0.73+0.12)=0.86
                     benefit  = tauss*wage*AggEffLab/sum(popfrac(10:14))
                     !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 1 '
@@ -664,7 +668,10 @@ module equilibrium
                 elseif((iterar/=1.and.iteragov==1))then ! iteragov 5.10.2017
                     
                     ! experiment for speed up
-                    transbeq = transbeqimplied ! 4.17.2017 `transbeqimplied` is updated in subroutine `lump_sum_transfer`.
+                    ! transbeq = transbeqimplied ! 4.17.2017 `transbeqimplied` is updated in subroutine `lump_sum_transfer`.
+                    transbeq = transbeqimplied ! 9-30-2017
+                    !transbeq_new = transbeqimplied ! 9-30-2017
+                    
                     avgincw  = mean_wokinc/5._wp ! 10102016 annual income. 4.17.2017 `mean_wokinc` is computed in subroutine `macro_statistic`. Note: `avgincw` is on annual basis.
                     ! `benefit` is updated also in subroutine `macro_statistic`. 4.17.2017 
                     !benefit  = tauss*wage*poppaysstaximplied/sum(popfrac(10:14)) ! ---- needs to be revised Feb 5, 2017 ! 4.17.2017 comment out. The exact update takes place in line 3681 of model.f90.
