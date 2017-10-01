@@ -141,7 +141,7 @@ contains
                 if(kx==0)then
                     inc = benefit ! 3.26.2017
                     inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                          + (1._wp-deltah)*h - ttaxwok(inc) + transbeq ! 3.25.2017
+                          + (1._wp-deltah)*h - ttaxwok(inc) + merge(transbeq,0._wp,printout17) ! 3.25.2017
                     ! 3.26.2017 workers face the same interest rate whether he save or borrow.
                     ! NOTE: FOLLOWING NAKAJIMA 2010, WE DON'T TAX THE LUMP SUM TRANSFER FROM THE DEAD. Note: SOCIAL SECURITY TAX ARE NOT DEDUCTABLE.
                     ! 3.9.2017 I added + rd*merge(0._wp,a,a>=0._wp) so that even workers have to pay interests for their borrowing.
@@ -164,7 +164,7 @@ contains
                     !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
                     inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
                                       merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
-                          + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 4.9.2017                    
+                          + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq,0._wp,printout17) ! 4.9.2017                    
                     
                     ! 3.26.2017 From left to right are the cases listed below:
                     ! (1) intfund > 0._wp & zx==0 earn rd interest from intfund (a). no borrowing (0). tax on what earns. no investment. (needs to pay back, if any)
@@ -488,7 +488,7 @@ contains
                             if(kx==0)then
                                 ! 3.26.2017 revision
                                 inc = benefit
-                                inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq
+                                inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + merge(transbeq,0._wp,printout17)
                                 
                                 !capgain = merge(rd*a,0._wp,rd*a>0._wp) ! retirees can only have capital income from savings.
                                 !inc = benefit + merge(0._wp,capgain,tausvflag)
@@ -507,7 +507,7 @@ contains
                                 !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017   
                                 inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
                                                   merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
-                                      + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                               
+                                      + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq, 0._wp, printout17) ! 3.26.2017                               
                                 
                                 !inc = inc + a + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h + (1._wp-taubp)*c_grs_mat(ax, kx, zx, yx, t) - ttaxent(inc) + transbeq
                                 !capgain = merge(rd*intfund,0._wp,rd*intfund>0._wp)
@@ -998,7 +998,7 @@ contains
                     if(kx==0)then
                         inc = wage*labsup
                         ssbtax = tauss/2._wp*wage*labsup 
-                        inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - ssbtax ! 3.26.2017 revision
+                        inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + merge(transbeq,0._wp,printout17) - ssbtax ! 3.26.2017 revision
                         !inc = inc + a + rd*merge(0._wp, a, a>=0._wp) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - ssbtax ! total wealth before the introduction of the adjustment costs of housing units
                         !capgain = merge(rd*a,0._wp,rd*a>0._wp)
                         !inc = merge(0._wp,capgain,tausvflag) + wage*labsup
@@ -1017,7 +1017,7 @@ contains
                         !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
                         inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
                                           merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
-                              + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 4.10.2017
+                              + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq,0._wp,printout17) - ssbtax ! 4.10.2017
                         
                         !capgain = merge(rd*intfund, 0._wp, rd*intfund>0._wp)
                         ! inc = merge(wage*labsup,0._wp,zx==0) + merge(0._wp,capgain,tausvflag) + c_grs_mat(ax,kx,zx,yx,t) ! taxable income. Note: entrepreneurs always rent his labor efficency out.
@@ -1637,7 +1637,7 @@ contains
                         if(kx==0)then
                             inc = wage*labsup
                             ssbtax = tauss/2._wp*wage*labsup
-                            inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - ssbtax ! 3.26.2017 revision
+                            inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 3.26.2017 revision
                             
                             !capgain = merge(rd*a,0._wp,rd*a>0._wp)
                             !inc = merge(0._wp,capgain,tausvflag) + wage*labsup
@@ -1656,7 +1656,7 @@ contains
                             !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
                             inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
                                               merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
-                                  + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 4.10.2017                            
+                                  + (1._wp-deltah)*h - ttaxent(inc) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017                            
                             
                             !inc = merge(wage*labsup,0._wp,zx==0) + merge(0._wp,capgain,tausvflag) + c_grs_mat(ax,kx,zx,yx,t) ! taxable income
                             !inc = merge(0._wp, capgain, tausvflag) + wage*labsup ! 3.14.2017 
@@ -3645,7 +3645,8 @@ contains
         !$omp end parallel do
         call system_clock(tend)
         
-        transbeqimplied = sum2 ! five year per capita. 3.24.2017 4.17.2017 This quantity is on five-year baiss. Correct!
+        !transbeqimplied = sum2 ! five year per capita. 3.24.2017 4.17.2017 This quantity is on five-year baiss. Correct!
+        transbeqimplied = merge(sum2, sum2/popfrac(1) , printout17) ! 9-30-2017
         !write(*,fmt='(a,f12.4,a,f12.4)') ' lump sum transfer time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds. transbeqimplied: ', transbeqimplied          
     end subroutine lump_sum_transfer
     
@@ -3810,7 +3811,7 @@ contains
                 !inc = inc + a + (1._wp-tauk)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx)
                 
                 !inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - sw_socialsecurity(idx) ! 9-17-2017 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
-                sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx)) + transbeq - sw_socialsecurity(idx) ! 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
+                sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx)) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
                 !inc = inc + a + rd*merge(0._wp, a, a>=0._wp) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx) ! 3.25.2017
                 !sw_aftertaxwealth(idx) = inc ! 9-17-2017
                 sw_worker_turned(idx) = merge( 1._wp, 0._wp, s3c(idx,3)==0.and.swk(idx)==1) ! 4.16.2017, 3.25.2017 swk=cwk. If cwk==1, the career "NEXT" peirod is to work for a wage.
@@ -3843,7 +3844,7 @@ contains
                 !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*kv(kx), intfund>0._wp), & ! removed 9-12-2017
                 sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*kv(kx), (1._wp+(1._wp-tausv)*rd)*kv(kx)+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
                                   merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                                         0._wp, intfund>0._wp), zx==0) &
-                      + (1._wp-deltah)*h - ttaxent(sw_taxableincome(idx)) + transbeq - sw_socialsecurity(idx) ! 4.16.2017 revision
+                      + (1._wp-deltah)*h - ttaxent(sw_taxableincome(idx)) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 4.16.2017 revision
                       !+ merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - sw_socialsecurity(idx) ! 3.27.2017  
                 !sw_aftertaxwealth(idx) = inc ! 9-17-2017               
                 sw_boss_turned(idx) = merge( 1._wp, 0._wp, (s3c(idx,3)/=0.and.swk(idx)==0)) ! 3.27.2017 it is only a portion of the whole population exiting entrepreneurship.

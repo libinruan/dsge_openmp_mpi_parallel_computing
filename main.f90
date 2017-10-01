@@ -42,6 +42,7 @@ program MPI_sandbox
         if(printout12)then
             write(*,'(a,f20.8)') (labstr(i),para(i),i=1,139) ! works. 
             write(*,*) ' '
+            write(*,*) "printout17: ", printout17
         endif
         
         if(mpi_exercise_mode==1)then
