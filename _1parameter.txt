@@ -157,7 +157,7 @@ printout16       true   ! true, read existing optimal points WITHOUT sobel seque
 printout17       false  ! True, every generation receives bequest; False, only the newborn receives bequest. 9-30-2017
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   2   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+mpi_exercise_mode   4   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
 ! Remember to set the `-np` option to appropriate number.
@@ -207,8 +207,7 @@ mpi_exercise_mode   2   ! (integer) Single node mode, 0; Stage 1, Exploratory mo
 !		total nodes would be (1+ndim+1) = 12 in command line for flag -np. And set the parameter nrow to be 11 
 !		correspondingly.
 ! 	Formula of required nodes: (one root)+[size of nodes per amoeba group]*[number of amoebas], where 
-! 		[size of nodes per amoeba group] = [amoeba root] + {4*[number of worst vertices to be improved]} + 
-! 		[probably some additional vertices if the proceeding {} term is smaller than "ndim"].
+! 		[size of nodes per amoeba group] = max {4*[number of worst vertices to be improved], ndim+1 } 
 !	MPI_exercise_mode: 2
 !	Output1 (amoeba head): _001_amoeba_head.txt, and _001_restart_list.txt
 !	Output2 (amoeba members in contract world): _contract_member.txt
@@ -229,6 +228,8 @@ mpi_exercise_mode   2   ! (integer) Single node mode, 0; Stage 1, Exploratory mo
 ! ------------------------------------------------------------------------------------------------------------------------------------------------------
 ! (Production) Setting #6. Used in Production stage, Amoeba algorithm with exactly ONE amoeba 
 !   Purpose: amoeba algorithm for approximiating the optimal parameter setting of the quantitative model.
+! 	Formula of required nodes: (one root)+[size of nodes per amoeba group]*[number of amoebas], where 
+! 		[size of nodes per amoeba group] = max {4*[number of worst vertices to be improved], ndim+1 }
 ! 	MPI_exercise_mode: 2
 !	Output1 (amoeba head): _001_amoeba_head.txt, and _001_restart_list.txt
 !	Output2 (amoeba members in contract world): _contract_member.txt
