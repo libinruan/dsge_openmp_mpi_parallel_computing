@@ -23,6 +23,7 @@ program MPI_sandbox
     integer :: generator,erridx, approach, tmiddle
     type(vsl_stream_state) :: river
     real(wp) :: stoch(1)
+    real(wp), dimension(:,:), allocatable :: mat_stage1_inputs
     
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
@@ -69,26 +70,35 @@ program MPI_sandbox
         
         if(my_id==0)then
             
-            write(*,*) ' locate test ', locate(real(breaks_list,wp),1.5_wp,1)
-            write(*,*) ' locate test ', locate(real(breaks_list,wp),50._wp,1)
+            ! write(*,*) ' locate test ', locate(real(breaks_list,wp),1.5_wp,1)
+            ! write(*,*) ' locate test ', locate(real(breaks_list,wp),50._wp,1)
+            ! 
+            ! call read_best_point( guessv, bestvertex_file )
+            ! 
+            ! write(*,*) ' Filename: ', bestvertex_file
+            ! write(*,*) ' Best vertex: ', guessv
+            ! 
+            ! write(*,'(a,x,i6)') 'Trial:', trial
+            ! 
+            ! do i = 1, ndim-1
+            !     write(*, '((i2),2x)', advance='no') i            
+            ! enddo ! i
+            ! write(*, '(i2,2x)') ndim
+            ! 
+            ! do i = 1, ndim-1
+            !     write(*, '(i2,2x)', advance='no') i
+            ! enddo             
+            ! write(*, '(i2,2x)') ndim
+            ! write(*,'(a)') " test " 
             
-            call read_best_point( guessv, bestvertex_file )
-            
-            write(*,*) ' Filename: ', bestvertex_file
-            write(*,*) ' Best vertex: ', guessv
-            
-            write(*,'(a,x,i6)') 'Trial:', trial
-            
-            do i = 1, ndim-1
-                write(*, '((i2),2x)', advance='no') i            
+            ! experiment 2
+            allocate( mat_stage1_inputs(1728,11) )
+            call read_matrix(mat_stage1_inputs,'_stage1_input.csv')
+            do i = 1, size(mat_stage1_inputs,dim=1)
+                write(*,'(11(f8.3,x))') mat_stage1_inputs(i,:)
             enddo ! i
-            write(*, '(i2,2x)') ndim
+            deallocate( mat_stage1_inputs )
             
-            do i = 1, ndim-1
-                write(*, '(i2,2x)', advance='no') i
-            enddo             
-            write(*, '(i2,2x)') ndim
-            write(*,'(a)') " test " 
         endif
   
     elseif(mpi_exercise_mode==-1)then ! MKL experiment (random number generator)
@@ -765,7 +775,219 @@ program MPI_sandbox
         endif ! modelmsg     
         close(4000+i)
         close(my_id+1001)  
-        !close(my_id+2001)        
+        !close(my_id+2001)    
+        
+    elseif(mpi_exercise_mode==4)then ! 9-30-2017
+        ! 10-1-2017
+        allocate( mat_stage1_inputs(1000,11) )
+        trylen = size(mat_stage1_inputs,dim=1)
+        
+        if(my_id==0) call read_matrix(mat_stage1_inputs,'_stage1_input.csv')
+        !do i = 1, size(mat_stage1_inputs,dim=1)
+        !    write(*,'(11(f8.3,x))') mat_stage1_inputs(i,:)
+        !enddo ! i
+        
+        write(node_string,'(i3.3)') my_id
+        
+        if(my_id/=0)then
+            solution_string = 'SlaveIntermFeedback_'//trim(node_string)//'.txt' ! 7-7-2017 Intermediate outcome of individual slave node.         
+            concisesolution_string = 'SlaveMacrostat_'//trim(node_string)//'.txt' ! 7-7-2017 Macro stat of individual slave node.        
+        else
+            write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
+            solution_string = 'RootIntermCollect_'//trim(trylen_string)//'.txt' ! 7-7-2017 Real-time feedback from the slaves.        
+            concisesolution_string = 'RootUseless_'//trim(trylen_string)//'.txt' ! 7-7-2017 Useless for the root node.        
+            ! add concise solution
+        endif
+        
+        open(unit=my_id+1001, file=solution_string, action='write') ! Moved here. 7-3-201
+        open(unit=my_id+2001, file=concisesolution_string, action='write') ! Moved here. 7-5-201
+        
+        ! # 1 move inside the MPI_exercise_mode == 1!?
+        allocate( indexseries(trylen), sobolm(nsbq, ndim), sobolm_scaled(ndim,nsbq), mpi_sobol_scaled(ndim,trylen) )
+        allocate( mpi_simmom_matrix(ndim,trylen), origin_input(ndim), mpi_sobol_mixed(trylen,ndim) ) ! 10-1-2017
+        !allocate(indexseries(trylen),sobolm(ndim,nsbq))
+        
+        if(my_id==0)then
+            if(trylen<size(mat_stage1_inputs,dim=1))then ! 10-1-2017
+                write(*,'(/,a,/)') "Must to set trylen bigger than the size of mat_stage1_inputs!!! "
+            else
+                write(*,'(/,a,i6,a,i6)') "trylen: ", trylen, " length of mat_stage1_inputs: ", size(mat_stage1_inputs,dim=1) 
+            endif ! 10-1-2017
+        endif ! my_id
+        
+        indexseries = [(i,i=1,trylen)]
+        !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) ! works. 
+        !if(my_id==0) write(*,'(a,/)') ' '
+        
+        indexseries = indexseries + sblno1 -1 ! Shifted; USED FOR OUTPUT    
+        !if(my_id==0) write(*,'(i5)') (indexseries(i),i=1,trylen) 
+        
+        origin_input(1) = kv1   
+        origin_input(2) = prtk0 
+        origin_input(3) = prtk1 
+        origin_input(4) = prtk2 
+        origin_input(5) = zbar  
+        origin_input(6) = beta  
+        origin_input(7) = theta 
+        origin_input(8) = phi1  
+        origin_input(9) = phi2  
+        origin_input(10)= phi3           
+        
+        ! Quasi-random Sobol sequence block # 2 move inside the MPI_exercise_mode == 1!?
+        
+        call get_sobol_sequence( sobolm, 0.0_wp, 1.0_wp, nsbq, ndim ) ! Generate ndim dimensional sobol sequence of length nsbq (nsbq*ndim).
+        ! call scale_sobol_original( transpose(sobolm), range_guess, sobolm_scaled ) ! ndim*nsbq ! comment out 8-18-2017
+        
+        sobolm_scaled = transpose(sobolm) ! added 8-18-2017
+        mpi_sobol_scaled = sobolm_scaled(:,sblno1:sblno1+trylen-1) ! 7-29-2017 Shifted.    
+        
+        !if(my_id==0) call sm(sobolm,'sobolm'//trim(trylen_string)) ! checked 2017-Jul-1
+        !if(my_id==0) call sm(transpose(mpi_sobol_scaled),'mpi_sobol_scaled'//trim(trylen_string)) ! checked 2017-Jul-1 . Used for convex combination.        
+        
+        allocate( parcel(ndim), result(ndim), outputinput1(trylen,2*ndim+2), obj_val_vec(trylen) )        
+        nslaves = num_procs - 1 ! Just for mpi_exercise_mode==1 case, the root processor (my_id==0) is in charge of sending out new trial and receiving the corresponding result.
+        
+        if( my_id == 0)then
+            
+            write(trylen_string,'(i5.5,"_",i5.5)') sblno1, sblno1+trylen-1
+            
+            !! 8-18-2017
+            io_string = 'FinalScaledSobel_'//trim(trylen_string) 
+            do i = 1, trylen
+                call linear_combination_sobol_sequence_corrected( parcel, i, mpi_sobol_scaled(:,i), range_guess )
+                mpi_sobol_mixed(i,:) = parcel
+            enddo
+            call sm(mpi_sobol_mixed,io_string)
+            
+            io_string = 'IOMat_'//trim(trylen_string) 
+            ! [The Root, case 1] Send Initial Messages to Slave Nodes (indices ranges from 1 to nslaves)
+            do i = 1, nslaves ! nslaves = num_procs-1.
+                trial = i ! the index of the basic loop: 1,...,trylen; Not the indices of the adjusted Sobol sequence.
+                slave = i
+                
+                !! comment out 8-18-2017
+                !call linear_combination_sobal_sequence(parcel,trial,mpi_sobol_scaled(:,trial),origin_input,weight_list,breaks_list) ! Be sure to set up weight_list and breaks_list.    
+                
+                !! added 8-18-2017, then moved outside this do loop over i between 1 and nslaves
+                !call linear_combination_sobol_sequence_corrected( parcel, trial, mpi_sobol_scaled(:,trial), range_guess )
+                !! The formula is: vertex_output = (range_guess(:,2)+range_guess(:,1))/2._wp + (unit_sobol_input-0.5_wp)*(range_guess(:,2)-range_guess(:,1))
+                !mpi_sobol_mixed(trial,:) = parcel ! bookkeeping. ! comment out 8-18-2017
+                
+                !parcel = mpi_sobol_mixed(i,:)
+                parcel = mat_stage1_inputs(i,2:11) ! 10-1-2017
+
+                call sendjob(trial,slave,parcel) ! send from root to slave the trial parameter combination                
+            enddo
+            
+            ! [The Root, case 1] Hear Responses from Slave Nodes
+            do i = 1, trylen ! The range is correct!! 7-3-2017 ! I controls the total number of outcome expected to receive. 8-2-2017
+                do
+                    msgtype = 2 ! tag 1 for parameter passing; tag 2 for communicating the result between slave nodes and root. 
+                    ! Non-blocking test for a message
+                    call mpi_iprobe( mpi_any_source, msgtype, mpi_comm_world, &
+                        & receiving, status, ierr)
+                    if(receiving)then
+                        ! 1. [slave] Which member node is sending the result? 
+                        call mpi_recv( slave, 1, mpi_integer, mpi_any_source, &
+                            & msgtype, mpi_comm_world, status, ierr)
+                        ! 2. [trial] what's the returned trial index in the basic assignment loop?
+                        call mpi_recv( trial, 1, mpi_integer, slave, & ! Note: trial falls in [1,trylen], rather than the shifted interval.
+                            & msgtype, mpi_comm_world, status, ierr)
+                        ! 3. [result] the feedback of simulated moments 
+                        call mpi_recv( result, ndim, mpi_double_precision, slave, &
+                            & msgtype, mpi_comm_world, status, ierr)
+                        ! 4. [obj_val_1st] the value of penalty corresponds to the given trial
+                        call mpi_recv( obj_val_1st, 1, mpi_double_precision, slave, &
+                            & msgtype, mpi_comm_world, status, ierr)
+                        
+                        mpi_simmom_matrix(:,trial) = result ! Put it in column-major order to facilitate Fortran's operation; trial is the true index of the original loop, 1, ..., trylen.
+                        obj_val_vec(trial) = obj_val_1st
+                        
+                        ! Results That Are Collected by Individual Nodes (we are now in the my_id == 0 zone)
+                        if(i==1) write(my_id+1001,'(a,(12x,a),(x,a),(2x,a),(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"), &
+                            & (10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"),(11x,"input1"),(11x,"input2"),(11x,"input3"), &
+                            & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') &
+                            & "MyID","error", "   #trial", "   #list"
+                        
+                        !write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 8-2-2017. Indexeries maps the basic index number to the index number for the shifted list.
+                        !    & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_mixed(trial,:) ! 8-2-2017. "slave" is the node returunign the computing outcome.
+                        
+                        write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 10-1-2017
+                            & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mat_stage1_inputs(trial,2:11)                         
+                        
+                        ! Check to see if one more new trial is available to be assigned to the responding slave node.
+                        ! Why subtract nslaves? It's because we have in the beginning scattered nslaves trials to nslaves node.
+                        if(i<=trylen-nslaves)then ! 8-2-2017 The boundary is correct. There is always nslaves trials unfinished until the end of the program. 
+                            !parcel = mpi_sobol_scaled(:,i+nslaves) ! Correct. 7-3-2017, but discarded becaused we use linear combination to generate parcel. 8-2-2017.
+                            trial = i + nslaves
+                            !! 8-19-2017 comment out
+                            !call linear_combination_sobal_sequence( parcel, trial, mpi_sobol_scaled(:,trial), origin_input, weight_list, breaks_list )   
+                            !mpi_sobol_mixed(trial,:) = parcel                            
+                            
+                            !parcel = mpi_sobol_mixed(trial,:) ! 8-19-2017 added
+                            parcel = mat_stage1_inputs(trial,2:11) ! 10-1-2017
+                            call sendjob( trial, slave, parcel ) ! 8-2-2017 Now, 'trial' is different from the value of 'slave.'
+                        endif
+                        exit ! leave the current loop 
+                    endif 
+                enddo ! (unconditional)
+            enddo ! i 
+            
+            ! [The Root, case 1] Tell All The Slave Nodes Stopping Waiting for New Trial Assignment
+            do i = 1, nslaves
+                trial = -1 ! the value that triggers an exit
+                slave = i
+                parcel = 0._wp ! a redundant place holder for new trial
+                call sendjob( trial, slave, parcel )
+            enddo
+            
+            !! [The Root, case 1] Save the overall intput and output
+            !outputinput1(:,1) = real(indexseries,wp) ! Index number 
+            !outputinput1(:,2:ndim+1) = mpi_sobol_mixed ! Input 7-9-2017 (amoeba guess)
+            !outputinput1(:,ndim+2:2*ndim+1) = transpose(mpi_simmom_matrix) ! Output (moment)
+            !outputinput1(:,2*ndim+2) = obj_val_vec ! value of objective functin 
+            !call sm( outputinput1, io_string, 15, 8) ! Only the root deals with the storage of complete output.
+            
+        else ! [The Slaves, case 1] my_id /= 0 The Block Used for Defining the Message Passing from Slave Nodes
+            do
+                msgtype = 1
+                ! (Integer): indexi of the passed trial
+                call mpi_recv( trial, 1, mpi_integer, 0, &
+                    & msgtype, mpi_comm_world, status, ierr )
+                if( trial == -1 ) exit
+                ! (Real): the content of the passed trial; the content is determined by the root according to the value of variable 'trial'.
+                call mpi_recv( parcel, ndim, mpi_double_precision, 0, &
+                    & msgtype, mpi_comm_world, status, ierr )
+                
+                modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
+                call read_parameter_model(para,'_1parameter.txt') ! 7-9-2017
+                parcel = int(parcel*accupara)/accupara ! 9-24-2017
+                call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
+                
+                msgtype = 2 ! tag 2 is used for sending feedback.
+                ! Sending the info about the ID of the Slave Node ('my_id').
+                call mpi_send( my_id, 1, mpi_integer, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+                ! Sending the index of the corresponding trial.
+                call mpi_send( trial, 1, mpi_integer, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+                ! Sending the simulated moments.
+                call mpi_send( result, ndim, mpi_double_precision, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+                ! Sending the level of penalty to the root.
+                call mpi_send( obj_val_1st, 1, mpi_double_precision, 0, &
+                    & msgtype, mpi_comm_world, ierr )
+            enddo                
+        endif ! [The Root and Slaves, case 1]       
+        
+        deallocate(parcel,result,outputinput1,obj_val_vec)
+        !! # 3 move inside the MPI_exercise_mode == 1!?
+        !deallocate(range_guess, indexseries, sobolm, sobolm_scaled, mpi_sobol_scaled) 
+        !deallocate(mpi_simmom_matrix,origin_input,mpi_sobol_mixed)        
+        !close(my_id+1001) ! 7-3-2017
+        !close(my_id+2001) ! 7-4-2017        
+        
+        deallocate( mat_stage1_inputs )
         
     endif ! mpi_exercise_model
     
