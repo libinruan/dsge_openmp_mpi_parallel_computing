@@ -139,6 +139,7 @@ accupara        1.e5    ! parameter used for truncating tailing digits of the 10
 errvalfc        2.e-3   ! tolerance of penality function
 initau				4   ! multiplier of initial vertices ! for determining how spread the shape of the first vertex would be.
 testfunc_idx        4   ! 1, norm 2 measure; 2, Variably Dimensioned Function; 3, ; 4, Extended Rosenbrock Function (restart required to precisely approximate the answer). 
+momround          1e3   ! 1e3 means a rounding to the 3rd place to the right of decimal point
 printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
 printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage; and 1 dimensional result sww, swa, ... ! Successful development version: True in 1, 3, 5, 6, and 7.	
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
@@ -282,3 +283,10 @@ mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mo
 !   (1) setting printout16 to TRUE; printout14 either [True] or [False and "stepsize" should be 100] (try to cover as much parameter space as possible).
 !	(2) and set bestvertex_file correspondingly as in setting#6 (say, 1_001_restart_list.txt);
 !   (3) but remember to change printout11 to "false" because we are in the test stage rather than production stage.
+! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
+! (Development) To see whether experiments with the same inputs have consistent outputs
+! mpi_exercise_mode==3
+! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
+! (Development) To explore the penalty values corresponding to a certain combination of interesting inputs
+! mpi_exercise_mode==4
+! the size of allocatable matrix, mat_stage1_inputs, has to be adjusted manually (note: try to locate this phrase, allocate( mat_stage1_inputs(1536,11)) ).

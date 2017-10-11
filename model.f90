@@ -4119,6 +4119,8 @@ contains
             momvec(9)  = ent_inc_per
             momvec(10) = medentwel/medwokwel
             
+            momvec = nint(momvec*momround)/momround ! 10-11-2017
+            
             if(printout6.and.(num_procs==2.or.num_procs==1)) write(*,fmt='(a,3e15.7)') 'Distribution: ', sml_inv_per, med_inv_per, hug_inv_per
             
             ! Inspect whether all elements of momvec are available.

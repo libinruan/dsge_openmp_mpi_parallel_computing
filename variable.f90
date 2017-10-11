@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(140)
-    real(wp) :: para(140), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(141)
+    real(wp) :: para(141), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -90,7 +90,8 @@ module variable
                 length = 5._wp, &
                 accumass = 1.e10, &
                 accupara = 1.e5, &
-                errvalfc = 2.e-3
+                errvalfc = 2.e-3, &
+                momround = 1e3 ! round to the 3rd place to the right of decimal point
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -1034,7 +1035,12 @@ contains
                        i = i + 1
                        read( value_string,*) iota
                        labstr(i) = 'iota'
-                       para(i) = iota                       
+                       para(i) = iota  
+                   case('momround') ! 141
+                       i = i + 1
+                       read( value_string,*) momround
+                       labstr(i) = 'momround'
+                       para(i) = momround                        
                 end select
             enddo
         else

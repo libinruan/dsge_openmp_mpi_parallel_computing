@@ -41,7 +41,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,140) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,141) ! works. 
             write(*,*) ' '
             write(*,*) "printout17 everyone recevies bequests: ", printout17
             write(*,*) "printout18 housing upper limit extended based on consumer need: ", printout18
@@ -115,9 +115,19 @@ program MPI_sandbox
         
         ! accuracy experiment
         accu = 1.e8_wp
-        temp = [0.5555555555_wp, 0.6666666666_wp]
+        temp = [0.1234567_wp, 0.6666666666_wp]
         print*, "temp1: ", int(temp*accu)
         print*, "temp2: ", int(temp*accu)/accu
+        
+        ! rounding experiment
+        print*, nint(temp(1)*1e2)/1e2
+        print*, nint(temp(1)*1e3)/1e3 ! 0.123
+        print*, nint(temp(1)*1e4)/1e4 ! 0.1235
+        print*, nint(temp(1)*1e5)/1e5 ! 0.12346
+        print*, nint(temp(1)*1e6)/1e6 ! 0.123457
+        print*, nint(temp(1)*1e7)/1e7 ! rounding to the 7th place to the right of decimal point
+        
+        print*, nint(temp*1e6)/1e6
         
     elseif(mpi_exercise_mode==0)then ! Stage 0. Building Stage with only a single node.
         
