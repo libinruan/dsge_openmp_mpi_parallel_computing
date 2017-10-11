@@ -21,6 +21,7 @@ phi2             0.9351416
 phi3             0.9674434 
 beta             0.9416076 ! 0.93 might be too low. <---------------------------------------------------- (6)
 zbar             1.2379053  ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
+iota             0.5 ! 10-8-2017
 zlow             0.0 ! hard wired. Don't change it. 
 hmin             0 
 hmax             16 ! 25; 120.0
@@ -105,8 +106,8 @@ lower5           0.01   ! zbar: average tech shock
 upper5           1.50   ! zbar: average tech shock
 lower6           0.50   ! beta: discount factor (on "annual" basis)
 upper6           1.50   ! beta: discount factor (on "annual" basis)
-lower7           0.05   ! theta: housing utility parameter
-upper7           0.30   ! theta: housing utility parameter
+lower7           0.05   ! iota ! 10-9-2017 theta: housing utility parameter
+upper7           0.50   ! iota ! 10-9-2017 theta: housing utility parameter
 lower8           0.50   ! phi1: tech shock
 upper8           1.00   ! phi1: tech shock
 lower9           0.20   ! phi2: tech shock
@@ -126,7 +127,7 @@ amoerrcrt    	1.E-3   ! (real) 1.E-4
 amoitrcrt    	 1500   ! (integer) amoeba maximum interation. 500-1500.
 amoconvex    	  0.2   ! (real) Weight on the best single point (redundant) 
 amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combination with one best parameter inputs.
-nsbq 		    30000   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
+nsbq 		    30001   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
 slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
 elist               1   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
 noamoeba            5   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group. Note: noamoeba is actually the number of subgroup within an amoeba.
@@ -155,9 +156,10 @@ printout14       false  ! true, set the degree of each deviation as four times t
 printout15       false  ! Used in building stage. True, allow undefined area to create extreme penalty of value infinity; 
 printout16       true   ! true, read existing optimal points WITHOUT sobel sequence (see parameter bestvertex_file); FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
 printout17       false  ! True, every generation receives bequest; False, only the newborn receives bequest. 9-30-2017
+printout18       true   ! True, fine tuning upper boundary on the fly; False, [0.5*mean_housing_bottom_qunitle, 1.5*median_household_income]
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   4   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
 ! Remember to set the `-np` option to appropriate number.
