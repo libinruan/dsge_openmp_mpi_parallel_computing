@@ -41,9 +41,10 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,139) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,140) ! works. 
             write(*,*) ' '
-            write(*,*) "printout17: ", printout17
+            write(*,*) "printout17 everyone recevies bequests: ", printout17
+            write(*,*) "printout18 housing upper limit extended based on consumer need: ", printout18
         endif
         
         if(mpi_exercise_mode==1)then
@@ -133,7 +134,8 @@ program MPI_sandbox
         guessv(4) = prtk2 
         guessv(5) = zbar  
         guessv(6) = beta  
-        guessv(7) = theta 
+        ! guessv(7) = theta 
+        guessv(7) = iota
         guessv(8) = phi1  
         guessv(9) = phi2  
         guessv(10)= phi3     
@@ -188,7 +190,8 @@ program MPI_sandbox
         origin_input(4) = prtk2 
         origin_input(5) = zbar  
         origin_input(6) = beta  
-        origin_input(7) = theta 
+        !origin_input(7) = theta 
+        origin_input(7) = iota
         origin_input(8) = phi1  
         origin_input(9) = phi2  
         origin_input(10)= phi3           
@@ -727,7 +730,8 @@ program MPI_sandbox
         guessv(4) = prtk2 
         guessv(5) = zbar  
         guessv(6) = beta  
-        guessv(7) = theta 
+        !guessv(7) = theta 
+        guessv(7) = iota
         guessv(8) = phi1  
         guessv(9) = phi2  
         guessv(10)= phi3 
@@ -738,12 +742,12 @@ program MPI_sandbox
         open(unit=4000+i,file="output_parameter_inspection_"//trim(msg)//".txt",action="write",status="replace")
         call search_equilibrium( guessv, momvec, obj_val_1st, 100, i, modelmsg  )
         if( modelmsg == 0 )then
-            write(my_id+1001, '(a,<ndim>f15.7)') '1guess  : ', guessv
-            write(my_id+1001, '(a,<ndim>f15.7)') '1targetv: ', targetv
-            write(my_id+1001, '(a,<ndim>f15.7)') '1moment : ', momvec
-            write(my_id+1001, '(a,f15.7)') '1penalty: ', obj_val_1st             
+            write(4000+i, '(a,<ndim>f15.7)') '1guess  : ', guessv
+            write(4000+i, '(a,<ndim>f15.7)') '1targetv: ', targetv
+            write(4000+i, '(a,<ndim>f15.7)') '1moment : ', momvec
+            write(4000+i, '(a,f15.7)') '1penalty: ', obj_val_1st             
         else
-            write(my_id+1001, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
+            write(4000+i, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
         endif ! modelmsg
         close(4000+i)
         
@@ -755,7 +759,8 @@ program MPI_sandbox
         guessv(4) = prtk2 
         guessv(5) = zbar  
         guessv(6) = beta  
-        guessv(7) = theta 
+        !guessv(7) = theta 
+        guessv(7) = iota
         guessv(8) = phi1  
         guessv(9) = phi2  
         guessv(10)= phi3 
@@ -766,12 +771,12 @@ program MPI_sandbox
         open(unit=4000+i,file="output_parameter_inspection_"//trim(msg)//".txt",action="write",status="replace")
         call search_equilibrium( guessv, momvec, obj_val_1st, 100, i, modelmsg  )
         if( modelmsg == 0 )then
-            write(my_id+1001, '(a,<ndim>f15.7)') '2guess  : ', guessv
-            write(my_id+1001, '(a,<ndim>f15.7)') '2targetv: ', targetv
-            write(my_id+1001, '(a,<ndim>f15.7)') '2moment : ', momvec
-            write(my_id+1001, '(a,f15.7)') '2penalty: ', obj_val_1st             
+            write(4000+i, '(a,<ndim>f15.7)') '2guess  : ', guessv
+            write(4000+i, '(a,<ndim>f15.7)') '2targetv: ', targetv
+            write(4000+i, '(a,<ndim>f15.7)') '2moment : ', momvec
+            write(4000+i, '(a,f15.7)') '2penalty: ', obj_val_1st             
         else
-            write(my_id+1001, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
+            write(4000+i, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
         endif ! modelmsg     
         close(4000+i)
         close(my_id+1001)  
@@ -779,7 +784,7 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==4)then ! 9-30-2017
         ! 10-1-2017
-        allocate( mat_stage1_inputs(1000,11) )
+        allocate( mat_stage1_inputs(1536,11) )
         trylen = size(mat_stage1_inputs,dim=1)
         
         if(my_id==0) call read_matrix(mat_stage1_inputs,'_stage1_input.csv')
@@ -828,7 +833,8 @@ program MPI_sandbox
         origin_input(4) = prtk2 
         origin_input(5) = zbar  
         origin_input(6) = beta  
-        origin_input(7) = theta 
+        !origin_input(7) = theta 
+        origin_input(7) = iota
         origin_input(8) = phi1  
         origin_input(9) = phi2  
         origin_input(10)= phi3           

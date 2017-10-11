@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(139)
-    real(wp) :: para(139), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(140)
+    real(wp) :: para(140), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -37,6 +37,7 @@ module variable
                 amin = 0.0, & ! 50.0, & ! Yang: 0. [Note] amin is not allowed to be positive. Otherwise the inserting-zero-into-av-vector operation in equilibrium.f90 fails.
                 amax = 999.0, & ! Yang: 100. // 95*aggY
                 nmax, &
+                iota = 0.5, &
                 dfrac = 0.27, & ! gov debt / total capital
                 gfrac = 0.187, & ! gov expense / gdp OK.
                 taubal = 0.033, &
@@ -151,7 +152,7 @@ module variable
     real(wp) :: inf ! defined in toolbox.f90's function 'infinity_setting'.
     
     integer ::  t, inv_dist_counter, szperiod1
-    real(wp) :: new_amin, new_amax
+    real(wp) :: new_amin, new_amax, new_hmax
     real(wp) :: staxbase, staxwbase, staxebase, kndata, avgincw, govbalance, govbal, benefit, sumsstax
     real(wp) :: AggEffLab, AggCorpLab, AggCorpCap, AggCorpOut, AggOut, AggTax, AggAst, AggInc
     real(wp) :: totast, entcap, crpcap, labsup, entlab, crplab, crpprd, entprd, totsvt, totbpt
@@ -169,7 +170,7 @@ module variable
     real(wp), dimension(:), allocatable :: yv, yhv, sy, syh, survprob, delmeh
     real(wp), dimension(:), allocatable :: popfrac, kv, probtk, phi
     real(wp), dimension(:), allocatable :: z2, delzl, delzh, efflab
-    real(wp), dimension(:), allocatable :: hv, av, rhv, rav, mass_vec
+    real(wp), dimension(:), allocatable :: hv, av, rhv, rav, mass_vec, h_mass_vec
     !real(wp), dimension(:), allocatable :: afv ! asset refined grid ! 4.1.2017
     real(wp), dimension(:,:), allocatable :: py, pyh, pz2, pka, pyb ! wint ! wint, aint: interpolated weight and coarse grids ! pt18
     real(wp), dimension(:,:), allocatable :: range_guess
@@ -259,7 +260,7 @@ module variable
     integer, dimension(2) :: breaks_list = [1,50000]      ! 8-18-2017 ! Useless now.
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
-    logical :: printout13, printout14, printout15, printout16, printout17
+    logical :: printout13, printout14, printout15, printout16, printout17, printout18
     logical :: receiving, status(mpi_status_size)
     character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -323,6 +324,8 @@ contains
                         read( value_string, * ) printout16
                    case ('printout17')     
                         read( value_string, * ) printout17                        
+                   case ('printout18')     
+                        read( value_string, * ) printout18                        
                    case ('listnumber')
                         read(value_string, *  ) listnumber
                    case ('bestvertex_file')
@@ -1027,6 +1030,11 @@ contains
                        read( value_string,*) errvalfc
                        labstr(i) = 'errvalfc'
                        para(i) = errvalfc
+                   case('iota') ! 140
+                       i = i + 1
+                       read( value_string,*) iota
+                       labstr(i) = 'iota'
+                       para(i) = iota                       
                 end select
             enddo
         else

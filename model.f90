@@ -4268,7 +4268,40 @@ contains
         deallocate( idxvec, logvec, intvec )
         
         !write(*,'(a)') ' exit grid inspection '
-    end subroutine 
+    end subroutine grid_boundary_inspection
+    
+    subroutine grid_housing_upper_bound_adjustment(new_hmax, h_mass_vec)
+        implicit none
+        real(wp), intent(out) :: new_hmax
+        real(wp), dimension(:), intent(out) :: h_mass_vec
+        real(wp) :: temp
+        integer :: i, size_list, size_hv, idx_max, size_idxvec
+        integer, dimension(:), allocatable :: intvec, idxvec
+        logical, dimension(:), allocatable :: logvec
+        
+        size_list = size(s3c(:,1))
+        size_hv = size(hv)
+        allocate(intvec(size_list),logvec(size_list))
+        intvec = [(i,i=1,size_list)]
+        intvec = mod(intvec,size_hv)
+        where(intvec==0) intvec = size_hv
+        
+        logvec = .false.
+        logvec = sef>tinymass
+        size_idxvec = count(logvec)
+        allocate( idxvec(size_idxvec) )
+        idxvec = pack(intvec, logvec)
+        idx_max = maxval(idxvec)
+        new_hmax = hv(idx_max)
+        do i = 1, size_hv
+            h_mass_vec(i) = sum(sef, s3c(:,2)==i)
+        enddo
+        if(h_mass_vec(idx_max)>chunkmass)then
+            temp = 0.5_wp*abs( hv(idx_max)-hv(idx_max-1))
+            new_hmax = new_hmax + temp
+        endif
+        deallocate(intvec,logvec,idxvec)
+    end subroutine grid_housing_upper_bound_adjustment
     
     subroutine read_series2series(vec,fname)
         implicit none

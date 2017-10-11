@@ -221,7 +221,8 @@ module equilibrium
         prtk2 = guessv(4)
         zbar  = guessv(5)
         beta  = guessv(6)
-        theta = guessv(7)
+        !theta = guessv(7)
+        iota  = guessv(7)
         phi1  = guessv(8)
         phi2  = guessv(9)
         phi3  = guessv(10)
@@ -237,7 +238,7 @@ module equilibrium
         
         allocate( py(nmc,nmc), yvtemp(nmc), yv(0:nmc), sy(nmc), pyh(nmc,nmc), yhv(nmc), syh(nmc), survprob(14) )
         allocate( popfrac(14), kv(0:kdim-1), probtk(0:kdim-1), phi(0:kdim-1), z2(0:kdim-1), delzh(0:kdim-1), delzl(0:kdim-1) )
-        allocate( efflab(14), delmeh(3), hv(hdim), av(adim), pz2(0:kdim-1,2), pka(0:kdim-1,2), rhv(fnhdim), rav(fnadim), mass_vec(adim) ) ! pt18(kdim*nmc,2*nmc) ! 4.14.2017 pz2 set the index staring from 0.
+        allocate( efflab(14), delmeh(3), hv(hdim), av(adim), pz2(0:kdim-1,2), pka(0:kdim-1,2), rhv(fnhdim), rav(fnadim), mass_vec(adim), h_mass_vec(hdim) ) ! pt18(kdim*nmc,2*nmc) ! 4.14.2017 pz2 set the index staring from 0.
         allocate( collbdmat(1:hdim,1:(kdim-1),0:nmc,1:14), c_prf_mat(adim,0:(kdim-1),0:1,0:nmc,1:14), c_lab_mat(adim,0:(kdim-1),0:1,0:nmc,1:14) ) 
         allocate( c_grs_mat(adim,0:(kdim-1),0:1,0:nmc,1:14) ) ! before taxes business income
         
@@ -640,8 +641,8 @@ module equilibrium
                 
                 
                 write(unit=my_id+1001,fmt='(a,i4,x,a,i4,x,a)') 'iterar ', iterar, ', iteragov ', iteragov, '----------------------------------------------------------------------- '                
-                write(my_id+1001,'((14x,"iterar",2x),(12x,"iteragov",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(14x,"taubal",2x))') 
-                write(my_id+1001,'((i20,2x),(i20,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, taubal
+                write(my_id+1001,'((12x,"old-hmin",2x),(12x,"old-hmax",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(14x,"taubal",2x))') 
+                write(my_id+1001,'((e20.5,2x),(e20.5,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') hmin, hmax, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, taubal
                 
                 !write(4000+trial_id,fmt='("#11",12x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsigov, epsigovmin, iteragov, iteragovmax, bracketgov, taubal, iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax
                 
@@ -683,8 +684,14 @@ module equilibrium
                     !benefit = 0.5_wp*(benefit + benefitimplied) 
                     
                     ! 4.21.2017 moved from the block outside the interest rate loop.
-                    hmin = 0.5_wp*lowest_quintile_wokinc
-                    hmax = 15._wp*medwokinc ! 4.21.2017 The number 12. is eye-balled based on the SCF graph, figure 5 partial estimation of age profile based on SCF data in my dissertation. Yang seems to use 17 as the multiplier.
+                    !hmin = 0.5_wp*lowest_quintile_wokinc ! 10-8-2017
+                    if(printout18)then
+                        call grid_housing_upper_bound_adjustment(hmax, h_mass_vec) ! 10-9-2017 #1    
+                    else ! tranditional method
+                        hmax = 15._wp*medwokinc ! 4.21.2017 The number 12. is eye-balled based on the SCF graph, figure 5 partial estimation of age profile based on SCF data in my dissertation. Yang seems to use 17 as the multiplier.
+                    endif ! printout18
+                    hmin = iota*lowest_quintile_wokinc
+                        
                     call grid(hv,hmin,hmax,2.5_wp) ! 09182016 
                     call grid(rhv,hmin,hmax,2.5_wp) ! keep it, not redundant or revision needed. 10102016
                     rhv = hv ! 10102016            
@@ -716,6 +723,11 @@ module equilibrium
                     !rav = av ! Bug. 8-1-2017
 
                 endif ! iteragov
+                
+                write(my_id+1001,'((12x,"new-hmin",2x),(12x,"new-hmax",2x))') 
+                write(my_id+1001,'((e20.5,2x),(e20.5,2x))') hmin, hmax
+                
+                !write(*,'(2(a,i4,x),x,3(a,f8.5,x))') 'October-9-2017 iterar: ', iterar, "iteragov: ", iteragov, "hmin: ", hmin, "hmax: ", hmax, "new_hmax", new_hmax
                 
                 if(iterar==1.and.iteragov==1)then
 
@@ -1222,6 +1234,19 @@ module equilibrium
             write(my_id+1001, '(2(4x,a,x))') "new amin", "new amax"
             write(my_id+1001, '(2(f12.7,x),/)') new_amin, new_amax
             
+            ! housing boundary adjustment
+            call grid_housing_upper_bound_adjustment(new_hmax, h_mass_vec) ! 10-9-2017 #2
+            write(my_id+1001,'(a)') 'Current distribution of housing assets'
+            do i = 1, hdim-1
+                write(my_id+1001, '(9x,f11.5)', advance='no') hv(i)     
+            enddo 
+            write(my_id+1001, '(9x,f11.5)') hv(hdim) ! 9-15-2017
+            do i = 1, hdim-1
+                write(my_id+1001, '(12x,a,i3)', advance='no') "level", i
+            enddo
+            write(my_id+1001, '(12x,a,i3)') "level", hdim
+            write(my_id+1001, '(<adim>(f20.9),/)') h_mass_vec            
+            
             ! boundary update 
             amin = new_amin
             amax = new_amax
@@ -1349,7 +1374,7 @@ module equilibrium
         deallocate( delzh, delzl, efflab, hv, bizmat, z2, delmeh, av, collbdmat, pka, ppldie, sid ) ! pt18
         deallocate( ide, p_homvec ) ! ww, sww wint, afv, nafv, afint
         deallocate( t14vec1, t14vec24, t14vec56, t14vec7 )
-        deallocate( c_prf_mat, c_lab_mat, mass_vec )
+        deallocate( c_prf_mat, c_lab_mat, mass_vec, h_mass_vec )
         !deallocate( ppldie_sum )
         deallocate( t18vec1, t18vec24, t18vec56, t18vec7, t9vec1, t9vec24, t9vec56, t9vec7 )
 		deallocate( t1013vec1, t1013vec24, t1013vec56, t1013vec7, tvector )
