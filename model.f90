@@ -4202,10 +4202,10 @@ contains
             momvec(2)  = sml_inv_per
             momvec(3)  = med_inv_per
             momvec(4)  = hug_inv_per
-            momvec(5)  = entsize ! 8-19-2017 based on agnet's job decision made in the end of last period.
-            momvec(6)  = (crpcap+entcap)/gdp ! 8-19-2017 wokfin + entfin ~= totast ~= (crpcap+entcap) + <government debt> = (crpcap+entcap)*(1+dfrac). 8-19-201 Correct. See Cagetti and DeNardi's 2009 AER code, line 2197 in InitialSS.f90.
-            momvec(7)  = (enthom+wokhom)/gdp ! 8-19-2017
-            momvec(8)  = (entfin+enthom)/(entfin+enthom+wokfin+wokhom) ! 7-2-2017, including the amount belonging to retired people.
+            momvec(5)  = entsize !10.14.2017 Only entrepreneurs experiencing good business shocks.
+            momvec(6)  = (crpcap+entcap)/gdp !10.14.2017, 8-19-2017 wokfin + entfin ~= totast ~= (crpcap+entcap) + <government debt> = (crpcap+entcap)*(1+dfrac). 8-19-201 Correct. See Cagetti and DeNardi's 2009 AER code, line 2197 in InitialSS.f90.
+            momvec(7)  = (enthom+wokhom)/gdp !10.14.2017, 8-19-2017
+            momvec(8)  = (entfin+enthom)/(entfin+enthom+wokfin+wokhom) ! total asset helds by entrepreneurs, regardless of business shocks 7-2-2017, including the amount belonging to retired people.
             momvec(9)  = ent_inc_per
             momvec(10) = medentwel/medwokwel
             
