@@ -286,6 +286,7 @@ module equilibrium
                   sw_worker_savtax(adim*hdim*1018), & 
                   sw_entpre_savtax(adim*hdim*1018), &
                   sw_entpre_biztax(adim*hdim*1018), &
+                  sw_totinc_bx(adim*hdim*1018), &
                   !tid(fnadim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &
                   wf(adim,hdim,0:(kdim-1),0:1,0:nmc,1:14), &
                   !ww(adim,hdim,0:(kdim-1),0:1,0:nmc,1:14), &
@@ -1385,7 +1386,7 @@ module equilibrium
         deallocate( s1c, c1s, cwf, cwa, cwh, cwk, cww, sww, swf, swa, swh, swk, swc, sww2, swf2, swa2, swh2, swk2 ) ! 3.31.2017 s2c and c2s is removed.
         deallocate( sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, sw_ini_asset, sw_ini_house, sw_nonlineartax )
         deallocate( sw_worker_turned, sw_boss_turned, sw_aftertaxwealth, sw_taxableincome, sw_socialsecurity, sw_buzcap_notuse, sw_consumption ) ! csp_lorenz, xbi_lorenz
-        deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax) ! 3.27.2017
+        deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax,sw_totinc_bx) ! 3.27.2017
         deallocate( cww2, cwf2, cwc2, cwa2, cwh2, cwk2, rhv, rav, c_lab_vec, c_opt_vec, cwc, cef, ced, cvv, dcef, sef, def ) ! remove scef 8-24-2017 ! remeber to bring it back 10042016
         deallocate( s3c, c3s, swc2, id1 )
         deallocate( term_2, term_3, term_4, term_5, term_6, term_7, term_8, term_9 ) ! debug 9-17-2017

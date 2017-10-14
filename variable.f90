@@ -208,7 +208,7 @@ module variable
     real(wp), dimension(:), allocatable :: sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan
     real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity
     real(wp), dimension(:), allocatable :: sw_buzcap_notuse, sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! 3.27.2017 add savtax and biztax.
-    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption
+    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx
     real(wp), dimension(:), allocatable :: axw_lorenz, csp_lorenz, xbi_lorenz 
     
     integer, dimension(:), allocatable :: sww2, swk2
@@ -261,7 +261,7 @@ module variable
     integer, dimension(2) :: breaks_list = [1,50000]      ! 8-18-2017 ! Useless now.
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
-    logical :: printout13, printout14, printout15, printout16, printout17, printout18
+    logical :: printout13, printout14, printout15, printout16, printout17, printout18, printout19
     logical :: receiving, status(mpi_status_size)
     character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -326,7 +326,9 @@ contains
                    case ('printout17')     
                         read( value_string, * ) printout17                        
                    case ('printout18')     
-                        read( value_string, * ) printout18                        
+                        read( value_string, * ) printout18          
+                   case ('printout19')     
+                        read( value_string, * ) printout19                            
                    case ('listnumber')
                         read(value_string, *  ) listnumber
                    case ('bestvertex_file')

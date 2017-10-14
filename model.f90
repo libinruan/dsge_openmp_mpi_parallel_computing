@@ -162,9 +162,17 @@ contains
                     inc = inc + bgp ! 4.9.2017
                     ! merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp)
                     !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
-                    inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
-                                      merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
+                    
+                    !! 10.13.2017 comment out
+                    !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                    !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
+                    !      + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq,0._wp,printout17) ! 4.9.2017                    
+                    
+                    ! 10.13.2017
+                    inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
                           + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq,0._wp,printout17) ! 4.9.2017                    
+                    
+                    
                     
                     ! 3.26.2017 From left to right are the cases listed below:
                     ! (1) intfund > 0._wp & zx==0 earn rd interest from intfund (a). no borrowing (0). tax on what earns. no investment. (needs to pay back, if any)
@@ -504,10 +512,16 @@ contains
                                 !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                            
                                 
                                 inc = inc + bgp ! 4.10.2017
-                                !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017   
-                                inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
-                                                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
-                                      + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq, 0._wp, printout17) ! 3.26.2017                               
+                                !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017  
+                                
+                                !!!10.13.2017
+                                !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                                !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
+                                !      + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq, 0._wp, printout17) ! 3.26.2017                               
+                                
+                                !10.13.2017
+                                inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
+                                      + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq, 0._wp, printout17) ! 3.26.2017                                                               
                                 
                                 !inc = inc + a + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h + (1._wp-taubp)*c_grs_mat(ax, kx, zx, yx, t) - ttaxent(inc) + transbeq
                                 !capgain = merge(rd*intfund,0._wp,rd*intfund>0._wp)
@@ -1015,8 +1029,13 @@ contains
 
                         inc = inc + bgp ! 4.10.2017
                         !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
-                        inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
-                                          merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
+                        
+                        !!!10.13.2017 comment out
+                        !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                        !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
+                        !      + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq,0._wp,printout17) - ssbtax ! 4.10.2017
+                        
+                        inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
                               + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq,0._wp,printout17) - ssbtax ! 4.10.2017
                         
                         !capgain = merge(rd*intfund, 0._wp, rd*intfund>0._wp)
@@ -1400,62 +1419,41 @@ contains
                         if(zx==1.and.kx==0) cycle ! Stupid. There is no such case, because kx-loop starts with 1. 3.3.2017
                         do ax = 1, adim
                             
-                            r  = merge( rd+(kv(kx)-av(ax))/kv(kx)*gamma5, rd, kv(kx)>av(ax)) ! individual borrowing costs or saving interset rate.
+                            !r  = merge( rd+(kv(kx)-av(ax))/kv(kx)*gamma5, rd, kv(kx)>av(ax)) ! individual borrowing costs or saving interset rate.
+                            r  = merge( merge(rd+(kv(kx)-av(ax))/kv(kx)*gamma5, rd+gamma5, av(ax)>0._wp), rd, kv(kx)>av(ax)) ! 10.13.2017
                             dk = merge( delzl(kx), delzh(kx), zx==0) ! depreciation
                             zv = merge( zlow, z2(kx), zx==0) ! level of business shock                            
                             
                             if(zx==0)then ! entrepreneurs face bad business shock
                                 
                                 product = 0._wp ! no production, for all business projects.   
-                                labcost = 0._wp ! no production, for all business projects. 
-                                
-                                !write(unit=110,fmt='(a,2x,a,2x,a,2x,a,2x,a)') ' ------- ','ax','kx','zx','yx'
-                                !write(unit=110,fmt='(9x,4i4)') ax,kx,zx,yx
-                                !write(unit=110,fmt='(10x,a,9x,a,9x,a,4x,a)')  'r', 'dk', 'zv', 'product'
-                                !write(unit=110,fmt='(4e11.4)') r,dk,zv,product                                
+                                labcost = 0._wp ! 10.13.2017 correct. Refer to pg. 696, Meh 2005, the firm's optimization problem.                        
                                 
                             else ! zx/=0 entrepreneurs face good business shock.
                                 product = c_opt_vec(kx) ! zv*(kv(kx)**(alpha)*c_lab_vec(kx)**(1._wp-alpha))**nu
+                                labcost = (1._wp+tauss/2._wp)*wage*c_lab_vec(kx)
                                 
-                                !write(unit=110,fmt='(a,2x,a,2x,a,2x,a,2x,a)') ' ------- ','ax','kx','zx','yx'
-                                !write(unit=110,fmt='(9x,4i4)') ax,kx,zx,yx
-                                !write(unit=110,fmt='(10x,a,9x,a,9x,a,4x,a)')  'r', 'dk', 'zv', 'product'
-                                !write(unit=110,fmt='(4e11.4)') r,dk,zv,product
-                                
-                                ! 3.26.2017 whatever the labor efficiency the entrepreneur has, he rent identical external labor efficiency.
-                                if(t<10)then 
-                                    ! labcost = (1._wp+tauss/2._wp)*wage*merge(c_lab_vec(kx)-efflab(t)*yv(yx), 0._wp, c_lab_vec(kx)-efflab(t)*yv(yx)>0._wp) !<--- they deduct the part provided by their own, and only pay the remaining.
-                                    labcost = (1._wp+tauss/2._wp)*wage*c_lab_vec(kx) ! 3.4.2017 Entrepreneurs always emply external labor efficiency. Be sure to check entrepreneurs receive labor income when young.
-                                else ! BY DOING SO, WE DON'T NEED TO WORRY ABOUT THE CASES WHEN LABOR EFFICIENCY UNITS IS ZERO.
-                                    labcost = (1._wp+tauss/2._wp)*wage*c_lab_vec(kx)
-                                endif
                             endif ! zx
                                 
                             ! it covers the case where net financial position is negative. 3.4.2017
-                            extfund = merge(kv(kx)-av(ax), 0._wp, kv(kx)-av(ax)>0._wp) ! 3.25.2017 irrelevant to the level of zx.
+                            !extfund = merge(kv(kx)-av(ax), 0._wp, kv(kx)-av(ax)>0._wp) ! 3.25.2017 irrelevant to the level of zx.
+                            extfund = merge( merge(kv(kx)-av(ax), kv(kx), av(ax)>0._wp), 0._wp, kv(kx)-av(ax)>0._wp) ! 10.13.2017
                             
                             ! Checked with Kitao, 2008, pdf. 5; Meh, 2005, pdf. 9. Kitao considers capital interest into the profit; Meh doesn't. That's why the discrepancy arises.
                             ! Anyway, I don't add the capital gain (saving interest) obtained from own funds. <--------- Important!! 09282016
                             ! Details can be found in housing_v9.pdf 3.3.2017
                             
-                            ! c_grs_mat(ax,kx,zx,yx,t) = product - dk*kv(kx) - r*extfund - labcost ! "taxable" business income !<------------------------------- (1) 09252016 correct!
+                            !c_grs_mat(ax,kx,zx,yx,t) = product - dk*kv(kx) - r*extfund - labcost ! "taxable" business income !<------------------------------- (1) 09252016 correct!
                             !c_grs_mat(ax,kx,zx,yx,t) = product + (1._wp-dk)*kv(kx) - (1._wp+r)*extfund - labcost ! 3.4.2017, 3.25.2017 when hit by a negative business shock, this business porfit becomases the tota capital costs the entrepreneur needs to pay.
                             
                             if(zx==1)then
                                 c_grs_mat(ax,kx,zx,yx,t) = product + (1._wp-dk)*kv(kx) - (1._wp+r)*extfund - labcost ! 3.26.2017 probably taking negative values reflect the loss due to borrowing cost and bad business shock
                             else ! zx==0 no production, no labcost, temparary assumption: business capital can be idle. 
                                 !c_grs_mat(ax,kx,zx,yx,t) = product + (1._wp-dk)*kv(kx) - (1._wp+r)*extfund - labcost
-                                c_grs_mat(ax,kx,zx,yx,t) = -(1._wp+r)*extfund ! 3.26.2017 Still needs to pay back the money borrowed. Which should be negative.
+                                c_grs_mat(ax,kx,zx,yx,t) = (1._wp-dk)*kv(kx) - (1._wp+r)*extfund ! 10.13.2017 remnant capital after depreciation and principle (as well as interest) needed to be paid back to the financial intermediary.
                             endif ! zx
 
                             bizincm = c_grs_mat(ax,kx,zx,yx,t) ! used in the print-out block
-                            
-                            !write(unit=110,fmt='(4x,a,4x,a,4x,a,7x,a)') 'labcost','clabvec','efflabt','yvyx'
-                            !write(unit=110,fmt='(4e11.4)') labcost, c_lab_vec(kx), efflab(t), yv(yx)
-                            !write(unit=110,fmt='(4x,a,7x,a,7x,a,4x,a)') 'extfund','kvkx','avax','bizincm'
-                            !write(unit=110,fmt='(4e11.4)') extfund, kv(kx), av(ax), bizincm
-                            !write(unit=110,fmt='(4x,a)') 'ttaxent'
-                            !write(unit=110,fmt='(e11.4)') ttaxent(bizincm)
                             
                             !c_prf_mat(ax,kx,zx,yx,t) = product + (1._wp-dk)*kv(kx) - (1._wp+r)*(kv(kx)-av(ax)) - labcost - ttaxent(bizincm)
                             ! Excess own fund accruses saving interests, not counted as business income
@@ -1654,8 +1652,13 @@ contains
                             
                             inc = inc + bgp ! 4.10.2017
                             !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
-                            inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
-                                              merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
+                            
+                            !!!10.13.2017
+                            !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*k, (1._wp+(1._wp-tausv)*rd)*k+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                            !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
+                            !      + (1._wp-deltah)*h - ttaxent(inc) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017                            
+                            
+                            inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017 
                                   + (1._wp-deltah)*h - ttaxent(inc) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017                            
                             
                             !inc = merge(wage*labsup,0._wp,zx==0) + merge(0._wp,capgain,tausvflag) + c_grs_mat(ax,kx,zx,yx,t) ! taxable income
@@ -3657,6 +3660,8 @@ contains
         logical, dimension(:), allocatable :: lvece, lvecw, tvec
         real(wp), dimension(:), allocatable :: svec, rvec
         integer, intent(in) :: idxr, idxg, idxt,trial_id ! (iterar, iteragov, iteratot)
+        !real(wp) :: totast1, wokfin1, entfin1, wokhom1, enthom1, entcap1, crpcap1, totefl1, entlab1, crplab1, tottax1, entprd1, crpprd1, gdp1, totsvt1, govbal1, govbal2gdp1, hug_inv_proj1, med_inv_proj1, sml_inv_proj1, all_inv_proj1, hug_inv_per1, med_inv_per1, sml_inv_per1, ent_wel_per1, woksize1, chgw2e1, w2erat1, &
+        !    entsize1, chge2w1, e2wrat1, medwokinc1, lowest_quintile_wokinc1, medwokwel1, medentwel1, entcsp1, wokcsp1, entinc1, wokinc1, all_income1, ent_inc_per1
         integer :: szwok, szent
         integer :: tstart, tend, trate, tmax
         character(len=4) :: str1
@@ -3706,6 +3711,7 @@ contains
         sw_entpre_savtax = 0._wp
         sw_entpre_biztax = 0._wp  
         sw_taxableincome = 0._wp
+        sw_totinc_bx     = 0._wp
         
         ! 3.27.2017 0.31 vs 0.7 parallel still outperform sequential.
         !$omp parallel do default(shared) private(t,idx,capgain,intfund,bgp) 
@@ -3734,6 +3740,7 @@ contains
                 sw_production(idx) = 0._wp ! production in coarse_SBE_profit_matrices
                 sw_bizinvestment(idx) = 0._wp ! k
                 sw_bizloan(idx) = 0._wp ! (k-a)
+                sw_buzcap_notuse(idx) = 0._wp ! 10.13.2017
                 
                 if(t>=10)then ! retired
                     sw_laborsupply(idx) = 0._wp ! labor supply to the whole economy
@@ -3750,13 +3757,15 @@ contains
                         sw_production(idx) = 0._wp
                         sw_bizinvestment(idx) = 0._wp ! 9-13-2017 kv(kx) ! IDLE CAPITAL <------ Bug 10122016 kept in the entrepreneurial sector, but not put into production
                         sw_buzcap_notuse(idx) = kv(kx) ! 3.25.2017 ! 4.15.2017 consistent with the formulation of disposable income. 
-                        sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx))
+                        !sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx))
+                        sw_bizloan(idx) = merge( merge(kv(kx)-a, kv(kx), a>0._wp), 0._wp, kv(kx)>a) !10.13.2017
                     else ! good shocks
                         sw_labordemand(idx) = c_lab_vec(kx)
                         sw_production(idx) = c_opt_vec(kx)
                         sw_bizinvestment(idx) = kv(kx)
                         sw_buzcap_notuse(idx) = 0._wp ! 3.25.2017
-                        sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx))
+                        !sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx))
+                        sw_bizloan(idx) = merge( merge(kv(kx)-a, kv(kx), a>0._wp), 0._wp, kv(kx)>a) !10.13.2017
                     endif ! zx 
                 else ! young entrepreneurs (t<=9)
                     if(zx==0)then
@@ -3765,7 +3774,8 @@ contains
                         sw_production(idx) = 0._wp
                         sw_bizinvestment(idx) = 0._wp ! 9-13-2017 removed kv(kx) ! idle capital being locked in the entrepreneurial sector.
                         sw_buzcap_notuse(idx) = kv(kx) ! 3.25.2017
-                        sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx)) ! 3.27.2017 sw_ini_asset(idx) rather than sw_ini_asset(ax)                       
+                        !sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx)) ! 3.27.2017 sw_ini_asset(idx) rather than sw_ini_asset(ax)     
+                        sw_bizloan(idx) = merge( merge(kv(kx)-a, kv(kx), a>0._wp), 0._wp, kv(kx)>a) !10.13.2017
                     else ! good shocks zx>0._wp
                         !! 3.25.2017 comment out
                         !if(c_lab_vec(kx)>efflab(t)*yv(yx))then
@@ -3782,7 +3792,8 @@ contains
                         sw_production(idx)  = c_opt_vec(kx)                 
                         sw_bizinvestment(idx) = kv(kx) ! idle capital being locked in the entrepreneurial sector.
                         sw_buzcap_notuse(idx) = 0._wp ! 3.25.2017
-                        sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx))    
+                        !sw_bizloan(idx) = merge( kv(kx)-sw_ini_asset(idx), 0._wp, kv(kx)>sw_ini_asset(idx))    
+                        sw_bizloan(idx) = merge( merge(kv(kx)-a, kv(kx), a>0._wp), 0._wp, kv(kx)>a) !10.13.2017
                     endif ! zx
                 endif ! t
             endif ! kx == 0 or not (worker/retiree or entrepreneur)
@@ -3804,19 +3815,22 @@ contains
                 !term_9(idx) = ttaxwok(inc)
                 
                 !sw_nonlineartax(idx) = ttaxwok(inc)
-                sw_nonlineartax(idx) = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
+                sw_nonlineartax(idx)   = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
                 sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx) ! 3.25.2017        
-                sw_worker_savtax(idx) = merge(tausv*rd*a,0._wp,a>0._wp)
-                
+                sw_worker_savtax(idx)  = merge(tausv*rd*a, 0._wp, a>0._wp)
+                sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
                 !inc = inc + a + (1._wp-tauk)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx)
                 
                 !inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - sw_socialsecurity(idx) ! 9-17-2017 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
-                sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx)) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
+                sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
+                                       + (1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx)) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 3.27.2017 ! 9-12-2017 at this line, inc ~= wealth before tax.
+                
                 !inc = inc + a + rd*merge(0._wp, a, a>=0._wp) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - sw_nonlineartax(idx) + transbeq - sw_socialsecurity(idx) ! 3.25.2017
                 !sw_aftertaxwealth(idx) = inc ! 9-17-2017
-                sw_worker_turned(idx) = merge( 1._wp, 0._wp, s3c(idx,3)==0.and.swk(idx)==1) ! 4.16.2017, 3.25.2017 swk=cwk. If cwk==1, the career "NEXT" peirod is to work for a wage.
+                
+                sw_worker_turned(idx) = merge( 1._wp, 0._wp, s3c(idx,3)==0.and.swk(idx)==1) ! 10.13.2017 useless !4.16.2017, 3.25.2017 swk=cwk. If cwk==1, the career "NEXT" peirod is to work for a wage.
             else ! kx>0 Boss
-                intfund = merge(sw_ini_asset(idx)-kv(kx), 0._wp, sw_ini_asset(idx)-kv(kx)>0._wp) ! 3.27.2017 sw_ini_asset(idx) rather than sw_ini_asset(ax). ! sw_bizloan(idx) ! Bug intfund wrong!! 10122016 
+                intfund = merge(a-kv(kx), 0._wp, a-kv(kx)>0._wp) ! 3.27.2017 sw_ini_asset(idx) rather than sw_ini_asset(ax). ! sw_bizloan(idx) ! Bug intfund wrong!! 10122016 
                 
                 !capgain = merge(rd*intfund,0._wp,rd*intfund>0._wp)
                 !inc = merge(benefit,0._wp,t>=10) + merge(wage*sw_laborsupply(idx),0._wp,zx==0) + merge(0._wp,capgain,tausvflag) + c_grs_mat(ax,kx,zx,yx,t) ! 3.25.2017 comment out
@@ -3835,18 +3849,29 @@ contains
                 !term_9(idx) = ttaxent(inc)
                 
                 !sw_nonlineartax(idx) = ttaxent(inc)
-                sw_nonlineartax(idx) = ttaxent(sw_taxableincome(idx)) ! 9-17-2017
+                sw_nonlineartax(idx)   = ttaxent(sw_taxableincome(idx)) ! 9-17-2017
                 sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
                 
-                sw_entpre_savtax(idx) = merge(merge(tausv*rd*a,tausv*rd*kv(kx),intfund>0._wp), &
-                                              merge(tausv*rd*intfund,0._wp,intfund>0._wp),zx==0)
+                !10.13.2017 comment out
+                !sw_entpre_savtax(idx) = merge( merge(tausv*rd*a,tausv*rd*kv(kx),intfund>0._wp), &
+                !                               merge(tausv*rd*intfund,0._wp,intfund>0._wp),zx==0)
+                                
+                sw_entpre_savtax(idx) = merge( tausv*rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
+                sw_totinc_bx(idx)     = sw_taxableincome(idx) + merge( rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
                 !sw_entpre_biztax(idx) = merge(taubp*bgp,0._wp,zx==1) ! 4.16.2017 comment out 
                 !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*kv(kx), intfund>0._wp), & ! removed 9-12-2017
-                sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*kv(kx), (1._wp+(1._wp-tausv)*rd)*kv(kx)+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
-                                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                                         0._wp, intfund>0._wp), zx==0) &
+                
+                !!!10.13.2017 comment out
+                !sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       merge((1._wp+(1._wp-tausv)*rd)*kv(kx), (1._wp+(1._wp-tausv)*rd)*kv(kx)+(1._wp+rd)*a ,a>0._wp), intfund>0._wp), & ! added 9-12-2017
+                !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                                         0._wp, intfund>0._wp), zx==0) &
+                !      + (1._wp-deltah)*h - ttaxent(sw_taxableincome(idx)) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 4.16.2017 revision
+                
+                sw_aftertaxwealth(idx) = sw_taxableincome(idx) +  merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
                       + (1._wp-deltah)*h - ttaxent(sw_taxableincome(idx)) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 4.16.2017 revision
+                
                       !+ merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - sw_socialsecurity(idx) ! 3.27.2017  
                 !sw_aftertaxwealth(idx) = inc ! 9-17-2017               
+                
                 sw_boss_turned(idx) = merge( 1._wp, 0._wp, (s3c(idx,3)/=0.and.swk(idx)==0)) ! 3.27.2017 it is only a portion of the whole population exiting entrepreneurship.
                 
                 !! 3.25.2017 comment out.
@@ -3870,7 +3895,8 @@ contains
         !if(printout6) write(*,fmt='(a,f12.4,a)') 'solve macro statistic time: ', real(tend-tstart,wp)/real(trate,wp), ' seconds'    
         
         !tvec = (abs(sw_buzcap_notuse-0._wp)<1.e-10_wp).and.s3c(:,3)>0.and.s3c(:,4)==1 ! 5.9.2017 Note: s3c(:,3): k; s3c(:,4): z. ! 9-13-2017 this is entrepreneur's version uses sw_buzcap_notuse<0
-        tvec = s3c(:,3)>0.and.s3c(:,4)==1 ! 9-13-2017 Entrepreneurs running a business.
+        !tvec = s3c(:,3)>0.and.s3c(:,4)==1 ! 9-13-2017 Entrepreneurs running a business. !10.13.2017 comment out
+        tvec = s3c(:,3)>0
         
         ! 4.16.2017 12:05pm stop here.
         totast = dot_product(sef,sw_ini_asset) ! 4.16.2017 Actually, total financial assets.
@@ -3885,8 +3911,8 @@ contains
         wokhom = sum(svec,tvec==.false.) ! 3.27.2017 added s3c condition. 7-2-2017 Including retired people.
         enthom = sum(svec,tvec==.true.) ! 3.27.2017 added s3c condition.
         
-        svec   = sef*sw_bizinvestment ! 9-13-2017 definition of bizinvestment defined above is updated. only z>0 people have positive bizinvestment.
-        entcap = sum(svec,tvec==.true.) ! 3.27.2017 Only sum up those figures not coming from idle capital. ! 8-14-2017 ok.
+        svec   = sef*(sw_bizinvestment+sw_buzcap_notuse) ! 9-13-2017 definition of bizinvestment defined above is updated. only z>0 people have positive bizinvestment.
+        entcap = sum(svec, tvec==.true.) ! 3.27.2017 Only sum up those figures not coming from idle capital. ! 8-14-2017 ok.
         crpcap = totast/(1._wp+dfrac)-entcap ! Cagetti and De Nardi, TAUCfinalSS.f90, line 1273. a constant fraction of total capital. ! <========================<<
         ! 3.27.2017 following cagetti and de nardi's 2009 AER paper. See their InitialSS.f90 in AER_2009_codes.zip (unzipped as MS200405121codes). Their model
         ! also consider government debt accoutns for a fraction of total capital.
@@ -3906,18 +3932,18 @@ contains
         entprd = sum(sef*sw_production) ! 9-12-2017 Actually it is the production of entrepreneurial sector.
         crpprd = wage*crplab + (rd+deltak)*crpcap ! 3.27.2017 Cobb-Douglas production function's property (TAUCfinal.f90 line 1281). Note that wage, rd, and deltak are all on five years basis.
         ! 3.28.2017 Any tax rates do not show up in the equation above, as formualted in Imorhoroglu (1995) a life-cycle analysis of social security.
+        
         gdp = crpprd + entprd ! 5.10.2017 As in  Fern-Villa and Dirk Krueger, GDP doens't include housing service in their definition.
         ! 8-18-2017 The definition of GDP is computed in the same way as in Cagetti and De Nardi AER_2009 paper.
 
         ! Cagetti: gdp = [wage*totlcorp+(rbar+delt)*totkcorp] + inck.
         ! Cagetti: `inck` (gross entr. output) includes wages paid, interest owed and depr. They collectively equal to the first term of my enrepreneur's profit (that is, the entrepreneurial production)
         
-        
         ! 3.27.2017 corporate tax and capital income tax needs to be added into the tax revenue. Stop here. 4:09 pm <---------------
         !sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! There is no business taxes right?!
+        
         totsvt = sum(sef*sw_worker_savtax) + sum(sef*sw_entpre_savtax)
         !totbpt = sum(sef*sw_entpre_biztax) ! 4.16.2017 comment out
-        
         !govbal = (totsvt + totbpt + tottax) - gfrac*gdp - rd*dfrac*(crpcap+entcap) ! 3.27.2017 excluding SS benefit, because it runs in the way like pay as you go.
 
         govbal = (totsvt + tottax) - gfrac*gdp - rd*dfrac*(crpcap+entcap) ! 4.16.2017 TAUCfinal.f90 line 1280 + 1445.
@@ -3938,6 +3964,7 @@ contains
         hug_inv_per  = hug_inv_proj/all_inv_proj
         med_inv_per  = med_inv_proj/all_inv_proj
         sml_inv_per  = sml_inv_proj/all_inv_proj
+        
         ent_wel_per  = (entfin+enthom)/(wokfin+entfin+wokhom+enthom)
         
         deallocate( svec, tvec )      
@@ -3959,9 +3986,9 @@ contains
         !write(4000+trial_id,fmt='("macro-2",8x,8(e21.14,x))') govbal2gdp, hug_inv_per, med_inv_per, sml_inv_per, ent_wel_per, woksize, chgw2e, w2erat
         
         ! All entrepreneurs
-        entsize = sum(sef,s3c(:,3)/=0) ! 4.17.2017 original ent size including "bad" luck entrepreneurs. 
+        entsize = sum(sef,s3c(:,3)>0.and.s3c(:,4)==1) ! 4.17.2017 original ent size including "bad" luck entrepreneurs. 
         ! Entrepreneurs who are hit by bad business shock
-        chge2w  = sum(sef,s3c(:,3)/=0.and.s3c(:,4)==0) ! 4.17.2017 a subset of the above ! 5.10.2017 remove s3c(:,9)<=9. Correct.
+        chge2w  = sum(sef,s3c(:,3)>0.and.s3c(:,4)==1.and.swk==0) ! 4.17.2017 a subset of the above ! 5.10.2017 remove s3c(:,9)<=9. Correct.
         e2wrat  = chge2w/entsize
         
         ! 4.17.2017 aggregate stats --------------------------------------
@@ -3974,7 +4001,7 @@ contains
         !lvece = s3c(:,3)>0.and.s3c(:,4)==1.and.abs(sw_buzcap_notuse-0._wp)<1.e-7_wp
         !lvecw = (lvece==.false..and.s3c(:,9)<=9) ! 5.10.2017 remove this line: (s3c(:,3)==0.and.s3c(:,9)<=9).or. and s3c(:,3)/=0.and.s3c(:,4)==0
         lvece = s3c(:,3)>0.and.s3c(:,4)==1                   ! 9-15-2017
-        lvecw = (s3c(:,3)==0.or.s3c(:,4)==0).and.s3c(:,9)<=9 ! 9-15-2017
+        lvecw = (s3c(:,3)==0.and.s3c(:,9)<=9).or.(s3c(:,3)>0.and.s3c(:,4)==0.and.s3c(:,9)<=9) ! 9-15-2017
         
         szwok = count(lvecw)
         allocate(svec(szwok),rvec(szwok))
@@ -3990,7 +4017,8 @@ contains
             if(lvecw(i)==.true.)then
                 j = j + 1    
                 svec(j) = sef(i)
-                rvec(j) = sw_taxableincome(i)
+                !rvec(j) = sw_taxableincome(i) !10.13.207 comment out
+                rvec(j) = sw_totinc_bx(i) !10.13.2017
             endif
         enddo
         
@@ -4028,21 +4056,22 @@ contains
         
         !write(4000+trial_id,fmt='("macro-3",8x,8(e21.14,x))') entsize, chge2w, e2wrat, medwokinc, lowest_quintile_wokinc, medwokwel, medentwel, med_wel_e2w
         
-        entcsp = sum(sef*sw_consumption,lvece) ! 4.17.2017 It excludes bad luck entrepreneurs.
-        wokcsp = sum(sef*sw_consumption,lvecw) ! 4.17.2017 It includes entrepreneur-turned workers and retirees.
+        entcsp = sum(sef*sw_consumption, lvece) ! 4.17.2017 It excludes bad luck entrepreneurs.
+        wokcsp = sum(sef*sw_consumption, lvecw) ! 4.17.2017 It includes entrepreneur-turned workers and retirees.
         
-        entinc = sum(sef*sw_taxableincome,lvece)
-        wokinc = sum(sef*sw_taxableincome,lvecw)
+        entinc = sum(sef*sw_totinc_bx, lvece) !10.13.2017
+        wokinc = sum(sef*sw_totinc_bx, lvecw) !10.13.2017
         
-        all_income  = entinc + wokinc ! sum(sef*sw_taxableincome)
+        !all_income  = entinc + wokinc ! sum(sef*sw_taxableincome) !10.13.2017 comment out
+        all_income  = sum(sef*sw_totinc_bx) !10.13.2017
         ent_inc_per = entinc/all_income
         
-        entaxw = sum(sef*sw_aftertaxwealth,lvece) ! <--- 9-15-2017
-        wokaxw = sum(sef*sw_aftertaxwealth,lvecw) ! <--- 9-15-2017
+        entaxw = sum(sef*sw_aftertaxwealth, lvece) ! <--- 9-15-2017
+        wokaxw = sum(sef*sw_aftertaxwealth, lvecw) ! <--- 9-15-2017
         
         ! 4.17.2017 stats per capita -------------------------------------
-        entsize = sum(sef,lvece)
-        woksize = sum(sef,lvecw)
+        entsize = sum(sef, lvece)
+        woksize = sum(sef, lvecw)
         
         mean_entfin = entfin/entsize
         mean_wokfin = wokfin/woksize
@@ -4068,6 +4097,67 @@ contains
         benefitimplied  = sumsstax/sum(popfrac(10:14)) ! 7-6-2017 On Mesabi, the update of longer interval is faster in terms of convergence. So I use beenfitimplied and update only 
         
         deallocate(lvece,lvecw)
+        
+        !! 10.13.2017
+        !if(printout19)then
+        !    write(my_id+1001,'(/,a)') ' ======================================= original '
+        !    write(my_id+1001,'(8(4x,a,x))') 'totast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
+        !    write(my_id+1001,'(8(e10.3,x))') totast, wokfin, entfin, wokhom, enthom, entcap, crpcap, gdp
+        !    write(my_id+1001,'(a)') ' ======================================= new      '
+        !    write(my_id+1001,'(8(4x,a,x))') 'totast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
+        !    write(my_id+1001,'(8(e10.3,x),/)') totast, sum(sef*sw_ini_asset,ttvec==.false.), sum(sef*sw_ini_asset,ttvec==.true.), sum(sef*sw_ini_house,ttvec==.false.), sum(sef*sw_ini_house,ttvec==.true.), &
+        !        sum(sef*(sw_buzcap_notuse+sw_bizinvestment),ttvec==.true.), totast/(1._wp+dfrac)-sum(sef*(sw_buzcap_notuse+sw_bizinvestment),ttvec==.true.), & 
+        !        (sum(sef*(sw_buzcap_notuse+sw_bizinvestment),ttvec==.true.) + totast/(1._wp+dfrac)-sum(sef*(sw_buzcap_notuse+sw_bizinvestment))) ! 10.13.2017
+        !endif         
+        
+        if(printout19)then
+            !allocate(svec(sz),tvec(sz))
+            !tvec = .false.
+            !svec = 0._wp
+            !tvec = s3c(:,3)>0
+            !totast1 = totast
+            !svec = sef*sw_ini_asset
+            !wokfin1 = sum(svec,tvec==.false.)
+            !entfin1 = sum(svec,tvec==.true.)
+            !
+            !svec = sef*sw_ini_house
+            !wokhom1 = sum(svec,tvec==.false.)
+            !enthom1 = sum(svec,tvec==.true.)
+            !
+            !svec = sef*(sw_bizinvestment+sw_buzcap_notuse)
+            !entcap1 = sum(svec,tvec==.true.)
+            !crpcap1 = totast/(1._wp+dfrac)-entcap1
+            !
+            !svec = sef*sw_labordemand
+            !entlab1 = sum(svec,tvec==.true.)
+            !crplab1 = totefl - entlab1      
+            !
+            !entprd1 = entprd
+            !crpprd1 = wage*crplab1 + (rd+deltak)*crpcap1
+            !gdp1    = crpprd1 + entprd1
+            !
+            !hug_inv_proj1 = sum(sef,tvec==.true..and.s3c(:,3)==3)
+            !med_inv_proj1 = sum(sef,tvec==.true..and.s3c(:,3)==2)
+            !sml_inv_proj1 = sum(sef,tvec==.true..and.s3c(:,3)==1)   
+            !all_inv_proj1 = hug_inv_proj1 + med_inv_proj1 + sml_inv_proj1
+            !
+            !hug_inv_per1  = hug_inv_proj1/all_inv_proj1
+            !med_inv_per1  = med_inv_proj1/all_inv_proj1
+            !sml_inv_per1  = sml_inv_proj1/all_inv_proj1
+            !
+            !deallocate(svec,tvec)
+            
+            write(my_id+1001,'(/,a)') ' ======================================= original '
+            write(my_id+1001,'(8(4x,a,x))') 'totast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
+            write(my_id+1001,'(8(e10.3,x))') totast, wokfin, entfin, wokhom, enthom, entcap, crpcap, gdp
+            !write(my_id+1001,'(a)') ' ======================================= new      '
+            !write(my_id+1001,'(8(4x,a,x))') 'totast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
+            !write(my_id+1001,'(8(e10.3,x))') totast, wokfin1, entfin1, wokhom1, enthom1, entcap1, crpcap1, gdp1
+            !write(my_id+1001,'(a)') ' --------------------------------------- original '
+            write(my_id+1001,'(5(4x,a,x),2(x,a,x),2(3x,a,x))') 'hugprj', 'medprj', 'smlprj', 'w2erat', 'e2wrat', 'entincrat', 'medwelrat', 'entsize', 'woksize' 
+            write(my_id+1001,'(9(e10.3,x),/)') hug_inv_per, med_inv_per, sml_inv_per, w2erat, e2wrat, ent_inc_per, med_wel_e2w, entsize, woksize
+            write(my_id+1001,'(a)') ' =============================================================================================================== '
+        endif ! printout19
         
         ! 4.16.2017 stop here. 8:30 pm.
         ! negative value 3.27.2017 stop here. (1) ---------------------------------------------------------------------------------------------------
