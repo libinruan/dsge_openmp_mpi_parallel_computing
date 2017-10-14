@@ -727,9 +727,10 @@ program MPI_sandbox
         
     elseif( mpi_exercise_mode==3 )then ! Should mimic what mpi_exercise_mode==0 and 2 did. 8-7-2017.   
         
-        solution_string = 'SingleNodeInputs.txt'   
+        solution_string = 'Single_node_results.txt'   
         !concisesolution_string = 'SingleNodeDetails.txt'
-        open(unit=my_id+1001, file=solution_string, action='write', position='append')
+        !open(unit=my_id+1001, file=solution_string, action='write', position='append')
+        open(unit=my_id+1001, file=solution_string, action='write', status="replace")
         !open(unit=my_id+2001, file=concisesolution_string, action='write', position='append')        
         
         i = 100
@@ -749,6 +750,7 @@ program MPI_sandbox
         momvec = inf
         obj_val_1st = inf
         write(msg,fmt='(i3)') i ! either 100 or 200
+        write(my_id+1001,'(a,i3,a,/)') " ================================ ", i, " ================================="
         open(unit=4000+i,file="output_parameter_inspection_"//trim(msg)//".txt",action="write",status="replace")
         call search_equilibrium( guessv, momvec, obj_val_1st, 100, i, modelmsg  )
         if( modelmsg == 0 )then
@@ -759,7 +761,7 @@ program MPI_sandbox
         else
             write(4000+i, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
         endif ! modelmsg
-        close(4000+i)
+        close(4000+i) ! test
         
         i = 200
         call read_parameter_model(para, '_1parameter.txt')
@@ -778,6 +780,7 @@ program MPI_sandbox
         momvec = inf
         obj_val_1st = inf
         write(msg,fmt='(i3)') i ! either 100 or 200
+        write(my_id+1001,'(/,a,i3,a,/)') " ================================ ", i, " ================================="
         open(unit=4000+i,file="output_parameter_inspection_"//trim(msg)//".txt",action="write",status="replace")
         call search_equilibrium( guessv, momvec, obj_val_1st, 100, i, modelmsg  )
         if( modelmsg == 0 )then
