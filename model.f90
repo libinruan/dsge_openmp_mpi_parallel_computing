@@ -3978,17 +3978,20 @@ contains
         ! 5.10.2017 cross sectional size (depends on agent's decision)
         ! correct 5.9.2017
         ! All workers (including entrepreneur-turned workers). Excluding retirees.
-        woksize = sum(sef,s3c(:,3)==0.and.s3c(:,9)<=9) + sum(sef,s3c(:,3)/=0.and.s3c(:,4)==0.and.s3c(:,9)<=9) ! 4.17.2017 self-chosen workers + entrepreneur-turned workers. No retirees are included. 
-        ! Workes who decide to be an entrepreneur next period
-        chgw2e  = sum(sef,s3c(:,3)==0.and.swk==1.and.s3c(:,9)<=9) + sum(sef,s3c(:,3)/=0.and.s3c(:,4)==0.and.swk==1.and.s3c(:,9)<=9) ! a subset of the above 4.17.2017 `swk` is generated in the subroutine `convert_2d_outcome_into_series.` with `coarse` flag.
+        !woksize = sum(sef,s3c(:,3)==0.and.s3c(:,9)<=9) + sum(sef,s3c(:,3)/=0.and.s3c(:,4)==0.and.s3c(:,9)<=9) ! 4.17.2017 self-chosen workers + entrepreneur-turned workers. No retirees are included. 
+        !chgw2e  = sum(sef,s3c(:,3)==0.and.swk==1.and.s3c(:,9)<=9) + sum(sef,s3c(:,3)/=0.and.s3c(:,4)==0.and.swk==1.and.s3c(:,9)<=9) ! a subset of the above 4.17.2017 `swk` is generated in the subroutine `convert_2d_outcome_into_series.` with `coarse` flag.
+        woksize = sum(sef, s3c(:,3)==0.and.s3c(:,9)<=9) !10.14.2017
+        chgw2e  = sum(sef, s3c(:,3)==0.and.s3c(:,9)<=9.and.swk==1) !10.14.2017
         w2erat  = chgw2e/woksize
         
         !write(4000+trial_id,fmt='("macro-2",8x,8(e21.14,x))') govbal2gdp, hug_inv_per, med_inv_per, sml_inv_per, ent_wel_per, woksize, chgw2e, w2erat
         
         ! All entrepreneurs
-        entsize = sum(sef,s3c(:,3)>0.and.s3c(:,4)==1) ! 4.17.2017 original ent size including "bad" luck entrepreneurs. 
-        ! Entrepreneurs who are hit by bad business shock
-        chge2w  = sum(sef,s3c(:,3)>0.and.s3c(:,4)==1.and.swk==0) ! 4.17.2017 a subset of the above ! 5.10.2017 remove s3c(:,9)<=9. Correct.
+        !entsize = sum(sef,s3c(:,3)>0.and.s3c(:,4)==1) ! 4.17.2017 original ent size including "bad" luck entrepreneurs. 
+        !! Entrepreneurs who are hit by bad business shock
+        !chge2w  = sum(sef,s3c(:,3)>0.and.s3c(:,4)==1.and.swk==0) ! 4.17.2017 a subset of the above ! 5.10.2017 remove s3c(:,9)<=9. Correct.
+        entsize = sum(sef, s3c(:,3)>0) !10.14.2017
+        chge2w  = sum(sef, s3c(:,3)>0.and.swk==0) !10.14.2017
         e2wrat  = chge2w/entsize
         
         ! 4.17.2017 aggregate stats --------------------------------------
@@ -4000,8 +4003,13 @@ contains
         !! 5.10.2017 cross sectional size (not depends on agent's decision). Do not consider retirees.
         !lvece = s3c(:,3)>0.and.s3c(:,4)==1.and.abs(sw_buzcap_notuse-0._wp)<1.e-7_wp
         !lvecw = (lvece==.false..and.s3c(:,9)<=9) ! 5.10.2017 remove this line: (s3c(:,3)==0.and.s3c(:,9)<=9).or. and s3c(:,3)/=0.and.s3c(:,4)==0
-        lvece = s3c(:,3)>0.and.s3c(:,4)==1                   ! 9-15-2017
-        lvecw = (s3c(:,3)==0.and.s3c(:,9)<=9).or.(s3c(:,3)>0.and.s3c(:,4)==0.and.s3c(:,9)<=9) ! 9-15-2017
+        
+        !lvece = s3c(:,3)>0.and.s3c(:,4)==1 ! 9-15-2017
+        !lvecw = (s3c(:,3)==0.and.s3c(:,9)<=9).or.(s3c(:,3)>0.and.s3c(:,4)==0.and.s3c(:,9)<=9) ! 9-15-2017
+        
+        !10.14.2017
+        lvece = s3c(:,3)>0 ! 10.14.2017 including back luck entrepreneurs.
+        lvecw = s3c(:,3)==0.and.s3c(:,9)<=9
         
         szwok = count(lvecw)
         allocate(svec(szwok),rvec(szwok))
