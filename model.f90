@@ -3899,13 +3899,19 @@ contains
         tvec = s3c(:,3)>0
         
         ! 4.16.2017 12:05pm stop here.
-        totast = dot_product(sef,sw_ini_asset) ! 4.16.2017 Actually, total financial assets.
+        totast = dot_product(sef,sw_ini_asset) ! 10.18.2017 It's net financial asset holdings (assets net of liabilities).
         
         svec   = sef*sw_ini_asset
         !wokfin = sum(svec,s3c(:,3)==0.and.s3c(:,9)<=9) ! retirees are included into the working class household hereafter.
-        wokfin = sum(svec,tvec==.false.)  ! 3.27.2017 added s3c(:,4) condition to single out the entrepreneur-turn workers in the current peirod.
-        entfin = sum(svec,tvec==.true.)  ! 3.27.2017 added s3c(:,4) condition to single out the entrepreneur-turn workers in the current peirod.
-        
+        if(printout22)then ! 10.18.2017
+            wokfin = sum(svec,tvec==.false..and.svec>0._wp.and.sef>0._wp)  
+            entfin = sum(svec,tvec==.true..and.svec>0._wp.and.sef>0._wp)   
+        else
+            wokfin = sum(svec,tvec==.false.)
+            entfin = sum(svec,tvec==.true.)             
+        endif 
+            
+            
         svec   = sef*sw_ini_house
         !wokhom = sum(svec,s3c(:,3)==0.and.s3c(:,9)<=9)
         wokhom = sum(svec,tvec==.false.) ! 3.27.2017 added s3c condition. 7-2-2017 Including retired people.
@@ -3913,7 +3919,12 @@ contains
         
         svec   = sef*(sw_bizinvestment+sw_buzcap_notuse) ! 9-13-2017 definition of bizinvestment defined above is updated. only z>0 people have positive bizinvestment.
         entcap = sum(svec, tvec==.true.) ! 3.27.2017 Only sum up those figures not coming from idle capital. ! 8-14-2017 ok.
-        crpcap = totast/(1._wp+dfrac)-entcap ! Cagetti and De Nardi, TAUCfinalSS.f90, line 1273. a constant fraction of total capital. ! <========================<<
+        if(printout22)then
+            crpcap = (wokfin+entfin)/(1._wp+dfrac)-entcap
+        else
+            crpcap = totast/(1._wp+dfrac)-entcap ! Cagetti and De Nardi, TAUCfinalSS.f90, line 1273. a constant fraction of total capital. ! <========================<<
+        endif
+            
         ! 3.27.2017 following cagetti and de nardi's 2009 AER paper. See their InitialSS.f90 in AER_2009_codes.zip (unzipped as MS200405121codes). Their model
         ! also consider government debt accoutns for a fraction of total capital.
         ! totast = entcap + crpcap + dfrac*(entcap + crpcap) 
@@ -4064,14 +4075,14 @@ contains
         
         !write(4000+trial_id,fmt='("macro-3",8x,8(e21.14,x))') entsize, chge2w, e2wrat, medwokinc, lowest_quintile_wokinc, medwokwel, medentwel, med_wel_e2w
         
-        entcsp = sum(sef*sw_consumption, lvece) ! 4.17.2017 It excludes bad luck entrepreneurs.
-        wokcsp = sum(sef*sw_consumption, lvecw) ! 4.17.2017 It includes entrepreneur-turned workers and retirees.
+        entcsp = sum(sef*sw_consumption, lvece.and.sw_consumption>0._wp) ! 4.17.2017 It excludes bad luck entrepreneurs.
+        wokcsp = sum(sef*sw_consumption, lvecw.and.sw_consumption>0._wp) ! 4.17.2017 It includes entrepreneur-turned workers and retirees.
         
-        entinc = sum(sef*sw_totinc_bx, lvece) !10.13.2017
-        wokinc = sum(sef*sw_totinc_bx, lvecw) !10.13.2017
+        entinc = sum(sef*sw_totinc_bx, lvece.and.sw_totinc_bx>0._wp) !10.13.2017 10.18.2017
+        wokinc = sum(sef*sw_totinc_bx, lvecw.and.sw_totinc_bx>0._wp) !10.13.2017 10.18.2017
         
         !all_income  = entinc + wokinc ! sum(sef*sw_taxableincome) !10.13.2017 comment out
-        all_income  = sum(sef*sw_totinc_bx) !10.13.2017
+        all_income  = sum(sef*sw_totinc_bx,sw_totinc_bx>0._wp) !10.13.2017
         ent_inc_per = entinc/all_income
         
         entaxw = sum(sef*sw_aftertaxwealth, lvece) ! <--- 9-15-2017
@@ -4102,7 +4113,7 @@ contains
         ! 4.17.2017 stop here 4:09 pm.
         !poppaysstaximplied = sumsstax/(tauss*wage) ! 3.25.2017 May need to be revised!! the base that determines the total amount of social security benefits. ! 4.17.2017 comment out.
         !benefit  = sumsstax/sum(popfrac(10:14)) ! 4.17.2017 update benefit.
-        benefitimplied  = sumsstax/sum(popfrac(10:14)) ! 7-6-2017 On Mesabi, the update of longer interval is faster in terms of convergence. So I use beenfitimplied and update only 
+        benefitimplied  = sumsstax/sum(popfrac(10:14)) ! 7-6-2017 On Mesabi, conducting update after a longer interval is faster in terms of convergence. So I use beenfitimplied and update only 
         
         deallocate(lvece,lvecw)
         
@@ -4117,55 +4128,6 @@ contains
         !        sum(sef*(sw_buzcap_notuse+sw_bizinvestment),ttvec==.true.), totast/(1._wp+dfrac)-sum(sef*(sw_buzcap_notuse+sw_bizinvestment),ttvec==.true.), & 
         !        (sum(sef*(sw_buzcap_notuse+sw_bizinvestment),ttvec==.true.) + totast/(1._wp+dfrac)-sum(sef*(sw_buzcap_notuse+sw_bizinvestment))) ! 10.13.2017
         !endif         
-        
-        if(printout19)then
-            !allocate(svec(sz),tvec(sz))
-            !tvec = .false.
-            !svec = 0._wp
-            !tvec = s3c(:,3)>0
-            !totast1 = totast
-            !svec = sef*sw_ini_asset
-            !wokfin1 = sum(svec,tvec==.false.)
-            !entfin1 = sum(svec,tvec==.true.)
-            !
-            !svec = sef*sw_ini_house
-            !wokhom1 = sum(svec,tvec==.false.)
-            !enthom1 = sum(svec,tvec==.true.)
-            !
-            !svec = sef*(sw_bizinvestment+sw_buzcap_notuse)
-            !entcap1 = sum(svec,tvec==.true.)
-            !crpcap1 = totast/(1._wp+dfrac)-entcap1
-            !
-            !svec = sef*sw_labordemand
-            !entlab1 = sum(svec,tvec==.true.)
-            !crplab1 = totefl - entlab1      
-            !
-            !entprd1 = entprd
-            !crpprd1 = wage*crplab1 + (rd+deltak)*crpcap1
-            !gdp1    = crpprd1 + entprd1
-            !
-            !hug_inv_proj1 = sum(sef,tvec==.true..and.s3c(:,3)==3)
-            !med_inv_proj1 = sum(sef,tvec==.true..and.s3c(:,3)==2)
-            !sml_inv_proj1 = sum(sef,tvec==.true..and.s3c(:,3)==1)   
-            !all_inv_proj1 = hug_inv_proj1 + med_inv_proj1 + sml_inv_proj1
-            !
-            !hug_inv_per1  = hug_inv_proj1/all_inv_proj1
-            !med_inv_per1  = med_inv_proj1/all_inv_proj1
-            !sml_inv_per1  = sml_inv_proj1/all_inv_proj1
-            !
-            !deallocate(svec,tvec)
-            
-            write(my_id+1001,'(/,a)') ' ======================================= original '
-            write(my_id+1001,'(8(4x,a,x))') 'totast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
-            write(my_id+1001,'(8(e10.3,x))') totast, wokfin, entfin, wokhom, enthom, entcap, crpcap, gdp
-            !write(my_id+1001,'(a)') ' ======================================= new      '
-            !write(my_id+1001,'(8(4x,a,x))') 'totast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
-            !write(my_id+1001,'(8(e10.3,x))') totast, wokfin1, entfin1, wokhom1, enthom1, entcap1, crpcap1, gdp1
-            !write(my_id+1001,'(a)') ' --------------------------------------- original '
-            write(my_id+1001,'(5(4x,a,x),2(x,a,x),2(3x,a,x))') 'hugprj', 'medprj', 'smlprj', 'w2erat', 'e2wrat', 'entincrat', 'medwelrat', 'entsize', 'woksize' 
-            write(my_id+1001,'(9(e10.3,x),/)') hug_inv_per, med_inv_per, sml_inv_per, w2erat, e2wrat, ent_inc_per, med_wel_e2w, entsize, woksize
-            write(my_id+1001,'(a)') ' =============================================================================================================== '
-        endif ! printout19
         
         ! 4.16.2017 stop here. 8:30 pm.
         ! negative value 3.27.2017 stop here. (1) ---------------------------------------------------------------------------------------------------
@@ -4202,7 +4164,12 @@ contains
         if(entcap/=entcap)then ! (4)
             exit_log1 = .true.
             msg = ' entcap NaN '
-        endif           
+        endif        
+        
+        if( sml_inv_per<0._wp .or. med_inv_per<0._wp .or. hug_inv_per<0._wp )then ! (5) 10.18.2017
+            exit_log1 = .true.
+            msg = ' negative mass '
+        endif
         
         if(exit_log1==.false.)then ! the steady state is obtained successfully.
 
@@ -4211,7 +4178,8 @@ contains
             momvec(3)  = med_inv_per
             momvec(4)  = hug_inv_per
             momvec(5)  = entsize !10.14.2017 Only entrepreneurs experiencing good business shocks.
-            momvec(6)  = (crpcap+entcap)/gdp !10.14.2017, 8-19-2017 wokfin + entfin ~= totast ~= (crpcap+entcap) + <government debt> = (crpcap+entcap)*(1+dfrac). 8-19-201 Correct. See Cagetti and DeNardi's 2009 AER code, line 2197 in InitialSS.f90.
+            !momvec(6)  = (crpcap+entcap)/gdp !wokfin + entfin ~= (crpcap+entcap) + <government debt> = (crpcap+entcap)*(1+dfrac). 8-19-201 Correct. See Cagetti and DeNardi's 2009 AER code, line 2197 in InitialSS.f90.
+            momvec(6)  = (wokfin + entfin)/gdp !10.18.2017
             momvec(7)  = (enthom+wokhom)/gdp !10.14.2017, 8-19-2017
             momvec(8)  = (entfin+enthom)/(entfin+enthom+wokfin+wokhom) ! total asset helds by entrepreneurs, regardless of business shocks 7-2-2017, including the amount belonging to retired people.
             momvec(9)  = ent_inc_per
@@ -4231,6 +4199,21 @@ contains
         else ! Divergence happends. Bad input. No sensible result is obtained.
             momvec = penalty    
         endif 
+        
+        if(printout19)then          
+            write(my_id+1001,'(/,a)') ' ======================================= original '
+            write(my_id+1001,'(8(4x,a,x))') 'netast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
+            write(my_id+1001,'(8(e10.3,x))') totast, wokfin, entfin, wokhom, enthom, entcap, crpcap, gdp
+            !write(my_id+1001,'(a)') ' ======================================= new      '
+            !write(my_id+1001,'(8(4x,a,x))') 'totast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
+            !write(my_id+1001,'(8(e10.3,x))') totast, wokfin1, entfin1, wokhom1, enthom1, entcap1, crpcap1, gdp1
+            !write(my_id+1001,'(a)') ' --------------------------------------- original '
+            write(my_id+1001,'(5(4x,a,x),2(x,a,x),2(3x,a,x))') 'hugPrj', 'medPrj', 'smlPrj', 'w2eRat', 'e2wRat', 'entIncRat', 'medWelRat', 'entSize', 'wokSize' 
+            write(my_id+1001,'(9(e10.3,x))') hug_inv_per, med_inv_per, sml_inv_per, w2erat, e2wrat, ent_inc_per, med_wel_e2w, entsize, woksize
+            write(my_id+1001,'(4(2x,a,x))') ' entCapR', 'asst2Gdp', 'home2Gdp', 'netAsstR'
+            write(my_id+1001,'(4(e10.3,x))') momvec(1), momvec(6), momvec(7), momvec(8)
+            write(my_id+1001,'(a,/)') ' =============================================================================================================== '
+        endif ! printout19        
         
         !write(4000+trial_id,fmt='("macro-5",8x,8(e21.14,x))') rimplied, sumsstax, benefitimplied, momvec(1:5)
         
@@ -4312,7 +4295,7 @@ contains
     !    deallocate( tvec )
     !end subroutine grid_boundary_inspection
     
-    subroutine grid_boundary_inspection( amin, amax, mass_vec )
+    subroutine grid_boundary_inspection( amin, amax, mass_vec, flg )
         implicit none
         real(wp), intent(inout) :: amin, amax
         real(wp), dimension(:), intent(out) :: mass_vec
@@ -4320,6 +4303,7 @@ contains
         integer :: size_list, size_av, i, size_idxvec, idx_max, idx_min
         integer, dimension(:), allocatable :: intvec, idxvec
         logical, dimension(:), allocatable :: logvec
+        logical, optional, intent(inout) :: flg
         
         !write(*,'(a)') ' enter grid inspection '
         
@@ -4339,10 +4323,16 @@ contains
         allocate( idxvec(size_idxvec) )
         idxvec = pack(intvec,logvec)
         ! search for the maximum index of financial asset holding
+
         idx_max = maxval(idxvec)
         ! search for the minimum index of financial asset holding
         idx_min = maxval(-idxvec)
         idx_min = -idx_min
+        
+        if( (idx_min<1 .or. idx_max<1) .or. (idx_min>adim .or. idx_max>adim) )then  !10.17.2017
+            flg = .true.
+            return
+        endif
         
         ! return (to be updated)
         amax = av(idx_max)
@@ -4355,13 +4345,21 @@ contains
         enddo ! i
         
         ! if having fat tail, expand the corresponding limit (by raising it if it is a upper bound, and vice versa.)
-        if(mass_vec(idx_max)>chunkmass)then
-            temp = 0.5_wp*abs( av(idx_max)-av(idx_max-1) )
+        if(mass_vec(idx_max)>chunkmass)then !10.17.2017
+            if(idx_max>idx_min)then
+                temp = 0.5_wp*abs( av(idx_max)-av(idx_max-1) )
+            else
+                temp = 0.5_wp*abs( av(idx_max) )
+            endif
             amax = amax + temp ! increase up a little bit the upper bound
         endif
         
-        if(mass_vec(idx_min)>chunkmass)then
-            temp = 0.5_wp*abs( av(idx_min)-av(idx_min+1) )
+        if(mass_vec(idx_min)>chunkmass)then !10.17.2017
+            if(idx_max>idx_min)then
+                temp = 0.5_wp*abs( av(idx_min)-av(idx_min+1) )
+            else
+                temp = 0.5_wp*abs( av(idx_min) )
+            endif
             amin = amin - temp ! lower down a little bit the lower bound
         endif
         
@@ -4370,7 +4368,7 @@ contains
         !write(*,'(a)') ' exit grid inspection '
     end subroutine grid_boundary_inspection
     
-    subroutine grid_housing_upper_bound_adjustment(new_hmax, h_mass_vec)
+    subroutine grid_housing_upper_bound_adjustment(new_hmax, h_mass_vec, flg)
         implicit none
         real(wp), intent(out) :: new_hmax
         real(wp), dimension(:), intent(out) :: h_mass_vec
@@ -4378,6 +4376,7 @@ contains
         integer :: i, size_list, size_hv, idx_max, size_idxvec
         integer, dimension(:), allocatable :: intvec, idxvec
         logical, dimension(:), allocatable :: logvec
+        logical, optional, intent(inout) :: flg
         
         size_list = size(s3c(:,1))
         size_hv = size(hv)
@@ -4392,12 +4391,22 @@ contains
         allocate( idxvec(size_idxvec) )
         idxvec = pack(intvec, logvec)
         idx_max = maxval(idxvec)
+        
+        if( idx_max<1 .or. idx_max>hdim )then
+            flg = .true.
+            return
+        endif
+        
         new_hmax = hv(idx_max)
         do i = 1, size_hv
             h_mass_vec(i) = sum(sef, s3c(:,2)==i)
         enddo
         if(h_mass_vec(idx_max)>chunkmass)then
-            temp = 0.5_wp*abs( hv(idx_max)-hv(idx_max-1))
+            if(idx_max>1)then
+                temp = 0.5_wp*abs( hv(idx_max)-hv(idx_max-1))
+            else !idx_max==1
+                temp = 0.5_wp*abs( hv(idx_max) )
+            endif
             new_hmax = new_hmax + temp
         endif
         deallocate(intvec,logvec,idxvec)
