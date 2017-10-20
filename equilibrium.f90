@@ -17,6 +17,8 @@ module equilibrium
         !logical, intent(out) :: exit_log1
         logical :: exit_log1
         character(len=100) :: msg
+        ! Used for extension 04:00pm.
+        
         
         !if(my_id==0)then
         !    do i = 1, size(para)
@@ -28,7 +30,13 @@ module equilibrium
         exit_log1 = .false. ! Initializing Exit Flag. If successful, .False.; Otherwise, .True.
         
         if(printout11)then ! .true. for running the real quantitative model
-            call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
+            !if(mpi_exercise_mode/=5)then
+                call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
+            !else
+            !    ! Make subdim dimensions be extended to ndim dimension so that we can use the usual routine to obtain the usual ndim moments instead of just a subset of the original moments.
+            !    ! One rule to reach hopefully is that solve_model doesn't need to change anything. That is, its dimension remains 10 dimensions.
+            !    
+            !endif
         else ! .false. for testing the communication of the coarse search.
             call test_model( guessv, momvec, node_id, trial_id, exit_log1, msg) 
         endif
@@ -85,10 +93,20 @@ module equilibrium
         ans = abs(big-sml)
     end subroutine 
     
+    !subroutine test2()
+    !    implicit none
+    !    print*, '-------------- hahaha ', obj_func_toggle
+    !end subroutine test2
+    
     function objective_value( mom, tar )
         real(wp) :: objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
-        objective_value = sum(((mom-tar)/tar)**2._wp)
+        select case(obj_func_toggle)
+            case(1)
+                objective_value = sum(((mom-tar)/tar)**2._wp)
+            case(2)
+                objective_value = ((mom(2)-tar(2))/tar(2))**2._wp + ((mom(3)-tar(3))/tar(3))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp
+        end select 
         !objective_value = sum( (mom-tar)**2._wp )
     end function objective_value   
     
@@ -111,8 +129,16 @@ module equilibrium
                 temp2 = temp1**2._wp
                 test_objective_value = sum(func_ray**2._wp) + temp1**2._wp + temp2**2._wp + 1
                 deallocate( func_ray, fund_ray )
-            case(3) ! Trigonometric Function
-
+            case(3) ! only the first five dimension using the same objective function as in case 2.
+                allocate( func_ray(subdim), fund_ray(subdim) )
+                do i = 1, subdim
+                    func_ray(i) = mom(i)-1._wp
+                    fund_ray(i) = i*func_ray(i)
+                enddo ! i              
+                temp1 = sum(fund_ray)
+                temp2 = temp1**2._wp
+                test_objective_value = sum(func_ray**2._wp) + temp1**2._wp + temp2**2._wp + 1
+                deallocate( func_ray, fund_ray )
             case(4) ! Extended Rosenbrock Function
                 if(mod(ndim,2)/=0) write(*,*) " Extended rosenbrock function requires the size of dimensions is an even number. "
                 allocate( func_ray(ndim) )
@@ -572,6 +598,7 @@ module equilibrium
         epsir  = 1.0_wp
         bracketr = 1
         iteratot = 1
+        iteragov8rate = 0
         
         !taubal = taubalmin ! initialization ! redundant
         ! inner loop        
@@ -628,6 +655,8 @@ module equilibrium
             !write(4000+trial_id,fmt='("#10-biz",8x,3(e21.14,x))') sum(c_grs_mat), sum(c_lab_vec), sum(c_opt_vec)
             
             do while((epsigov>epsigovmin).and.(iteragov<=iteragovmax)) ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [2]
+                
+                iteragov8rate = iteragov8rate + 1 !10.18.2017
                 
 		        if(bracketgov==1)then
 		        	taubal=taubalmin ! taubal is the variable to be tried.
@@ -767,7 +796,7 @@ module equilibrium
                 stax  = staxbase*(avgincw/50000._wp)**(-ptax) ! Obsolete. Naka uses average household income in 19990. unstable in my current model ! 1-31-2017 seems redundant
                 
                 write(my_id+1001,'((15x,"staxw",2x),(15x,"staxe",2x))') ! isye 
-                write(my_id+1001,'(2(e20.13,2x))') staxw, staxe ! isye
+                write(my_id+1001,'(2(e20.13,2x),/)') staxw, staxe ! isye
                 
                 ! boundary 072316
                 !hmin = hmin*gdp !   
@@ -1037,7 +1066,7 @@ module equilibrium
                     
                     ! keep track ###
                     
-                    if(printout3) write(unit=my_id+1001,fmt='(" # of Tot Rnds: ",i4,", # of GovRnds: ",i5,2(a,f12.8),(a,i4))') iteratot, iteragov, ', taubal ', taubal, ', epsigov ', epsigov,', iteragov ', iteragov                
+                    if(printout3) write(unit=my_id+1001,fmt='(" # of Tot Rnds: ",i4,", # of GovRnds: ",i5,", # of Gov8RateRnds: ",i5,2(a,f12.8),(a,i4))') iteratot, iteragov, iteragov8rate, ', taubal ', taubal, ', epsigov ', epsigov,', iteragov ', iteragov                
                     iteragov = iteragov + 1
                     !iteratot = iteratot + 1 ! 9-18-2017
                 else ! exit_log1==.true. ! Macrostat issued an error message.
@@ -1052,8 +1081,9 @@ module equilibrium
                 !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
                 
                 !if(printout3) write(unit=my_id+1001,fmt='((a,i4),(a,f7.4),3(a,f7.4))') '-iterar ', iterar, ' epsir ', epsir, ' input.rbar ', rbar, ' impld.rbar ', rbarimplied, ' diff.rbar ', fundiffnow            
-                if(printout3) write(unit=my_id+1001,fmt='(   /,a,(11x,a), (8x,a), (8x,a),     (x,a))') ' Start: # iterar', 'epsir','new.rbar','imp.rbar','diff.rbar(fundiffnow)'
+                if(printout3) write(unit=my_id+1001,fmt='(   /,a,(11x,a), (8x,a), (8x,a),     (x,a))') 'Start: # iterar', 'epsir','new.rbar','imp.rbar','diff.rbar(fundiffnow)'
                 if(printout3) write(unit=my_id+1001,fmt='(11x,i4,(f16.8),(f16.8),(f16.8),(6x,f16.8))') iterar,epsir,rbar,rbarimplied,fundiffnow
+                if(printout3) write(unit=my_id+1001,fmt='(a,i5,a,i5,a,f16.8)') 'iterar: ', iterar, ', iteragov8rate: ', iteragov8rate, ', --- EPSIR: ', epsir
                 
 		        ! using bisection algorithm to update rbar
 	            ! bisection algorithm: in the current case they try to minimize the difference of rbar and rimplied	 
@@ -1203,8 +1233,8 @@ module equilibrium
 		        		endif
                     endif
                     !write(unit=102,fmt='("-----",(a,f8.4),(a,i4),3(a,f8.4))') ' epsir   ', epsir, ' iterar   ', iterar, ' rbar ', rbar, ' rimp ', rbarimplied, ' diff ', fundiffnow            
-                    if(printout3) write(unit=my_id+1001,fmt='(2x,a,(8x,a),(8x,a),(8x,a))') 'Update: bracketr', 'rbarmax', 'rbarmin', 'newrbar'
-                    if(printout3) write(unit=my_id+1001,fmt='(14x,i4,3(f15.7))') bracketr, rbarmax, rbarmin, rbar 
+                    if(printout3) write(unit=my_id+1001,fmt='(a,(8x,a),(8x,a),(8x,a))') 'Update: bracketr', 'rbarmax', 'rbarmin', 'newrbar'
+                    if(printout3) write(unit=my_id+1001,fmt='(12x,i4,3(f15.7))') bracketr, rbarmax, rbarmin, rbar 
                     if(printout3) write(unit=my_id+1001,fmt='(11x,a,3(11x,a))') 'fundmax','fundmin','tbalmax','tbalmin'
                     if(printout3) write(unit=my_id+1001,fmt='(3x,f15.7,3(3x,f15.7))') fundiffmax, fundiffmin, taubalmax, taubalmin
                 endif
@@ -1214,11 +1244,13 @@ module equilibrium
                 exit ! exit the interest rate loop. 
             endif
             
+            
             !! 8-1-2017
             new_amin = amin
             new_amax = amax
-            call grid_boundary_inspection(new_amin,new_amax,mass_vec) ! 8-28-2017 revision 
-            write(my_id+1001,'(/,a)') 'Current distribution of financial asset holdings '
+            call grid_boundary_inspection(new_amin, new_amax, mass_vec, exit_log1) ! 8-28-2017 revision 
+            if(exit_log1==.true.) exit !10.17.2017
+            write(my_id+1001,'(a)') 'Financial Asset Holdings Distribution '
             do i = 1, adim-1
                 write(my_id+1001, '(9x,f11.5)', advance='no') av(i)
             enddo 
@@ -1228,15 +1260,16 @@ module equilibrium
             enddo
             write(my_id+1001, '(12x,a,i3)') "level",adim
             !write(my_id+1001, '(<adim>(f20.9))') av
-            write(my_id+1001, '(<adim>(f20.9),/)') mass_vec
+            write(my_id+1001, '(<adim>(f20.9))') mass_vec
             
             write(my_id+1001, '(2(4x,a,x))') "old amin", "old amax"
             write(my_id+1001, '(2(f12.7,x))') amin, amax 
             write(my_id+1001, '(2(4x,a,x))') "new amin", "new amax"
-            write(my_id+1001, '(2(f12.7,x),/)') new_amin, new_amax
+            write(my_id+1001, '(2(f12.7,x),2/)') new_amin, new_amax
             
             ! housing boundary adjustment
-            call grid_housing_upper_bound_adjustment(new_hmax, h_mass_vec) ! 10-9-2017 #2
+            call grid_housing_upper_bound_adjustment(new_hmax, h_mass_vec, exit_log1) ! 10-9-2017 #2 This line is to get h_mass_vec primarily, not changing the boundary.
+            if(exit_log1==.true.) exit !10.17.2017
             write(my_id+1001,'(a)') 'Current distribution of housing assets'
             do i = 1, hdim-1
                 write(my_id+1001, '(9x,f11.5)', advance='no') hv(i)     

@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(141)
-    real(wp) :: para(141), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(145)
+    real(wp) :: para(145), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -106,9 +106,14 @@ module variable
                 iterasvmax = 10, &
                 sdim   = 5, &
                 nsdim = 100, &
+                subdim = 5, & !10.15.2017 a subset of the original 10 dimensions
                 iterainvdist = 50, &
                 noamoeba = 2, &
-                testfunc_idx = 1
+                testfunc_idx = 1, &
+                setindex = 1, &
+                listlength = 10000, & ! the length of selective points after coarse search 10.15.2017
+                srnumber, &
+                obj_func_toggle
     
     character(len=100) :: listnumber
     
@@ -139,6 +144,7 @@ module variable
     real(wp) :: epsigovmin = 5.e-05
     integer  :: iteragov   = 1
     integer  :: iteragovmax = 40 
+    integer  :: iteragov8rate
     real(wp) :: taubalmin  = 0.0345 ! [domain]
     real(wp) :: taubalmax  = 0.0363 ! [domain]
     !real(wp) :: govbal2gdp    ! [image]
@@ -250,9 +256,9 @@ module variable
     
     real(wp) :: stepsize, reinifac, amoalp, amogam, amobet, amotau, amoerrcrt, amoconvex
     real(wp) :: obj_val_1st
-    real(wp), dimension(:), allocatable :: parcel, result, obj_val_vec, origin_input, selected_input
+    real(wp), dimension(:), allocatable :: parcel, result, obj_val_vec, origin_input, selected_input, pt_input_ndim
     real(wp), dimension(:,:), allocatable :: sobolm, sobolm_scaled, mpi_sobol_scaled, mpi_sobol_mixed ! sobolm: scaled for ranges; mpi_sobol_scaled: adjusted for the starting point.
-    real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1
+    real(wp), dimension(:,:), allocatable :: mpi_simmom_matrix, outputinput1, pointlist, pts_ndim, pts_subdim
     
     ! amoeba - break_list - mpi_exercise_mode == 0 Only.
     !real(wp), dimension(10) :: weight_list = [0.95_wp,0.9_wp,0.85_wp,0.8_wp,0.75_wp,0.7_wp,0.65_wp,0.6_wp,0.55_wp,0.5_wp] ! used for mpi_exercise_mode==1
@@ -261,7 +267,7 @@ module variable
     integer, dimension(2) :: breaks_list = [1,50000]      ! 8-18-2017 ! Useless now.
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
-    logical :: printout13, printout14, printout15, printout16, printout17, printout18, printout19
+    logical :: printout13, printout14, printout15, printout16, printout17, printout18, printout19, printout20, printout21, printout22, printout23, printout24
     logical :: receiving, status(mpi_status_size)
     character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -328,7 +334,17 @@ contains
                    case ('printout18')     
                         read( value_string, * ) printout18          
                    case ('printout19')     
-                        read( value_string, * ) printout19                            
+                        read( value_string, * ) printout19   
+                   case ('printout20')     
+                        read( value_string, * ) printout20    
+                   case ('printout21')     
+                        read( value_string, * ) printout21      
+                   case ('printout22')     
+                        read( value_string, * ) printout22      
+                   case ('printout23')     
+                        read( value_string, * ) printout23 
+                   case ('printout24')     
+                        read( value_string, * ) printout24                        
                    case ('listnumber')
                         read(value_string, *  ) listnumber
                    case ('bestvertex_file')
@@ -1042,7 +1058,27 @@ contains
                        i = i + 1
                        read( value_string,*) momround
                        labstr(i) = 'momround'
-                       para(i) = momround                        
+                       para(i) = momround   
+                   case('setindex') ! 142
+                       i = i + 1
+                       read( value_string,*) setindex
+                       labstr(i) = 'setindex'
+                       para(i) = setindex 
+                   case('listlength') ! 143
+                       i = i + 1
+                       read( value_string,*) listlength
+                       labstr(i) = 'listlength'
+                       para(i) = listlength      
+                   case('subdim') ! 144
+                       i = i + 1
+                       read( value_string,*) subdim
+                       labstr(i) = 'subdim'
+                       para(i) = subdim   
+                   case('obj_func_toggle') ! 145
+                       i = i + 1
+                       read( value_string,*) obj_func_toggle
+                       labstr(i) = 'obj_func_toggle'
+                       para(i) = obj_func_toggle                        
                 end select
             enddo
         else

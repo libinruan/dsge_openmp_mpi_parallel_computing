@@ -11,19 +11,19 @@ lambda           0.2
 theta            0.1359087 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
 sigma            1.5 ! 1.5 Yang. 2.0 ! the larger the sigma, the flatter the curve becomes when the abscissa is away from the origin.  
 nu               0.88 
-kv1              0.0766807 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
-prtk0            0.0400111 ! <-------------------------------------------------------------------------- (2-4)
-prtk1            0.1155747
-prtk2            0.1164856
+kv1              0.27  !10.14.2017, 0.0766807 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
+prtk0            0.03  !0.0400111 ! <-------------------------------------------------------------------------- (2-4)
+prtk1            0.07  !0.1155747
+prtk2            0.075 !0.1164856
 phi0             0.5 ! needed for programming issue. can take any value. 
-phi1             0.7701660 ! <-------------------------- (8-10)
-phi2             0.9351416 
-phi3             0.9674434 
-beta             0.9416076 ! 0.93 might be too low. <---------------------------------------------------- (6)
-zbar             1.2379053  ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
-iota             0.5 ! 10-8-2017
-zlow             0.0 ! hard wired. Don't change it. 
-hmin             0 
+phi1             0.7702 !0.7701660 ! <-------------------------- (8-10)
+phi2             0.9351 !0.9351416 
+phi3             0.9674 !0.9674434 
+beta             1.02 !10.14.2017, 0.9416076 ! 0.93 might be too low. <---------------------------------------------------- (6)
+zbar             1.6  !1.1 !1.14.20417, 1.2379053  ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
+iota             0.5  ! 10-8-2017
+zlow             0.0  ! hard wired. Don't change it. 
+hmin             0.1 !10.14.2017 
 hmax             16 ! 25; 120.0
 amin             -0.5  
 amax             50 ! 300 ! 70 ! 500 ! 700 ! 999.0 If scale 3 enteprise disappear then raise up the upper bound of financial assets.
@@ -73,6 +73,7 @@ ptax			 0.768
 stax             0.031
 nmul             2
 ndim			 10
+subdim           5 !mpi_exercise_mode==5
 tauk  			 0.4 ! interest income tax rate
 fnhdim			 15 ! hardwired automatically equal to "hdim."
 sdim			 5 ! Use Odd number only!!! 5 good. It is the size of financial grid points after the 1st round.
@@ -94,29 +95,29 @@ target7  	     1.26   ! target 7: housing capital (consumer durables) to output
 target8          0.40   ! target 8: total asset held by entrepreneurs
 target9          0.27   ! target 9: share of income held by entrepreneurs
 target10         8.0    ! target 10: ratio of median assets (entrepreneurs to workers)
-lower1           0.01   ! kv1: size of the smallest project ! ##################################################################################
-upper1           1.50   ! kv1: size of the smallest project
-lower2           0.01   ! prtk0: probability of new ideas
-upper2           1.00   ! prtk0: probability of new ideas
-lower3           0.01   ! prtk1: probability of new ideas
-upper3           1.00   ! prtk1: probability of new ideas
-lower4           0.01   ! prtk2: probability of new ideas
-upper4           1.00   ! prtk2: probability of new ideas
-lower5           0.01   ! zbar: average tech shock  
-upper5           1.50   ! zbar: average tech shock
-lower6           0.50   ! beta: discount factor (on "annual" basis)
-upper6           1.50   ! beta: discount factor (on "annual" basis)
-lower7           0.05   ! iota ! 10-9-2017 theta: housing utility parameter
-upper7           0.50   ! iota ! 10-9-2017 theta: housing utility parameter
-lower8           0.50   ! phi1: tech shock
-upper8           1.00   ! phi1: tech shock
-lower9           0.20   ! phi2: tech shock
-upper9           1.00   ! phi2: tech shock
-lower10          0.20   ! phi3: tech shock
-upper10          1.00   ! phi3: tech shock
+lower1           0.0    !-1.5 !0.01   ! kv1: size of the smallest project ! ##################################################################################
+upper1           3.0    ! 1.5 !1.50   ! kv1: size of the smallest project
+lower2           0.0    !-1.5 !0.01   ! prtk0: probability of new ideas
+upper2           1.0    ! 1.5 !1.00   ! prtk0: probability of new ideas
+lower3           0.0    !-1.5 !0.01   ! prtk1: probability of new ideas
+upper3           1.0    ! 1.5 !1.00   ! prtk1: probability of new ideas
+lower4           0.0    !-1.5 !0.01   ! prtk2: probability of new ideas
+upper4           1.0    ! 1.5 !1.00   ! prtk2: probability of new ideas
+lower5           0.0    !-1.5 !0.01   ! zbar: average tech shock  
+upper5           5.0    ! 1.5 !1.50   ! zbar: average tech shock
+lower6           0.9    !-1.5 !0.50   ! beta: discount factor (on "annual" basis)
+upper6           1.1    ! 1.5 !1.50   ! beta: discount factor (on "annual" basis)
+lower7           0.0    !-1.5 !0.05   ! iota ! 10-9-2017 theta: housing utility parameter
+upper7           1.0    ! 1.5 !0.50   ! iota ! 10-9-2017 theta: housing utility parameter
+lower8           0.0    !-1.5 !0.50   ! phi1: tech shock
+upper8           1.0    ! 1.5 !1.00   ! phi1: tech shock
+lower9           0.0    !-1.5 !0.20   ! phi2: tech shock
+upper9           1.0    ! 1.5 !1.00   ! phi2: tech shock
+lower10          0.0    !-1.5 !0.20   ! phi3: tech shock
+upper10          1.0    ! 1.5 !1.00   ! phi3: tech shock
 trylen          30000   ! (integer) Length of trials for exploratory mode (1); sblno1+trylen must be smaller than nsbq. ! ############################################################
 sblno1              1   ! (integer) The index of the first sobol trial in the sobol matrix; only used in mpi_exercise_mode == 1.
-nrow         	   20   ! !!!(integer) "nrow has to be larger than or equal to (ndim+1) and 4*noamoeba," and "-np has to be nrow+1." The number of nodes involved in an individual amoeba group, including its amoeba head, the sub-amoeba groups, each of which contains 4 nodes. There are two possible scenario. One: ndim (size of target moments) plus one (the amoeba head) is smaller than total vertices in a single amoeba (i.e., 4 times noamoeba (the size of amoeba)). Two: it goes the other way around, ndim+1>=4*noamoeba. Both cases are acceptable to the program. 7-30-2017. 
+nrow         	    8   ! 10.15.2017 20   ! !!!(integer) "nrow has to be larger than or equal to (ndim+1) and 4*noamoeba," and "-np has to be nrow+1." The number of nodes involved in an individual amoeba group, including its amoeba head, the sub-amoeba groups, each of which contains 4 nodes. There are two possible scenario. One: ndim (size of target moments) plus one (the amoeba head) is smaller than total vertices in a single amoeba (i.e., 4 times noamoeba (the size of amoeba)). Two: it goes the other way around, ndim+1>=4*noamoeba. Both cases are acceptable to the program. 7-30-2017. 
 stepsize     	  100   ! (real) 10, step size of amoeba in a single dimension; (%) percent of the domain in an individual dimension 
 reinifac     	  0.5   ! (real) reinitialization factor determining the weights of centroid when re-initializing a bad node.
 amoalp       	  1.0   ! (real)   
@@ -130,7 +131,7 @@ amoiniswitch 	    0   ! (integer) 0, no convex combination; 1, convex combinatio
 nsbq 		    30001   ! total number of raw sobol sequence's rows; nsbq must be larger than sblno1+trylen.
 slist               1   ! the start index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message. 
 elist               1   ! the end index of the list of starting points. Note: For mpi_exercise_mode == 2, (elist-slist+1) has to be larger than the number of amoeba (nslaves), so that the initialization stage would issue error message.
-noamoeba            5   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group. Note: noamoeba is actually the number of subgroup within an amoeba.
+noamoeba            2   ! !##! noamoeba*4 must be smaller than or equal to "nrow," and "-np has to be nrow+1." The total number of vertices required in an individual amoeba group. Note: noamoeba is actually the number of subgroup within an amoeba.
 maxdist			1.e-6   ! 1.e-4; maximum distance allowed among vertices in a single amoeba
 tinymass		    0   ! the lower threshold of a valid mass grid. | for adjustment of extremem cases in population distribution. ! 9-11-2017 Set it to Zero, that is, we don't do any truncation. Tested.
 chunkmass       1.e-4   ! the upper threshold of a valid mass grid. | for adjustment of extremem cases in population distribution. ! 9-11-2017 Reset the parameter from 1e-2 to 1e-4 to reasonably extend the lower bound.
@@ -138,8 +139,10 @@ accumass        1.e10   ! parameter used for truncating tailing digits of a vair
 accupara        1.e5    ! parameter used for truncating tailing digits of the 10 model inputs.
 errvalfc        2.e-3   ! tolerance of penality function
 initau				4   ! multiplier of initial vertices ! for determining how spread the shape of the first vertex would be.
-testfunc_idx        4   ! 1, norm 2 measure; 2, Variably Dimensioned Function; 3, ; 4, Extended Rosenbrock Function (restart required to precisely approximate the answer). 
+testfunc_idx        3   ! 1, norm 2 measure; 2, Variably Dimensioned Function; 3, ; 4, Extended Rosenbrock Function (restart required to precisely approximate the answer). 
 momround          1e3   ! 1e3 means a rounding to the 3rd place to the right of decimal point
+setindex            2   ! The set number refers to the working combination of parameter from the input file. 10.15.2017
+listlength         30   ! The length of starting point file to be used with 'setindex'
 printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
 printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage; and 1 dimensional result sww, swa, ... ! Successful development version: True in 1, 3, 5, 6, and 7.	
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
@@ -158,9 +161,16 @@ printout15       false  ! Used in building stage. True, allow undefined area to 
 printout16       true   ! true, read existing optimal points WITHOUT sobel sequence (see parameter bestvertex_file); FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
 printout17       false  ! True, every generation receives bequest; False, only the newborn receives bequest. 9-30-2017
 printout18       true   ! True, fine tuning upper boundary on the fly; False, [0.5*mean_housing_bottom_qunitle, 1.5*median_household_income]
+printout19       true   ! True, show the intermediate macrostatistics; False, otherwise.
+printout20       true   ! True, read a specific set of parameter combination from the file "_whole_list.csv"; False, otherwise.
+printout21       true   ! True, pass trial serial number to respective node; False, otherwise.
+printout22		 true   ! True, separate positive asset from negative asset; False, otherwise.
+printout23       true   ! True, tracing Amoeba positions; False, otherwise.
+printout24       true   ! True, keep points from running outside a specified range for each dimension; False, otherwise.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+mpi_exercise_mode   5   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+obj_func_toggle     2   ! 1, traditional ndim dimensions; 2, only subdim dimensions.
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
 ! Remember to set the `-np` option to appropriate number.
@@ -202,7 +212,7 @@ mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mo
 !   sblno1: ...
 !   weight list: 8-19-2017 useless now.
 !   breaks list: 8-19-2017 useless now.
-!
+!   upper and lower bounds:
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
 ! (Test) Setting #5. Used in Program Building stage, Amoeba algorithm with exactly One amoeba     
 !	Purpose: show the implementation of amoeba algorithm works successfully.
@@ -284,9 +294,28 @@ mpi_exercise_mode   3   ! (integer) Single node mode, 0; Stage 1, Exploratory mo
 !	(2) and set bestvertex_file correspondingly as in setting#6 (say, 1_001_restart_list.txt);
 !   (3) but remember to change printout11 to "false" because we are in the test stage rather than production stage.
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
-! (Development) To see whether experiments with the same inputs have consistent outputs
+! (Development) Setting#7. To see whether experiments with the same inputs have consistent outputs
 ! mpi_exercise_mode==3
+! output: output_parameter_inspection_001.txt, output_parameter_inspection_002.txt
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
-! (Development) To explore the penalty values corresponding to a certain combination of interesting inputs
+! (Development) Setting#8. To explore the penalty values corresponding to a certain combination of interesting inputs
 ! mpi_exercise_mode==4
-! the size of allocatable matrix, mat_stage1_inputs, has to be adjusted manually (note: try to locate this phrase, allocate( mat_stage1_inputs(1536,11)) ).
+! the size of allocatable matrix, "mat_stage1_inputs," has to be adjusted manually (note: try to locate this phrase, allocate( mat_stage1_inputs(1536,11)) ).
+! printout21: True, the output include each trial's serial number.
+! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
+! (Test or Productive) Setting#9. Search on parameter space of reduced dimensions
+! mpi_exercise_mode==5
+! 01. Printout11: True (solve the true economic model) or False (test with benchmark functions)
+! 02. Printout14: False, search within a specified range in each dimension; True, using idnetical deviation for each dimension.
+! 03. Printout15: False, turn off extreme penalty.
+! 04. testfunc_idx: it has to be choosen if Printout11 is set to be False.
+! 05. ndim is fixed at 10.
+! 06. setindex: has to be an integer within [1, listlength//(ndim+1)] where listlength%(ndim+1)==0.
+! 07. listlength: has to be a multiple of (ndim+1).
+! 08. subdim:
+! 09. nrow: max{subdim+1, noamoeba*4}. Note that the total node to call for in the command line is the same as nrow in the current case. 10.15.2017
+! 10. -np: ~=nrow <--- IMPORTANT!!
+! 11. noamoeba: again, max{subdim+1, noamoeba*4}.
+! 12. The name of starting point list: set in file, main.f90. the filename is _whole_list.csv. Note that the file has 25 columns.
+! 13. obj_func_toggle: 2 in productive mode of the 5-dimension case.
+! 14. testfunc_idx: 3 in testing mode that considers only the first five dimensions (subdim has to be 5).
