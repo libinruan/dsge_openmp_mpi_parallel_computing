@@ -169,7 +169,7 @@ printout23       true   ! True, tracing Amoeba positions; False, otherwise.
 printout24       true   ! True, keep points from running outside a specified range for each dimension; False, otherwise.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   5   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+mpi_exercise_mode   4   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
 obj_func_toggle     2   ! 1, traditional ndim dimensions; 2, only subdim dimensions.
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
@@ -300,8 +300,9 @@ obj_func_toggle     2   ! 1, traditional ndim dimensions; 2, only subdim dimensi
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
 ! (Development) Setting#8. To explore the penalty values corresponding to a certain combination of interesting inputs
 ! mpi_exercise_mode==4
-! the size of allocatable matrix, "mat_stage1_inputs," has to be adjusted manually (note: try to locate this phrase, allocate( mat_stage1_inputs(1536,11)) ).
+! the size of allocatable matrix, "_stage1_inputs," has to be adjusted manually (note: try to locate this phrase, allocate( mat_stage1_inputs(1536,11)) ).
 ! printout21: True, the output include each trial's serial number.
+! obj_func_toggle: 2 in productive mode of the 5-dimension case.
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
 ! (Test or Productive) Setting#9. Search on parameter space of reduced dimensions
 ! mpi_exercise_mode==5
