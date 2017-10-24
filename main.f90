@@ -19,6 +19,8 @@ program MPI_sandbox
     ! The mpi_exercise_mode == -2: experiment zone
     real(wp), dimension(:), allocatable :: temp1vertex
     real(wp), dimension(:,:), allocatable :: temp1matrix
+    real(wp) :: test1, test2
+    integer :: lock_1(1), lock1
     
     ! The mpi_exercise_mode == 1 case: Coarse search
     logical :: exit_log1
@@ -117,7 +119,15 @@ program MPI_sandbox
                 write(*,'(<subdim+1>(f8.2,x))') temp1matrix(j,:) 
             enddo
             
-            deallocate(temp1vertex,temp1matrix)            
+            deallocate(temp1vertex,temp1matrix)      
+            
+            allocate(temp1vertex(2))
+            test1 = 1._wp
+            test2 = 2._wp
+            temp1vertex = [test1,test2]
+            lock_1 = maxval(temp1vertex)
+            print*, 'temp1vertex: ', temp1vertex, lock_1(1)
+            deallocate(temp1vertex)
             
             ! write(*,*) ' locate test ', locate(real(breaks_list,wp),1.5_wp,1)
             ! write(*,*) ' locate test ', locate(real(breaks_list,wp),50._wp,1)
@@ -1272,14 +1282,14 @@ contains
         real(wp) :: plus_deviation, minus_deviation, true_deviation, sim_objval, best_val
         real(wp) :: tryfun, vr, ve, vcr, vco, temp_dist, temp_ans
         real(wp), dimension(:), allocatable :: sim_moments, ray_objval, dup_ray_objval, centroid, best_posi, temp_contract_vertex
-        real(wp), dimension(:), allocatable :: worst_valvec, less_worse_valvec, try_vec, current_best
+        real(wp), dimension(:), allocatable :: worst_valvec, less_worse_valvec, try_vec, current_best, sub_valvec
         real(wp), dimension(:), allocatable :: trymoms_vec, tryfun_vec, subworst_posi, distance_vec, old_objval_vec
         real(wp), dimension(:,:), allocatable :: vertex_list, mat_moments, worst_mat, try_mat, trymoms_mat
         real(wp), dimension(:,:), allocatable :: old_vertex_list, old_mat_moments
         integer, dimension(:), allocatable :: rankinglist, ray_modelmsg, old_ray_modelmsg, trymsg_vec ! Bug. ! 9-23-2017
         logical, dimension(:), allocatable :: shrink_signal_ray
         integer :: shrink_flag, mid_output_count, trymsg ! 9-23-2017
-        integer :: pdim, trace_counter !10.17.2017
+        integer :: pdim, trace_counter, loc_1(1) !10.17.2017
         character(len=4) :: str_amoeba
         
         ndim = size(bestvertex) !10.15.2017 Don't change it. Otherwise, the local variable ndim takes nothing and leads to error.
@@ -1393,7 +1403,7 @@ contains
                     if(my_id==0.and.printout23==.true.)then !#0
                         trace_counter = trace_counter + 1
                         do i = 1, pdim+1
-                            write(my_id+5001,'((a,i5),2(a,i2),a,<ndim>(f10.7,x),(a,e15.8))') " trail#", trace_counter, "vertex#", i, " amotyp", amo_msgtype, "  input", vertex_list(:,i), " value ", ray_objval(i)  
+                            write(my_id+5001,'((a,i5),2(a,i2),a,<ndim>(f10.7,x))') " trail#", trace_counter, "vertex#", i, " amotyp", amo_msgtype, "  input", vertex_list(:,i)  
                         enddo ! i
                     endif
                                  
@@ -1797,66 +1807,101 @@ contains
                         
                         subworst_idx = num_vertices-(noamoeba-j)
                         
-                        if( vr<best_val )then ! CASE 1 Reflection is the improvement ove the initial best point.
-                            if( ve<best_val )then ! Go extension.
-                                if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (0)  e "
-                                vertex_list(:,subworst_idx) = try_mat(:,2+(j-1)*4) 
-                                ray_objval(subworst_idx)    = ve 
-                                ray_modelmsg(subworst_idx)  = trymsg_vec(2+(j-1)*4) ! 9-23-2017
-                                mat_moments(:,subworst_idx) = trymoms_mat(:,2+(j-1)*4) 
-                                if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
-                            elseif( ve>=best_val )then ! Go reflection.
-                                if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (1)  r "
-                                vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
-                                ray_objval(subworst_idx)    = vr
-                                ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
-                                mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4) 
-                                if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
-                            endif
-                        elseif( vr>=best_val )then
-                            if( vr<less_worse_valvec(j) )then ! CASE 2 Go reflection. 
-                                if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (2)  r "
-                                vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
-                                ray_objval(subworst_idx)    = vr
-                                ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
-                                mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)
-                                if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
-                            elseif( vr>=less_worse_valvec(j) )then ! Case 3 Go contraction.
-                                if( vr<worst_valvec(j) .and. vcr<vr )then ! combination of A^R and M.
-                                    if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (3) cr "
+                        if(printout25)then
+                            allocate(sub_valvec(4))
+                            sub_valvec = [vr,ve,vcr,vco]
+                            loc_1 = maxval(sub_valvec)
+                            select case(loc_1(1))
+                                case(1) ! vr
+                                    vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
+                                    ray_objval(subworst_idx)    = vr
+                                    ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
+                                    mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4) 
+                                case(2) ! ve
+                                    vertex_list(:,subworst_idx) = try_mat(:,2+(j-1)*4) 
+                                    ray_objval(subworst_idx)    = ve 
+                                    ray_modelmsg(subworst_idx)  = trymsg_vec(2+(j-1)*4) ! 9-23-2017
+                                    mat_moments(:,subworst_idx) = trymoms_mat(:,2+(j-1)*4)                                     
+                                case(3) ! vcr
                                     vertex_list(:,subworst_idx) = try_mat(:,3+(j-1)*4)
                                     ray_objval(subworst_idx)    = vcr
                                     ray_modelmsg(subworst_idx)  = trymsg_vec(3+(j-1)*4) ! 9-23-2017
-                                    mat_moments(:,subworst_idx) = trymoms_mat(:,3+(j-1)*4)
-                                    if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
-                                elseif( worst_valvec(j)<=vr .and. vco<worst_valvec(j) )then ! combination of A_J and M.
-                                    if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (4) co "
+                                    mat_moments(:,subworst_idx) = trymoms_mat(:,3+(j-1)*4)                                    
+                                case(4) ! vco
                                     vertex_list(:,subworst_idx) = try_mat(:,4+(j-1)*4)
                                     ray_objval(subworst_idx)    = vco
                                     ray_modelmsg(subworst_idx)  = trymsg_vec(4+(j-1)*4) ! 9-23-2017
-                                    mat_moments(:,subworst_idx) = trymoms_mat(:,4+(j-1)*4)
+                                    mat_moments(:,subworst_idx) = trymoms_mat(:,4+(j-1)*4)                                    
+                            end select
+                            
+                            if(ray_objval(subworst_idx)>=worst_valvec(j))then ! not improved.
+                                shrink_signal_ray(j) = .true.
+                            endif
+                            
+                            deallocate(sub_valvec)
+                        else ! printout25
+                            if( vr<best_val )then ! CASE 1 Reflection is the improvement ove the initial best point.
+                                if( ve<best_val )then ! Go extension.
+                                    if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (0)  e "
+                                    vertex_list(:,subworst_idx) = try_mat(:,2+(j-1)*4) 
+                                    ray_objval(subworst_idx)    = ve 
+                                    ray_modelmsg(subworst_idx)  = trymsg_vec(2+(j-1)*4) ! 9-23-2017
+                                    mat_moments(:,subworst_idx) = trymoms_mat(:,2+(j-1)*4) 
                                     if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
-                                else ! Case 4 Shrink signal. 
-                                    if( vr<worst_valvec(j) )then ! Bug exists in last version. 7-25-2017
-                                        if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (5)  r "
-                                        vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
-                                        ray_objval(subworst_idx)    = vr
-                                        ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
-                                        mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)    
-                                        if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
-                                    else ! In this case, no update happens.
-                                        if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (6)  o "
-                                        !!! Keep the vertex intact 9-23-2017
-                                        !! vertex_list(:,subworst_idx) = keep the same as in the last round. 
-                                        !! ray_objval(subworst_idx)    = keep the same as in the last round.
-                                        !! mat_moments(:,subworst_idx) = keep the same as in the last round.
-                                    endif ! vr<worst_valvec
-                                    
-                                    shrink_signal_ray(j) = .true. ! 9-23-2017 raise the flag of unsuccessful update on a vertex.
-                                    
+                                elseif( ve>=best_val )then ! Go reflection.
+                                    if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (1)  r "
+                                    vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
+                                    ray_objval(subworst_idx)    = vr
+                                    ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
+                                    mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4) 
+                                    if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
                                 endif
-                            endif    
-                        endif                            
+                            elseif( vr>=best_val )then
+                                if( vr<less_worse_valvec(j) )then ! CASE 2 Go reflection. 
+                                    if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (2)  r "
+                                    vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
+                                    ray_objval(subworst_idx)    = vr
+                                    ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
+                                    mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)
+                                    if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
+                                elseif( vr>=less_worse_valvec(j) )then ! Case 3 Go contraction.
+                                    if( vr<worst_valvec(j) .and. vcr<vr )then ! combination of A^R and M.
+                                        if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (3) cr "
+                                        vertex_list(:,subworst_idx) = try_mat(:,3+(j-1)*4)
+                                        ray_objval(subworst_idx)    = vcr
+                                        ray_modelmsg(subworst_idx)  = trymsg_vec(3+(j-1)*4) ! 9-23-2017
+                                        mat_moments(:,subworst_idx) = trymoms_mat(:,3+(j-1)*4)
+                                        if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
+                                    elseif( worst_valvec(j)<=vr .and. vco<worst_valvec(j) )then ! combination of A_J and M.
+                                        if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (4) co "
+                                        vertex_list(:,subworst_idx) = try_mat(:,4+(j-1)*4)
+                                        ray_objval(subworst_idx)    = vco
+                                        ray_modelmsg(subworst_idx)  = trymsg_vec(4+(j-1)*4) ! 9-23-2017
+                                        mat_moments(:,subworst_idx) = trymoms_mat(:,4+(j-1)*4)
+                                        if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
+                                    else ! Case 4 Shrink signal. 
+                                        if( vr<worst_valvec(j) )then ! Bug exists in last version. 7-25-2017
+                                            if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (5)  r "
+                                            vertex_list(:,subworst_idx) = try_mat(:,1+(j-1)*4)
+                                            ray_objval(subworst_idx)    = vr
+                                            ray_modelmsg(subworst_idx)  = trymsg_vec(1+(j-1)*4) ! 9-23-2017
+                                            mat_moments(:,subworst_idx) = trymoms_mat(:,1+(j-1)*4)    
+                                            if(contract_id==0) write(my_id+1001,'(" val ",f16.7," input ",<ndim>f12.7," mom ",<ndim>f12.7)') ray_objval(subworst_idx), vertex_list(:,subworst_idx), mat_moments(:,subworst_idx) 
+                                        else ! In this case, no update happens.
+                                            if(contract_id==0) write(my_id+1001,'(a,i3,a)') " subamoeba#", j, ", (6)  o "
+                                            !!! Keep the vertex intact 9-23-2017
+                                            !! vertex_list(:,subworst_idx) = keep the same as in the last round. 
+                                            !! ray_objval(subworst_idx)    = keep the same as in the last round.
+                                            !! mat_moments(:,subworst_idx) = keep the same as in the last round.
+                                        endif ! vr<worst_valvec
+                                        
+                                        shrink_signal_ray(j) = .true. ! 9-23-2017 raise the flag of unsuccessful update on a vertex.
+                                        
+                                    endif ! vr<worst_valvec(j) .and. vcr<vr
+                                endif ! vr<less_worse_valvec(j)   
+                            endif ! vr<best_val    
+                        endif ! printout25
+                            
                     enddo ! j: the do loop over all the worst vertices. 
                     
                 endif ! AMEOBA_WORLD /= MPI_COMM_NULL
@@ -1976,7 +2021,6 @@ contains
                 
                 if(contract_id/=0) write(my_id+1001,'(a,/)') '[amo4]-->[amo1] for post-shrinkage evaluation '
                 
-                amo_msgtype = 1 ! Bug. Missing. 7-26-2017 EVALUATION.
                 
                 !call MPI_BCAST( amo_msgtype, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
                 !call MPI_BCAST( major_counter, 1, MPI_INTEGER, 0, ROW_WORLD, mpi_err )
@@ -1999,6 +2043,8 @@ contains
                         write(my_id+5001,'((a,i5),2(a,i2),a,<ndim>(f10.7,x),(a,a,e15.8))') " trail#", trace_counter, "vertex#", i, " amotyp", amo_msgtype, "  input", vertex_list(:,i), " value ", ray_objval(i)  
                     enddo ! i
                 endif                    
+
+                amo_msgtype = 1 ! Bug. Missing. 7-26-2017 EVALUATION.
                 
             endif ! amo_msgtype == 4       
             

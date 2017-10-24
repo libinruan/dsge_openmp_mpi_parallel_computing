@@ -268,6 +268,7 @@ module variable
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
     logical :: printout13, printout14, printout15, printout16, printout17, printout18, printout19, printout20, printout21, printout22, printout23, printout24
+    logical :: printout25
     logical :: receiving, status(mpi_status_size)
     character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -344,7 +345,9 @@ contains
                    case ('printout23')     
                         read( value_string, * ) printout23 
                    case ('printout24')     
-                        read( value_string, * ) printout24                        
+                        read( value_string, * ) printout24     
+                   case ('printout25')     
+                        read( value_string, * ) printout25                        
                    case ('listnumber')
                         read(value_string, *  ) listnumber
                    case ('bestvertex_file')
