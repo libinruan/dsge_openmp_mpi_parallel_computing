@@ -1996,7 +1996,7 @@ contains
                 if(my_id==0.and.printout23==.true.)then !#4
                     trace_counter = trace_counter + 1
                     do i = 1, pdim+1
-                        write(my_id+5001,'((a,i5),2(a,i2),a,<ndim>(f10.7,x),(a,a,e15.8))') " trail#", trace_counter, "vertex#", i, " amotyp", amo_msgtype, "  input", vertex_list(:,i), " value ", ray_objval(i)  
+                        write(my_id+5001,'((a,i5),2(a,i2),a,<ndim>(f10.7,x),(a,e15.8))') " trail#", trace_counter, "vertex#", i, " amotyp", amo_msgtype, "  input", vertex_list(:,i), " value ", ray_objval(i)  
                     enddo ! i
                 endif                    
                 
