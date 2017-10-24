@@ -73,7 +73,7 @@ ptax			 0.768
 stax             0.031
 nmul             2
 ndim			 10
-subdim           5 !mpi_exercise_mode==5
+subdim           6 !mpi_exercise_mode==5
 tauk  			 0.4 ! interest income tax rate
 fnhdim			 15 ! hardwired automatically equal to "hdim."
 sdim			 5 ! Use Odd number only!!! 5 good. It is the size of financial grid points after the 1st round.
@@ -141,8 +141,8 @@ errvalfc        2.e-3   ! tolerance of penality function
 initau				4   ! multiplier of initial vertices ! for determining how spread the shape of the first vertex would be.
 testfunc_idx        3   ! 1, norm 2 measure; 2, Variably Dimensioned Function; 3, ; 4, Extended Rosenbrock Function (restart required to precisely approximate the answer). 
 momround          1e3   ! 1e3 means a rounding to the 3rd place to the right of decimal point
-setindex            2   ! The set number refers to the working combination of parameter from the input file. 10.15.2017
-listlength         30   ! The length of starting point file to be used with 'setindex'
+setindex            1   ! The set number refers to the working combination of parameter from the input file. 10.15.2017
+listlength       4431   ! The length of starting point file to be used with 'setindex'
 printout1		 false  ! Subroutine 'print_basic_model_vectors' #################################################################################
 printout2		 false  ! WF and CWF (value function @ beginning & end of period); used for building stage; and 1 dimensional result sww, swa, ... ! Successful development version: True in 1, 3, 5, 6, and 7.	
 printout3        true   ! !##!TRUE IN PRODUCTIVE MODE. Unit: my_id+1001. SingleNodeMPI.txt or feedback_XXXX.txt convergence info. Intermediate results. 
@@ -167,10 +167,11 @@ printout21       true   ! True, pass trial serial number to respective node; Fal
 printout22		 true   ! True, separate positive asset from negative asset; False, otherwise.
 printout23       true   ! True, tracing Amoeba positions; False, otherwise.
 printout24       true   ! True, keep points from running outside a specified range for each dimension; False, otherwise.
+printout25       true   ! True, aggressive amoeba; False, traditional amoeba.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 bestvertex_file  1_001_restart_list.txt
-mpi_exercise_mode   4   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
-obj_func_toggle     2   ! 1, traditional ndim dimensions; 2, only subdim dimensions.
+mpi_exercise_mode   5   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
+obj_func_toggle     3   ! 1, traditional ndim dimensions; 2 (5 dimensions) and 3 (6 dimensions), only subdim dimensions.
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
 ! Remember to set the `-np` option to appropriate number.
@@ -318,5 +319,5 @@ obj_func_toggle     2   ! 1, traditional ndim dimensions; 2, only subdim dimensi
 ! 10. -np: ~=nrow <--- IMPORTANT!!
 ! 11. noamoeba: again, max{subdim+1, noamoeba*4}.
 ! 12. The name of starting point list: set in file, main.f90. the filename is _whole_list.csv. Note that the file has 25 columns.
-! 13. obj_func_toggle: 2 in productive mode of the 5-dimension case.
+! 13. obj_func_toggle: 2 in productive mode of the 5-dimension case. 3 for 6 dimensions.
 ! 14. testfunc_idx: 3 in testing mode that considers only the first five dimensions (subdim has to be 5).

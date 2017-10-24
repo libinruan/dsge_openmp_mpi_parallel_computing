@@ -104,8 +104,12 @@ module equilibrium
         select case(obj_func_toggle)
             case(1)
                 objective_value = sum(((mom-tar)/tar)**2._wp)
-            case(2)
-                objective_value = ((mom(2)-tar(2))/tar(2))**2._wp + ((mom(3)-tar(3))/tar(3))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp
+            case(2) ! 10.21.2017 5 dimensions
+                objective_value = ((mom(2)-tar(2))/tar(2))**2._wp + ((mom(3)-tar(3))/tar(3))**2._wp + &
+                    ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp
+            case(3) ! 10.23.2017 6 dimensions
+                objective_value = ((mom(1)-tar(1))/tar(1))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + &
+                    ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(7)-tar(7))/tar(7))**2._wp + ((mom(9)-tar(9))/tar(9))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp                
         end select 
         !objective_value = sum( (mom-tar)**2._wp )
     end function objective_value   
