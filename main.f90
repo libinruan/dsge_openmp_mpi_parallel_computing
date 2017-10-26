@@ -45,7 +45,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,145) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,146) ! works. 
             write(*,*) ' '
             write(*,*) "printout17 everyone recevies bequests: ", printout17
             write(*,*) "printout18 housing upper limit extended based on consumer need: ", printout18
@@ -192,8 +192,8 @@ program MPI_sandbox
         guessv(4) = prtk2 
         guessv(5) = zbar  
         guessv(6) = beta  
-        ! guessv(7) = theta 
-        guessv(7) = iota
+        guessv(7) = theta 
+        !guessv(7) = iota
         guessv(8) = phi1  
         guessv(9) = phi2  
         guessv(10)= phi3     
@@ -248,8 +248,8 @@ program MPI_sandbox
         origin_input(4) = prtk2 
         origin_input(5) = zbar  
         origin_input(6) = beta  
-        !origin_input(7) = theta 
-        origin_input(7) = iota
+        origin_input(7) = theta 
+        !origin_input(7) = iota
         origin_input(8) = phi1  
         origin_input(9) = phi2  
         origin_input(10)= phi3           
@@ -789,8 +789,8 @@ program MPI_sandbox
         guessv(4) = prtk2 
         guessv(5) = zbar  
         guessv(6) = beta  
-        !guessv(7) = theta 
-        guessv(7) = iota
+        guessv(7) = theta 
+        !guessv(7) = iota
         guessv(8) = phi1  
         guessv(9) = phi2  
         guessv(10)= phi3 
@@ -819,8 +819,8 @@ program MPI_sandbox
         guessv(4) = prtk2 
         guessv(5) = zbar  
         guessv(6) = beta  
-        !guessv(7) = theta 
-        guessv(7) = iota
+        guessv(7) = theta 
+        !guessv(7) = iota
         guessv(8) = phi1  
         guessv(9) = phi2  
         guessv(10)= phi3 
@@ -845,7 +845,7 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==4)then ! 9-30-2017
         ! 10-1-2017
-        allocate( mat_stage1_inputs(1024,11) ) !10.21.2017 Change it!!!
+        allocate( mat_stage1_inputs(3888,11) ) !10.21.2017 Change it!!!
         trylen = size(mat_stage1_inputs,dim=1)
         
         if(my_id==0) call read_matrix(mat_stage1_inputs,'_stage1_input.csv')
@@ -894,8 +894,8 @@ program MPI_sandbox
         origin_input(4) = prtk2 
         origin_input(5) = zbar  
         origin_input(6) = beta  
-        !origin_input(7) = theta 
-        origin_input(7) = iota
+        origin_input(7) = theta 
+        !origin_input(7) = iota
         origin_input(8) = phi1  
         origin_input(9) = phi2  
         origin_input(10)= phi3           
