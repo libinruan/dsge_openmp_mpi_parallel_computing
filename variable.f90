@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(145)
-    real(wp) :: para(145), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(146)
+    real(wp) :: para(146), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -113,7 +113,8 @@ module variable
                 setindex = 1, &
                 listlength = 10000, & ! the length of selective points after coarse search 10.15.2017
                 srnumber, &
-                obj_func_toggle
+                obj_func_toggle, &
+                var7toggle = 1
     
     character(len=100) :: listnumber
     
@@ -344,7 +345,7 @@ contains
                    case ('printout23')     
                         read( value_string, * ) printout23 
                    case ('printout24')     
-                        read( value_string, * ) printout24                        
+                        read( value_string, * ) printout24                                                
                    case ('listnumber')
                         read(value_string, *  ) listnumber
                    case ('bestvertex_file')
@@ -1078,7 +1079,12 @@ contains
                        i = i + 1
                        read( value_string,*) obj_func_toggle
                        labstr(i) = 'obj_func_toggle'
-                       para(i) = obj_func_toggle                        
+                       para(i) = obj_func_toggle    
+                   case('var7toggle') ! 146
+                       i = i + 1
+                       read( value_string,*) var7toggle
+                       labstr(i) = 'var7toggle'
+                       para(i) = var7toggle                         
                 end select
             enddo
         else

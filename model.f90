@@ -65,7 +65,7 @@ contains
         implicit none
         real(wp), intent(in) :: x, h
         real(wp) :: g
-        g = x**(1._wp-theta)*(h+epsilon)**(theta) ! omega: weights of non-housing in utility function
+        g = x**(1._wp-theta)*(h)**(theta) ! omega: weights of non-housing in utility function !10.25.2017
         y = (g**(1._wp-sigma)-1._wp)/(1._wp-sigma) ! sigma: risk aversion coefficient
     end function u    
     

@@ -102,10 +102,12 @@ module equilibrium
         real(wp) :: objective_value
         real(wp), dimension(:), intent(in) :: mom, tar
         select case(obj_func_toggle)
-            case(1)
+            case(1) ! 10 moments
                 objective_value = sum(((mom-tar)/tar)**2._wp)
-            case(2)
+            case(2) ! 5 moments
                 objective_value = ((mom(2)-tar(2))/tar(2))**2._wp + ((mom(3)-tar(3))/tar(3))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp
+            case(3) ! 8 moments
+                objective_value = ((mom(1)-tar(1))/tar(1))**2._wp + ((mom(4)-tar(4))/tar(4))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(7)-tar(7))/tar(7))**2._wp + ((mom(8)-tar(8))/tar(8))**2._wp + ((mom(9)-tar(9))/tar(9))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp
         end select 
         !objective_value = sum( (mom-tar)**2._wp )
     end function objective_value   
@@ -247,8 +249,8 @@ module equilibrium
         prtk2 = guessv(4)
         zbar  = guessv(5)
         beta  = guessv(6)
-        !theta = guessv(7)
-        iota  = guessv(7)
+        theta = guessv(7)
+        !iota  = guessv(7)
         phi1  = guessv(8)
         phi2  = guessv(9)
         phi3  = guessv(10)
