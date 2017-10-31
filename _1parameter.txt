@@ -8,26 +8,26 @@ deltah           0.017
 rd               0.035 
 alpha            0.247 ! Following Naka, housing capital is removed from the defintiion for capital income (p.15).0.326 is the conventinal perfect version with a single type of capital.
 lambda           0.2  
-theta            0.1359087 ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
-sigma            1.5 ! 1.5 Yang. 2.0 ! the larger the sigma, the flatter the curve becomes when the abscissa is away from the origin.  
+theta            0.11  ! 0.2, 0.14 Yang, <----------------------------------------------------------- (7)
+sigma            1.5   ! 1.5 Yang. 2.0 ! the larger the sigma, the flatter the curve becomes when the abscissa is away from the origin.  
 nu               0.88 
-kv1              0.27  !10.14.2017, 0.0766807 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
-prtk0            0.03  !0.0400111 ! <-------------------------------------------------------------------------- (2-4)
-prtk1            0.07  !0.1155747
+kv1              1.7   !10.14.2017, 0.0766807 ! 0.05 ! the smaller the more largest scale project. <------------------------- (1)
+prtk0            0.024 !0.0400111 ! <-------------------------------------------------------------------------- (2-4)
+prtk1            0.11  !0.1155747
 prtk2            0.075 !0.1164856
-phi0             0.5 ! needed for programming issue. can take any value. 
-phi1             0.7702 !0.7701660 ! <-------------------------- (8-10)
-phi2             0.9351 !0.9351416 
-phi3             0.9674 !0.9674434 
-beta             1.02 !10.14.2017, 0.9416076 ! 0.93 might be too low. <---------------------------------------------------- (6)
-zbar             1.6  !1.1 !1.14.20417, 1.2379053  ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
+phi0             0.5  ! needed for programming issue. can take any value. 
+phi1             0.75 !0.7701660 ! <-------------------------- (8-10)
+phi2             0.92 !0.9351416 
+phi3             0.97 !0.9674434 
+beta             0.93 !10.14.2017, 0.9416076 ! 0.93 might be too low. <---------------------------------------------------- (6)
+zbar             2.3  !1.1 !1.14.20417, 1.2379053  ! 1.2 this parameter is key to the portion of large scale investment project<-- It seems the lower the better. <------------- (5)
 iota             0.5  ! 10-8-2017
 zlow             0.0  ! hard wired. Don't change it. 
 hmin             0.1 !10.14.2017 
 hmax             16 ! 25; 120.0
 amin             -0.5  
-amax             50 ! 300 ! 70 ! 500 ! 700 ! 999.0 If scale 3 enteprise disappear then raise up the upper bound of financial assets.
-dfrac            0.27 ! See Cagetti and De Nardi 2009, TaucfinalSS.f90, lines 56, and 1273. the ratio of government debt to total capital
+amax             50  ! 300 ! 70 ! 500 ! 700 ! 999.0 If scale 3 enteprise disappear then raise up the upper bound of financial assets.
+dfrac            0.0 ! 0.27 ! See Cagetti and De Nardi 2009, TaucfinalSS.f90, lines 56, and 1273. the ratio of government debt to total capital
 gfrac            0.187 ! government spending. average ratio of "government purchases to GDP" over the 1990-1999 period. Cagetti and De Nardi 2009 pdf. 11.
 taubal           0.033
 CorpLabFrac      0.5  
@@ -73,28 +73,28 @@ ptax			 0.768
 stax             0.031
 nmul             2
 ndim			 10
-subdim           6 !mpi_exercise_mode==5
+subdim           6   !mpi_exercise_mode==5
 tauk  			 0.4 ! interest income tax rate
-fnhdim			 15 ! hardwired automatically equal to "hdim."
-sdim			 5 ! Use Odd number only!!! 5 good. It is the size of financial grid points after the 1st round.
+fnhdim			 15  ! hardwired automatically equal to "hdim."
+sdim			 5   ! Use Odd number only!!! 5 good. It is the size of financial grid points after the 1st round.
 err_svdist 	     1.e-10 ! 
-iterasvmax		 5 ! five has the same performance as 10 and 20.	
-nsdim	         20 ! good 20. It is the first round's financial grid point number. Had better larger than "hdim."
-gsdim			 1.0 ! good 1.0 (housing-asset-grid-generating parameter)
+iterasvmax		 5   ! five has the same performance as 10 and 20.	
+nsdim	         20  ! good 20. It is the first round's financial grid point number. Had better larger than "hdim."
+gsdim			 2.0 ! good 1.0 (housing-asset-grid-generating parameter)
 trsld			 -5.e8
 iterainvdist	 40 ! 40
 tausv			 0.15   ! rate of tax on interest income
 taubp			 0.25   ! rate of tax on corporate profit
-target1			 0.65   ! target 1: fraction of capital in the corporate sector ! ##############################################################
+target1			 0.30   ! target 1: fraction of capital in the non-corporate sector ! ##############################################################
 target2   		 0.60   ! target 2: distribution of entrepreneurs on smallest projects
 target3          0.30   ! target 3: distribution of entrepreneurs on median projects
 target4          0.10   ! target 4: distribution of entrepreneurs on largest projects
-target5          0.12   ! target 5: fraction of entrepreneurs in the population
-target6			 1.97   ! target 6: non-housing capital (physical capital) to output
-target7  	     1.26   ! target 7: housing capital (consumer durables) to output
+target5          0.08   ! CagettiDeNardi2009 ! 0.12   ! target 5: fraction of entrepreneurs in the population
+target6			 1.47   ! target 6: non-housing capital (physical capital) to output
+target7  	     1.29   ! target 7: housing capital (consumer durables) to output
 target8          0.40   ! target 8: total asset held by entrepreneurs
-target9          0.27   ! target 9: share of income held by entrepreneurs
-target10         8.0    ! target 10: ratio of median assets (entrepreneurs to workers)
+target9          0.25   ! target 9: share of income held by entrepreneurs
+target10         8      ! target 10: ratio of median net assets (entrepreneurs to workers); CagettiDeNardi2009 6.5 
 lower1           0.0    !-1.5 !0.01   ! kv1: size of the smallest project ! ##################################################################################
 upper1           3.0    ! 1.5 !1.50   ! kv1: size of the smallest project
 lower2           0.0    !-1.5 !0.01   ! prtk0: probability of new ideas
@@ -159,7 +159,7 @@ printout13	     true   ! amoeba intermediate message
 printout14       false  ! true, set the degree of each deviation as four times the maximum coordinate; false, the usual method I have been using, based on constraints
 printout15       false  ! Used in building stage. True, allow undefined area to create extreme penalty of value infinity; 
 printout16       true   ! true, read existing optimal points WITHOUT sobel sequence (see parameter bestvertex_file); FALSE, read the coarse list (_full_list_startingpoint.csv). Note: only one amoeba is needed. Don't make redundant setting in command line.
-printout17       false  ! True, every generation receives bequest; False, only the newborn receives bequest. 9-30-2017
+printout17       true   ! True, every generation receives bequest; False, only the newborn receives bequest. 9-30-2017
 printout18       true   ! True, fine tuning upper boundary on the fly; False, [0.5*mean_housing_bottom_qunitle, 1.5*median_household_income]
 printout19       true   ! True, show the intermediate macrostatistics; False, otherwise.
 printout20       true   ! True, read a specific set of parameter combination from the file "_whole_list.csv"; False, otherwise.
@@ -167,11 +167,12 @@ printout21       true   ! True, pass trial serial number to respective node; Fal
 printout22		 true   ! True, separate positive asset from negative asset; False, otherwise.
 printout23       true   ! True, tracing Amoeba positions; False, otherwise.
 printout24       true   ! True, keep points from running outside a specified range for each dimension; False, otherwise.       
+printout25       true   ! True, transfer (accidental bequest) is counted towrad taxable income; False, otherwise.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 var7toggle          1   ! 1, iota for input7; 2, theta for input7
 bestvertex_file  1_001_restart_list.txt
 mpi_exercise_mode   4   ! (integer) Single node mode, 0; Stage 1, Exploratory mode, 1; Steage 2, Amoeba algoritm implementation mode 2 (listnumber, this parameter is reduendant now) 
-obj_func_toggle     3   ! 1, traditional ndim dimensions; 2, only subdim dimensions.
+obj_func_toggle     4   ! 1, traditional ndim dimensions; 2, only subdim dimensions; 3, 8 dimensions; 4, 6 dimensions.
 !
 ! Windows command prompt: mpiexec -np 1 ./MPI_sandbox.exe 
 ! Remember to set the `-np` option to appropriate number.
@@ -301,9 +302,9 @@ obj_func_toggle     3   ! 1, traditional ndim dimensions; 2, only subdim dimensi
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
 ! (Development) Setting#8. To explore the penalty values corresponding to a certain combination of interesting inputs
 ! mpi_exercise_mode==4
-! the size of allocatable matrix, "_stage1_inputs," has to be adjusted manually (note: try to locate this phrase, allocate( mat_stage1_inputs(1536,11)) ).
+! The size of allocatable matrix, "_stage1_inputs.csv," has to be adjusted manually (note: try to locate this phrase, allocate( mat_stage1_inputs(1536,11)) ).
 ! printout21: True, the output include each trial's serial number.
-! obj_func_toggle: 2 in productive mode of the 5-dimension case.
+! obj_func_toggle: 1-4 
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
 ! (Test or Productive) Setting#9. Search on parameter space of reduced dimensions
 ! mpi_exercise_mode==5
