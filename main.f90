@@ -845,7 +845,7 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==4)then ! 9-30-2017
         ! 10-1-2017
-        allocate( mat_stage1_inputs(3888,11) ) !10.21.2017 Change it!!!
+        allocate( mat_stage1_inputs(900,11) ) !10.21.2017 Change it!!!
         trylen = size(mat_stage1_inputs,dim=1)
         
         if(my_id==0) call read_matrix(mat_stage1_inputs,'_stage1_input.csv')

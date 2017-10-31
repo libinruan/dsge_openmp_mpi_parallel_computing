@@ -108,6 +108,8 @@ module equilibrium
                 objective_value = ((mom(2)-tar(2))/tar(2))**2._wp + ((mom(3)-tar(3))/tar(3))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp
             case(3) ! 8 moments
                 objective_value = ((mom(1)-tar(1))/tar(1))**2._wp + ((mom(4)-tar(4))/tar(4))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(7)-tar(7))/tar(7))**2._wp + ((mom(8)-tar(8))/tar(8))**2._wp + ((mom(9)-tar(9))/tar(9))**2._wp + ((mom(10)-tar(10))/tar(10))**2._wp
+            case(4) ! 6 moments
+                objective_value = ((mom(1)-tar(1))/tar(1))**2._wp + ((mom(2)-tar(2))/tar(2))**2._wp + ((mom(5)-tar(5))/tar(5))**2._wp + ((mom(6)-tar(6))/tar(6))**2._wp + ((mom(7)-tar(7))/tar(7))**2._wp + ((mom(9)-tar(9))/tar(9))**2._wp
         end select 
         !objective_value = sum( (mom-tar)**2._wp )
     end function objective_value   
