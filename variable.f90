@@ -114,7 +114,8 @@ module variable
                 listlength = 10000, & ! the length of selective points after coarse search 10.15.2017
                 srnumber, &
                 obj_func_toggle, &
-                var7toggle = 1
+                var7toggle = 1, &
+                mode4list = 450
     
     character(len=100) :: listnumber
     
@@ -1087,7 +1088,12 @@ contains
                        i = i + 1
                        read( value_string,*) var7toggle
                        labstr(i) = 'var7toggle'
-                       para(i) = var7toggle                         
+                       para(i) = var7toggle   
+                   case('mode4list') ! 147
+                       i = i + 1
+                       read( value_string,*) mode4list
+                       labstr(i) = 'mode4list'
+                       para(i) = mode4list                        
                 end select
             enddo
         else

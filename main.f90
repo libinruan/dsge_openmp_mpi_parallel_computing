@@ -45,7 +45,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,146) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,147) ! works. 
             write(*,*) ' '
             write(*,*) "printout17 everyone recevies bequests: ", printout17
             write(*,*) "printout18 housing upper limit extended based on consumer need: ", printout18
@@ -73,6 +73,7 @@ program MPI_sandbox
         endif
         write(*,'(2a)') 'PRINTOUT11: ', msg
         write(*,'(a,i4)') 'obj_func_toggle: ', obj_func_toggle
+        write(*,'(a,i4)') 'mode4list: ', mode4list
         !call test2()
         
     endif
@@ -845,7 +846,7 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==4)then ! 9-30-2017
         ! 10-1-2017
-        allocate( mat_stage1_inputs(900,11) ) !10.21.2017 Change it!!!
+        allocate( mat_stage1_inputs(mode4list,11) ) !10.21.2017 Change it!!!
         trylen = size(mat_stage1_inputs,dim=1)
         
         if(my_id==0) call read_matrix(mat_stage1_inputs,'_stage1_input.csv')
