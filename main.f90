@@ -29,6 +29,9 @@ program MPI_sandbox
     real(wp) :: stoch(1)
     real(wp), dimension(:,:), allocatable :: mat_stage1_inputs
     
+    character(:), allocatable :: stringmode6
+    character(len=5) :: idmode6    
+    
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
     
@@ -45,7 +48,7 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,147) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,148) ! works. 
             write(*,*) ' '
             write(*,*) "printout17 everyone recevies bequests: ", printout17
             write(*,*) "printout18 housing upper limit extended based on consumer need: ", printout18
@@ -1212,6 +1215,40 @@ program MPI_sandbox
         endif
         deallocate(selected_input, result, bestvertex)
         deallocate(pointlist, pts_ndim, pts_subdim, pt_input_ndim)
+        
+    elseif(mpi_exercise_mode==6)then
+        
+        !print*, 'mode6taskid: ', mode6taskid
+        !11.2.2017 printout final matrix (distribution, c, a, h, u)
+        
+        !call testsub('string1', i)
+        !write(*,*) '1: ', i
+        !call testsub('str2', i)
+        !write(*,*) '2: ', i   
+        
+        call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
+        print*, 'mode6taskid1: ', mode6taskid
+        
+        call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
+        print*, 'mode6taskid2: ', mode6taskid
+        
+        if(printout26)then
+            
+            print*, 'mode6taskid: ', mode6taskid
+            write(idmode6,'(i3.3)') mode6taskid
+            
+            stringmode6 = 'sef_'//trim(idmode6)//'.txt'
+            !print*, '1: ', stringmode6
+            call ss(sef,stringmode6,20,8)
+            stringmode6 = 'hom_'//trim(idmode6)//'.txt'
+            !print*, '2: ', stringmode6
+            call ss(sw_ini_house,stringmode6,20,8)
+            stringmode6 = 'csp_'//trim(idmode6)//'.txt'
+            !print*, '3: ', stringmode6
+            call ss(sw_consumption,stringmode6,20,8)
+            
+        endif !mpi_exercise_mode     
+        
     endif ! mpi_exercise_mode
     
     !call search_equilibrium(exit_log1) ! <===== replace solve_model() with this one. 3.10.2017 This is the working one. Obsolete, 7-3-2017.
@@ -2491,6 +2528,20 @@ contains
         enddo !i
         return
     end subroutine matrix_boundary_adjustment
+    
+    subroutine testsub(i,j)
+        implicit none
+        character(len=*), intent(in) :: i
+        integer, intent(out) :: j
+        select case(i)
+        case('string1')
+            j = 135
+            write(*,*) 'answer1=', j
+        case('str2')
+            j = 246
+            write(*,*) 'answer2=', j
+        end select
+    end subroutine testsub
     
     end program MPI_sandbox
     

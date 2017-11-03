@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(146)
-    real(wp) :: para(146), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(148)
+    real(wp) :: para(148), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -256,6 +256,8 @@ module variable
     integer :: mpi_exercise_mode, trylen, sblno1, nrow, amoitrcrt, amoiniswitch, nslaves
     integer :: trial, slave, ierr, msgtype, modelmsg
     
+    integer :: mode6taskid
+    
     real(wp) :: stepsize, reinifac, amoalp, amogam, amobet, amotau, amoerrcrt, amoconvex
     real(wp) :: obj_val_1st
     real(wp), dimension(:), allocatable :: parcel, result, obj_val_vec, origin_input, selected_input, pt_input_ndim
@@ -270,7 +272,7 @@ module variable
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
     logical :: printout13, printout14, printout15, printout16, printout17, printout18, printout19, printout20, printout21, printout22, printout23, printout24
-    logical :: printout25
+    logical :: printout25, printout26
     logical :: receiving, status(mpi_status_size)
     character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -284,821 +286,845 @@ module variable
     real(wp) :: bestobjval
     
 contains  
-    subroutine read_parameter_model( para, input_file )
+    subroutine read_parameter_model( para, input_file, trial_option )
         implicit none
         real(wp), dimension(:), intent(inout) :: para
         character(len=*), intent(in) :: input_file
         character(len=80) :: name_string, value_string
         integer :: n, iostat, i
-        n = size( para )
-        para = 0._wp
-        i = 0
-        open( unit=10, file=input_file, status='old', action='read', iostat=iostat )
-        if( iostat==0 ) then
-            do 
-                read( unit=10, fmt=*, iostat=iostat ) name_string, value_string
-                if( iostat/=0 ) exit
-                if( scan( name_string, '!')>0 ) cycle
-                select case( name_string )
-                   case ('printout1') 
-                        read( value_string, * ) printout1      
-                   case ('printout2') 
-                        read( value_string, * ) printout2    
-                   case ('printout3') 
-                        read( value_string, * ) printout3     
-                   case ('printout4') 
-                        read( value_string, * ) printout4      
-                   case ('printout5') 
-                        read( value_string, * ) printout5  
-                   case ('printout6') 
-                        read( value_string, * ) printout6        
-                   case ('printout7') 
-                        read( value_string, * ) printout7    
-                   case ('printout8') 
-                        read( value_string, * ) printout8       
-                   case ('printout9') 
-                        read( value_string, * ) printout9   
-                   case ('printout10') 
-                        read( value_string, * ) printout10   
-                   case ('printout11') 
-                        read( value_string, * ) printout11  
-                   case ('printout12') 
-                        read( value_string, * ) printout12         
-                   case ('printout13') 
-                        read( value_string, * ) printout13  
-                   case ('printout14')                        
-                        read( value_string, * ) printout14
-                   case ('printout15')
-                        read( value_string, * ) printout15
-                   case ('printout16')     
-                        read( value_string, * ) printout16
-                   case ('printout17')     
-                        read( value_string, * ) printout17                        
-                   case ('printout18')     
-                        read( value_string, * ) printout18          
-                   case ('printout19')     
-                        read( value_string, * ) printout19   
-                   case ('printout20')     
-                        read( value_string, * ) printout20    
-                   case ('printout21')     
-                        read( value_string, * ) printout21      
-                   case ('printout22')     
-                        read( value_string, * ) printout22      
-                   case ('printout23')     
-                        read( value_string, * ) printout23 
-                   case ('printout24')     
-                        read( value_string, * ) printout24   
-                   case ('printout25')     
-                        read( value_string, * ) printout25                         
-                   case ('listnumber')
-                        read(value_string, *  ) listnumber
-                   case ('bestvertex_file')
-                        read(value_string, * ) bestvertex_file
-                   case('mpi_exercise_mode')
-                       read( value_string,*) mpi_exercise_mode                         
-                   !case ('tausvflag')
-                   !     read( value_string, * ) tausvflag
-                   case('rhoy') ! 1
-                       i = i + 1 
-                       read( value_string,*) rhoy 
-                       labstr(i) = 'rhoy'
-                       para(i) = rhoy
-                   case('vary') ! 2
-                       i = i + 1 
-                       read( value_string,*) rhoy 
-                       labstr(i) = 'vary'
-                       para(i) = rhoy
-                   case('rhoyh') ! 3
-                       i = i + 1 
-                       read( value_string,*) rhoyh 
-                       labstr(i) = 'rhoyh'
-                       para(i) = rhoyh
-                   case('varyh') ! 4
-                       i = i + 1 
-                       read( value_string,*) varyh 
-                       labstr(i) = 'varyh'
-                       para(i) = varyh
-                   case('deltak') ! 5
-                       i = i + 1 
-                       read( value_string,*) deltak 
-                       labstr(i) = 'deltak'
-                       para(i) = deltak
-                   case('deltah') ! 6
-                       i = i + 1 
-                       read( value_string,*) deltah 
-                       labstr(i) = 'deltah'
-                       para(i) = deltah
-                   case('rd') ! 7
-                       i = i + 1 
-                       read( value_string,*) rd 
-                       labstr(i) = 'rd'
-                       para(i) = rd
-                   case('alpha') ! 8
-                       i = i + 1 
-                       read( value_string,*) alpha 
-                       labstr(i) = 'alpha'
-                       para(i) = alpha
-                   case('lambda') ! 9 happened only once in the model. the collateral constraint.
-                       i = i + 1 
-                       read( value_string,*) lambda 
-                       labstr(i) = 'lambda'
-                       para(i) = lambda
-                   case('theta') ! 10
-                       i = i + 1 
-                       read( value_string,*) theta 
-                       labstr(i) = 'theta'
-                       para(i) = theta
-                   case('sigma') ! 11
-                       i = i + 1 
-                       read( value_string,*) sigma 
-                       labstr(i) = 'sigma'
-                       para(i) = sigma
-                   case('nu') ! 12
-                       i = i + 1 
-                       read( value_string,*) nu 
-                       labstr(i) = 'nu'
-                       para(i) = nu
-                   case('kv1') ! 13
-                       i = i + 1 
-                       read( value_string,*) kv1 
-                       labstr(i) = 'kv1'
-                       para(i) = kv1
-                   case('prtk0') ! 14
-                       i = i + 1 
-                       read( value_string,*) prtk0 
-                       labstr(i) = 'prtk0'
-                       para(i) = prtk0
-                   case('prtk1') ! 15
-                       i = i + 1 
-                       read( value_string,*) prtk1 
-                       labstr(i) = 'prtk1'
-                       para(i) = prtk1
-                   case('prtk2') ! 16
-                       i = i + 1 
-                       read( value_string,*) prtk2 
-                       labstr(i) = 'prtk2'
-                       para(i) = prtk2
-                   case('phi0') ! 17
-                       i = i + 1 
-                       read( value_string,*) phi0 
-                       labstr(i) = 'phi0'
-                       para(i) = phi0
-                   case('phi1') ! 18
-                       i = i + 1 
-                       read( value_string,*) phi1 
-                       labstr(i) = 'phi1'
-                       para(i) = phi1
-                   case('phi2') ! 19
-                       i = i + 1 
-                       read( value_string,*) phi2 
-                       labstr(i) = 'phi2'
-                       para(i) = phi2
-                   case('phi3') ! 20
-                       i = i + 1 
-                       read( value_string,*) phi3 
-                       labstr(i) = 'phi3'
-                       para(i) = phi3
-                   case('beta') ! 21
-                       i = i + 1 
-                       read( value_string,*) beta 
-                       labstr(i) = 'beta'
-                       para(i) = beta
-                   case('zbar') ! 22
-                       i = i + 1 
-                       read( value_string,*) zbar 
-                       labstr(i) = 'zbar'
-                       para(i) = zbar
-                   case('zlow') ! 23
-                       i = i + 1 
-                       read( value_string,*) zlow 
-                       labstr(i) = 'zlow'
-                       para(i) = zlow
-                   case('hmin') ! 24
-                       i = i + 1 
-                       read( value_string,*) hmin 
-                       labstr(i) = 'hmin'
-                       para(i) = hmin
-                   case('hmax') ! 25
-                       i = i + 1 
-                       read( value_string,*) hmax 
-                       labstr(i) = 'hmax'
-                       para(i) = hmax
-                   case('amin') ! 26
-                       i = i + 1 
-                       read( value_string,*) amin 
-                       labstr(i) = 'amin'
-                       para(i) = amin
-                   case('amax') ! 27
-                       i = i + 1 
-                       read( value_string,*) amax 
-                       labstr(i) = 'amax'
-                       para(i) = amax
-                   case('dfrac') ! 28
-                       i = i + 1 
-                       read( value_string,*) dfrac 
-                       labstr(i) = 'dfrac'
-                       para(i) = dfrac 
-                   case('gfrac') ! 29
-                       i = i + 1 
-                       read( value_string,*) gfrac 
-                       labstr(i) = 'gfrac'
-                       para(i) = gfrac
-                   case('taubal') ! 30
-                       i = i + 1 
-                       read( value_string,*) taubal 
-                       labstr(i) = 'taubal'
-                       para(i) = taubal
-                   case('CorpLabFrac') ! 31 
-                       i = i + 1 
-                       read( value_string,*) CorpLabFrac 
-                       labstr(i) = 'CorpLabFrac'
-                       para(i) = CorpLabFrac
-                   case('CorpOutFrac') ! 32
-                       i = i + 1 
-                       read( value_string,*) CorpOutFrac 
-                       labstr(i) = 'CorpOutFrac'
-                       para(i) = CorpOutFrac
-                   case('btaxw') ! 33
-                       i = i + 1 
-                       read( value_string,*) btaxw 
-                       labstr(i) = 'btaxw'
-                       para(i) = btaxw
-                   case('ptaxw') ! 34
-                       i = i + 1 
-                       read( value_string,*) ptaxw 
-                       labstr(i) = 'ptaxw'
-                       para(i) = ptaxw
-                   case('staxw') ! 35
-                       i = i + 1 
-                       read( value_string,*) staxw 
-                       labstr(i) = 'staxw'
-                       para(i) = staxw
-                   case('btaxe') ! 36
-                       i = i + 1 
-                       read( value_string,*) btaxe 
-                       labstr(i) = 'btaxe'
-                       para(i) = btaxe
-                   case('ptaxe') ! 37
-                       i = i + 1 
-                       read( value_string,*) ptaxe 
-                       labstr(i) = 'ptaxe'
-                       para(i) = ptaxe
-                   case('staxe') ! 38
-                       i = i + 1 
-                       read( value_string,*) staxe 
-                       labstr(i) = 'staxe'
-                       para(i) = staxe
-                   case('tauss') ! 39
-                       i = i + 1 
-                       read( value_string,*) tauss 
-                       labstr(i) = 'tauss'
-                       para(i) = tauss
-                   case('PropHouseCapital') ! 40
-                       i = i + 1 
-                       read( value_string,*) PropHouseCapital 
-                       labstr(i) = 'PropHouseCapital'
-                       para(i) = PropHouseCapital
-                   case('BossPropPopu') ! 41
-                       i = i + 1 
-                       read( value_string,*) BossPropPopu 
-                       labstr(i) = 'BossProfPopu'
-                       para(i) = BossPropPopu
-                   case('rl') ! 42
-                       i = i + 1 
-                       read( value_string,*) rl 
-                       labstr(i) = 'rl'
-                       para(i) = rl
-                   case('penalty') ! 43 
-                       i = i + 1 
-                       read( value_string,*) penalty 
-                       labstr(i) = 'penalty'
-                       para(i) = penalty
-                   case('epsilon') ! 44
-                       i = i + 1 
-                       read( value_string,*) epsilon 
-                       labstr(i) = 'epsilon'
-                       para(i) = epsilon
-                   case('err_dist') ! 45
-                       i = i + 1 
-                       read( value_string,*) err_dist 
-                       labstr(i) = 'err_dist'
-                       para(i) = err_dist
-                   case('gamma1') ! 46
-                       i = i + 1 
-                       read( value_string,*) gamma1 
-                       labstr(i) = 'gamma1'
-                       para(i) = gamma1
-                   case('mu1') ! 47
-                       i = i + 1 
-                       read( value_string,*) mu1 
-                       labstr(i) = 'mu1'
-                       para(i) = mu1
-                   case('mu2') ! 48
-                       i = i + 1 
-                       read( value_string,*) mu2 
-                       labstr(i) = 'mu2'
-                       para(i) = mu2
-                   case('rho1') ! 49
-                       i = i + 1 
-                       read( value_string,*) rho1 
-                       labstr(i) = 'rho1'
-                       para(i) = rho1
-                   case('rho2') ! 50
-                       i = i + 1 
-                       read( value_string,*) rho2 
-                       labstr(i) = 'rho2'
-                       para(i) = rho2
-                   case('nmc') ! 51
-                       i = i + 1 
-                       read( value_string,*) nmc 
-                       labstr(i) = 'nmc'
-                       para(i) = nmc
-                   case('hdim') ! 52
-                       i = i + 1 
-                       read( value_string,*) hdim 
-                       labstr(i) = 'hdim'
-                       para(i) = hdim
-                   case('adim') ! 53
-                       i = i + 1 
-                       read( value_string,*) adim 
-                       labstr(i) = 'adim'
-                       para(i) = adim
-                   case('fnadim') ! 54
-                       i = i + 1 
-                       read( value_string,*) fnadim 
-                       labstr(i) = 'fnadim'
-                       para(i) = fnadim
-                   case('kdim') ! 55
-                       i = i + 1 
-                       read( value_string,*) kdim 
-                       labstr(i) = 'kdim'
-                       para(i) = kdim
-                   case('length') ! 56
-                       i = i + 1 
-                       read( value_string,*) length 
-                       labstr(i) = 'length'
-                       para(i) = length
-                   case('radjust') ! 57
-                       i = i + 1 
-                       read( value_string,*) radjust 
-                       labstr(i) = 'radjust'
-                       para(i) = radjust
-                   case('rweight') ! 58
-                       i = i + 1 
-                       read( value_string,*) rweight 
-                       labstr(i) = 'rweight'
-                       para(i) = rweight
-                   case('epsirmin') ! 59
-                       i = i + 1 
-                       read( value_string,*) epsirmin 
-                       labstr(i) = 'epsirmin'
-                       para(i) = epsirmin
-                   case('iterarmax') ! 60
-                       i = i + 1 
-                       read( value_string,*) iterarmax 
-                       labstr(i) = 'iterarmax'
-                       para(i) = iterarmax
-                   case('rbar') ! 61
-                       i = i + 1 
-                       read( value_string,*) rbar 
-                       labstr(i) = 'rbar'
-                       para(i) = rbar
-                   case('tbalwidth') ! 62 
-                       i = i + 1 
-                       read( value_string,*) tbalwidth 
-                       labstr(i) = 'tbalwidth'
-                       para(i) = tbalwidth
-                   case('epsigovmin') ! 63
-                       i = i + 1 
-                       read( value_string,*) epsigovmin 
-                       labstr(i) = 'epsigovmin'
-                       para(i) = epsigovmin
-                   case('iteragovmax') ! 64
-                       i = i + 1 
-                       read( value_string,*) iteragovmax 
-                       labstr(i) = 'iteragovmax'
-                       para(i) = iteragovmax
-                   case('taubalmin') ! 65
-                       i = i + 1 
-                       read( value_string,*) taubalmin 
-                       labstr(i) = 'taubalmin'
-                       para(i) = taubalmin
-                   case('taubalmax') ! 66
-                       i = i + 1 
-                       read( value_string,*) taubalmax 
-                       labstr(i) = 'taubalmax'
-                       para(i) = taubalmax
-                   case('pertgov') ! 67
-                       i = i + 1 
-                       read( value_string,*) pertgov 
-                       labstr(i) = 'pertgov'
-                       para(i) = pertgov
-                   case('b2gratio') ! 68
-                       i = i + 1
-                       read( value_string,*) b2gratio
-                       labstr(i) = 'b2gratio'
-                       para(i) = b2gratio
-                   case('btax') ! 69
-                       i = i + 1
-                       read( value_string,*) btax
-                       labstr(i) = 'btax'
-                       para(i) = btax
-                   case('ptax') ! 70
-                       i = i + 1
-                       read( value_string,*) ptax
-                       labstr(i) = 'ptax'
-                       para(i) = ptax
-                   case('stax') ! 71
-                       i = i + 1
-                       read( value_string,*) stax
-                       labstr(i) = 'stax'
-                       para(i) = stax     
-                   case('nmul') ! 72
-                       i = i + 1
-                       read( value_string,*) nmul
-                       labstr(i) = 'nmul'
-                       para(i) = nmul   
-                   case('ndim') ! 73
-                       i = i + 1
-                       read( value_string,*) ndim
-                       labstr(i) = 'ndim'
-                       para(i) = ndim    
-                   case('tauk') ! 74
-                       i = i + 1
-                       read( value_string,*) tauk
-                       labstr(i) = 'tauk'
-                       para(i) = tauk    
-                   case('fnhdim') ! 75
-                       i = i + 1
-                       read( value_string,*) fnhdim
-                       labstr(i) = 'fnhdim'
-                       para(i) = fnhdim    
-                   case('sdim') ! 76
-                       i = i + 1
-                       read( value_string,*) sdim
-                       labstr(i) = 'sdim'
-                       para(i) = sdim     
-                   case('err_svdist') ! 77
-                       i = i + 1
-                       read( value_string,*) err_svdist
-                       labstr(i) = 'err_svdist'
-                       para(i) = err_svdist  
-                   case('iterasvmax') ! 78
-                       i = i + 1
-                       read( value_string,*) iterasvmax
-                       labstr(i) = 'iterasvmax'
-                       para(i) = iterasvmax   
-                   case('nsdim') ! 79
-                       i = i + 1
-                       read( value_string,*) nsdim
-                       labstr(i) = 'nsdim'
-                       para(i) = nsdim ! iterabrent    
-                   case('gsdim') ! 80
-                       i = i + 1
-                       read( value_string,*) gsdim
-                       labstr(i) = 'gsdim'
-                       para(i) = gsdim ! iterabrent 
-                   case('trsld') ! 81
-                       i = i + 1
-                       read( value_string,*) trsld
-                       labstr(i) = 'trsld'
-                       para(i) = trsld     
-                   case('iterainvdist') ! 82
-                       i = i + 1
-                       read( value_string,*) iterainvdist
-                       labstr(i) = 'iterainvdist'
-                       para(i) = iterainvdist                        
-                   case('tausv') ! 83
-                       i = i + 1
-                       read( value_string,*) tausv
-                       labstr(i) = 'tausv'
-                       para(i) = tausv
-                   case('taubp') ! 84
-                       i = i + 1
-                       read( value_string,*) taubp
-                       labstr(i) = 'taubp'
-                       para(i) = taubp   
-                   case('target1') ! 85
-                       i = i + 1
-                       read( value_string,*) targetv(1) 
-                       labstr(i) = 'capital in corporate'                         
-                       para(i) = targetv(1)
-                   case('target2') ! 86
-                       i = i + 1
-                       read( value_string,*) targetv(2) 
-                       labstr(i) = 'small biz projects  '
-                       para(i) = targetv(2)
-                   case('target3') ! 87
-                       i = i + 1
-                       read( value_string,*) targetv(3) 
-                       labstr(i) = 'median biz projects '                                                
-                       para(i) = targetv(3)
-                   case('target4') ! 88
-                       i = i + 1
-                       read( value_string,*) targetv(4) 
-                       labstr(i) = 'large biz projects  '                                                
-                       para(i) = targetv(4)
-                   case('target5') ! 89
-                       i = i + 1
-                       read( value_string,*) targetv(5) 
-                       labstr(i) = 'bizmen size         '                                                
-                       para(i) = targetv(5)
-                   case('target6') ! 90
-                       i = i + 1
-                       read( value_string,*) targetv(6) 
-                       labstr(i) = 'financial capital   '                                                
-                       para(i) = targetv(6)
-                   case('target7') ! 91
-                       i = i + 1
-                       read( value_string,*) targetv(7) 
-                       labstr(i) = 'housing capital     '
-                       para(i) = targetv(7)
-                   case('target8') ! 92
-                       i = i + 1
-                       read( value_string,*) targetv(8) 
-                       labstr(i) = 'bizmen capital      '
-                       para(i) = targetv(8)
-                   case('target9') ! 93
-                       i = i + 1
-                       read( value_string,*) targetv(9) 
-                       labstr(i) = 'bizmen income       '
-                       para(i) = targetv(9)
-                   case('target10') ! 94
-                       i = i + 1
-                       read( value_string,*) targetv(10) 
-                       labstr(i) = 'ratio of med assets '                       
-                       para(i) = targetv(10)
-                   case('lower1') ! 95
-                       i = i + 1
-                       read( value_string,*) range_guess(1,1) 
-                       labstr(i) = 'lower size of the smallest project'                         
-                       para(i) = range_guess(1,1)
-                   case('upper1') ! 96
-                       i = i + 1
-                       read( value_string,*) range_guess(1,2) 
-                       labstr(i) = 'upper size of the smallest project'                         
-                       para(i) = range_guess(1,2)                       
-                   case('lower2') ! 97
-                       i = i + 1
-                       read( value_string,*) range_guess(2,1) 
-                       labstr(i) = 'lower prtk0 prob of new ideas'                         
-                       para(i) = range_guess(2,1)
-                   case('upper2') ! 98
-                       i = i + 1
-                       read( value_string,*) range_guess(2,2) 
-                       labstr(i) = 'upper prtk0 prob of new ideas'                         
-                       para(i) = range_guess(2,2)       
-                   case('lower3') ! 99
-                       i = i + 1
-                       read( value_string,*) range_guess(3,1) 
-                       labstr(i) = 'lower prtk1 prob of new ideas'                         
-                       para(i) = range_guess(3,1)
-                   case('upper3') ! 100
-                       i = i + 1
-                       read( value_string,*) range_guess(3,2) 
-                       labstr(i) = 'upper prtk1 prob of new ideas'                         
-                       para(i) = range_guess(3,2)   
-                   case('lower4') ! 101
-                       i = i + 1
-                       read( value_string,*) range_guess(4,1) 
-                       labstr(i) = 'lower prtk2 prob of new ideas'                         
-                       para(i) = range_guess(4,1)
-                   case('upper4') ! 102
-                       i = i + 1
-                       read( value_string,*) range_guess(4,2) 
-                       labstr(i) = 'upper prtk2 prob of new ideas'                         
-                       para(i) = range_guess(4,2)   
-                   case('lower5') ! 103
-                       i = i + 1
-                       read( value_string,*) range_guess(5,1) 
-                       labstr(i) = 'lower average tech shock'                         
-                       para(i) = range_guess(5,1)
-                   case('upper5') ! 104
-                       i = i + 1
-                       read( value_string,*) range_guess(5,2) 
-                       labstr(i) = 'upper average tech shock'                         
-                       para(i) = range_guess(5,2)   
-                   case('lower6') ! 105
-                       i = i + 1
-                       read( value_string,*) range_guess(6,1) 
-                       labstr(i) = 'lower discount factor'                         
-                       para(i) = range_guess(6,1)
-                   case('upper6') ! 106
-                       i = i + 1
-                       read( value_string,*) range_guess(6,2) 
-                       labstr(i) = 'upper discount factor'                         
-                       para(i) = range_guess(6,2)   
-                   case('lower7') ! 107
-                       i = i + 1
-                       read( value_string,*) range_guess(7,1) 
-                       labstr(i) = 'lower housing utility parameter'                         
-                       para(i) = range_guess(7,1)
-                   case('upper7') ! 108
-                       i = i + 1
-                       read( value_string,*) range_guess(7,2) 
-                       labstr(i) = 'upper housing utility parameter'                         
-                       para(i) = range_guess(7,2)   
-                   case('lower8') ! 109
-                       i = i + 1
-                       read( value_string,*) range_guess(8,1) 
-                       labstr(i) = 'lower phi1'                         
-                       para(i) = range_guess(8,1)
-                   case('upper8') ! 110
-                       i = i + 1
-                       read( value_string,*) range_guess(8,2) 
-                       labstr(i) = 'upper phi1'                         
-                       para(i) = range_guess(8,2)   
-                   case('lower9') ! 111
-                       i = i + 1
-                       read( value_string,*) range_guess(9,1) 
-                       labstr(i) = 'lower phi2'                         
-                       para(i) = range_guess(9,1)
-                   case('upper9') ! 112
-                       i = i + 1
-                       read( value_string,*) range_guess(9,2) 
-                       labstr(i) = 'upper phi2'                         
-                       para(i) = range_guess(9,2)   
-                   case('lower10') ! 113
-                       i = i + 1
-                       read( value_string,*) range_guess(10,1) 
-                       labstr(i) = 'lower phi3'                         
-                       para(i) = range_guess(10,1)
-                   case('upper10') ! 114
-                       i = i + 1
-                       read( value_string,*) range_guess(10,2) 
-                       labstr(i) = 'upper phi3'                         
-                       para(i) = range_guess(10,2) 
-
-                   case('trylen') ! 115
-                       i = i + 1
-                       read( value_string,*) trylen 
-                       labstr(i) = 'trylen'                         
-                       para(i) = trylen    
-                   case('sblno1') ! 116
-                       i = i + 1
-                       read( value_string,*) sblno1 
-                       labstr(i) = 'sblno1'                         
-                       para(i) = sblno1 
-                   case('nrow') ! 117
-                       i = i + 1
-                       read( value_string,*) nrow 
-                       labstr(i) = 'nrow'                         
-                       para(i) = nrow 
-                   case('stepsize') ! 118
-                       i = i + 1
-                       read( value_string,*) stepsize 
-                       labstr(i) = 'stepsize'                         
-                       para(i) = stepsize 
-                   case('reinifac') ! 119
-                       i = i + 1
-                       read( value_string,*) reinifac 
-                       labstr(i) = 'reinifac'                         
-                       para(i) = reinifac 
-                   case('amoalp') ! 120
-                       i = i + 1
-                       read( value_string,*) amoalp 
-                       labstr(i) = 'amoalp'                         
-                       para(i) = amoalp 
-                   case('amogam') ! 121
-                       i = i + 1
-                       read( value_string,*) amogam 
-                       labstr(i) = 'amogam'                         
-                       para(i) = amogam 
-                   case('amobet') ! 122
-                       i = i + 1
-                       read( value_string,*) amobet 
-                       labstr(i) = 'amobet'                         
-                       para(i) = amobet 
-                   case('amotau') ! 123
-                       i = i + 1
-                       read( value_string,*) amotau 
-                       labstr(i) = 'amotau'                         
-                       para(i) = amotau 
-                   case('amoerrcrt') ! 124
-                       i = i + 1
-                       read( value_string,*) amoerrcrt 
-                       labstr(i) = 'amoerrcrt'                         
-                       para(i) = amoerrcrt 
-                   case('amoitrcrt') ! 125
-                       i = i + 1
-                       read( value_string,*) amoitrcrt  
-                       labstr(i) = 'amoitrcrt'                         
-                       para(i) = amoitrcrt 
-                   case('amoconvex') ! 126
-                       i = i + 1
-                       read( value_string,*) amoconvex 
-                       labstr(i) = 'amoconvex'                         
-                       para(i) = amoconvex 
-                   case('amoiniswitch') ! 127
-                       i = i + 1
-                       read( value_string,*) amoiniswitch  
-                       labstr(i) = 'amoiniswitch'                         
-                       para(i) = amoiniswitch  
-                   case('nsbq') ! 128
-                       i = i + 1
-                       read( value_string,*) nsbq  
-                       labstr(i) = 'nsbq'                         
-                       para(i) = nsbq       
-                   case('slist') ! 129
-                       i = i + 1
-                       read( value_string,*) slist
-                       labstr(i) = 'slist'
-                       para(i) = slist
-                   case('elist') ! 130
-                       i = i + 1
-                       read( value_string,*) elist
-                       labstr(i) = 'elist'
-                       para(i) = elist
-                   case('noamoeba') ! 131
-                       i = i + 1
-                       read( value_string,*) noamoeba
-                       labstr(i) = 'noamoeba'
-                       para(i) = noamoeba
-                   case('maxdist') ! 132
-                       i = i + 1
-                       read( value_string,*) maxdist
-                       labstr(i) = 'maxdist'
-                       para(i) = maxdist                    
-                   case('tinymass') ! 133
-                       i = i + 1
-                       read( value_string,*) tinymass
-                       labstr(i) = 'tinymass'
-                       para(i) = tinymass  
-                   case('chunkmass') ! 134
-                       i = i + 1
-                       read( value_string,*) chunkmass
-                       labstr(i) = 'chunkmass'
-                       para(i) = chunkmass       
-                   case('initau') ! 135
-                       i = i + 1
-                       read( value_string,*) initau
-                       labstr(i) = 'initau'
-                       para(i) = initau
-                   case('testfunc_idx') ! 136
-                       i = i + 1
-                       read( value_string,*) testfunc_idx
-                       labstr(i) = 'testfunc_idx'
-                       para(i) = testfunc_idx          
-                   case('accumass') ! 137
-                       i = i + 1
-                       read( value_string,*) accumass
-                       labstr(i) = 'accumass'
-                       para(i) = accumass  
-                   case('accupara') ! 138
-                       i = i + 1
-                       read( value_string,*) accupara
-                       labstr(i) = 'accupara'
-                       para(i) = accupara
-                   case('errvalfc') ! 139
-                       i = i + 1
-                       read( value_string,*) errvalfc
-                       labstr(i) = 'errvalfc'
-                       para(i) = errvalfc
-                   case('iota') ! 140
-                       i = i + 1
-                       read( value_string,*) iota
-                       labstr(i) = 'iota'
-                       para(i) = iota  
-                   case('momround') ! 141
-                       i = i + 1
-                       read( value_string,*) momround
-                       labstr(i) = 'momround'
-                       para(i) = momround   
-                   case('setindex') ! 142
-                       i = i + 1
-                       read( value_string,*) setindex
-                       labstr(i) = 'setindex'
-                       para(i) = setindex 
-                   case('listlength') ! 143
-                       i = i + 1
-                       read( value_string,*) listlength
-                       labstr(i) = 'listlength'
-                       para(i) = listlength      
-                   case('subdim') ! 144
-                       i = i + 1
-                       read( value_string,*) subdim
-                       labstr(i) = 'subdim'
-                       para(i) = subdim   
-                   case('obj_func_toggle') ! 145
-                       i = i + 1
-                       read( value_string,*) obj_func_toggle
-                       labstr(i) = 'obj_func_toggle'
-                       para(i) = obj_func_toggle    
-                   case('var7toggle') ! 146
-                       i = i + 1
-                       read( value_string,*) var7toggle
-                       labstr(i) = 'var7toggle'
-                       para(i) = var7toggle   
-                   case('mode4list') ! 147
-                       i = i + 1
-                       read( value_string,*) mode4list
-                       labstr(i) = 'mode4list'
-                       para(i) = mode4list                        
-                end select
-            enddo
-        else
-            write(*,'(a)') 'Failed to read ''para1''.'
-        endif
+        character(len=*), optional, intent(in) :: trial_option
+        
+        if(.not.present(trial_option))then
+            n = size( para )
+            para = 0._wp
+            i = 0
+            open( unit=10, file=input_file, status='old', action='read', iostat=iostat )
+            if( iostat==0 ) then
+                do 
+                    read( unit=10, fmt=*, iostat=iostat ) name_string, value_string
+                    if( iostat/=0 ) exit
+                    if( scan( name_string, '!')>0 ) cycle
+                    select case( name_string )
+                       case ('printout1') 
+                            read( value_string, * ) printout1      
+                       case ('printout2') 
+                            read( value_string, * ) printout2    
+                       case ('printout3') 
+                            read( value_string, * ) printout3     
+                       case ('printout4') 
+                            read( value_string, * ) printout4      
+                       case ('printout5') 
+                            read( value_string, * ) printout5  
+                       case ('printout6') 
+                            read( value_string, * ) printout6        
+                       case ('printout7') 
+                            read( value_string, * ) printout7    
+                       case ('printout8') 
+                            read( value_string, * ) printout8       
+                       case ('printout9') 
+                            read( value_string, * ) printout9   
+                       case ('printout10') 
+                            read( value_string, * ) printout10   
+                       case ('printout11') 
+                            read( value_string, * ) printout11  
+                       case ('printout12') 
+                            read( value_string, * ) printout12         
+                       case ('printout13') 
+                            read( value_string, * ) printout13  
+                       case ('printout14')                        
+                            read( value_string, * ) printout14
+                       case ('printout15')
+                            read( value_string, * ) printout15
+                       case ('printout16')     
+                            read( value_string, * ) printout16
+                       case ('printout17')     
+                            read( value_string, * ) printout17                        
+                       case ('printout18')     
+                            read( value_string, * ) printout18          
+                       case ('printout19')     
+                            read( value_string, * ) printout19   
+                       case ('printout20')     
+                            read( value_string, * ) printout20    
+                       case ('printout21')     
+                            read( value_string, * ) printout21      
+                       case ('printout22')     
+                            read( value_string, * ) printout22      
+                       case ('printout23')     
+                            read( value_string, * ) printout23 
+                       case ('printout24')     
+                            read( value_string, * ) printout24   
+                       case ('printout25')     
+                            read( value_string, * ) printout25                         
+                       case ('printout26')     
+                            read( value_string, * ) printout26
+                       case ('listnumber')
+                            read(value_string, *  ) listnumber
+                       case ('bestvertex_file')
+                            read(value_string, * ) bestvertex_file
+                       case('mpi_exercise_mode')
+                           read( value_string,*) mpi_exercise_mode                         
+                       !case ('tausvflag')
+                       !     read( value_string, * ) tausvflag
+                       case('rhoy') ! 1
+                           i = i + 1 
+                           read( value_string,*) rhoy 
+                           labstr(i) = 'rhoy'
+                           para(i) = rhoy
+                       case('vary') ! 2
+                           i = i + 1 
+                           read( value_string,*) rhoy 
+                           labstr(i) = 'vary'
+                           para(i) = rhoy
+                       case('rhoyh') ! 3
+                           i = i + 1 
+                           read( value_string,*) rhoyh 
+                           labstr(i) = 'rhoyh'
+                           para(i) = rhoyh
+                       case('varyh') ! 4
+                           i = i + 1 
+                           read( value_string,*) varyh 
+                           labstr(i) = 'varyh'
+                           para(i) = varyh
+                       case('deltak') ! 5
+                           i = i + 1 
+                           read( value_string,*) deltak 
+                           labstr(i) = 'deltak'
+                           para(i) = deltak
+                       case('deltah') ! 6
+                           i = i + 1 
+                           read( value_string,*) deltah 
+                           labstr(i) = 'deltah'
+                           para(i) = deltah
+                       case('rd') ! 7
+                           i = i + 1 
+                           read( value_string,*) rd 
+                           labstr(i) = 'rd'
+                           para(i) = rd
+                       case('alpha') ! 8
+                           i = i + 1 
+                           read( value_string,*) alpha 
+                           labstr(i) = 'alpha'
+                           para(i) = alpha
+                       case('lambda') ! 9 happened only once in the model. the collateral constraint.
+                           i = i + 1 
+                           read( value_string,*) lambda 
+                           labstr(i) = 'lambda'
+                           para(i) = lambda
+                       case('theta') ! 10
+                           i = i + 1 
+                           read( value_string,*) theta 
+                           labstr(i) = 'theta'
+                           para(i) = theta
+                       case('sigma') ! 11
+                           i = i + 1 
+                           read( value_string,*) sigma 
+                           labstr(i) = 'sigma'
+                           para(i) = sigma
+                       case('nu') ! 12
+                           i = i + 1 
+                           read( value_string,*) nu 
+                           labstr(i) = 'nu'
+                           para(i) = nu
+                       case('kv1') ! 13
+                           i = i + 1 
+                           read( value_string,*) kv1 
+                           labstr(i) = 'kv1'
+                           para(i) = kv1
+                       case('prtk0') ! 14
+                           i = i + 1 
+                           read( value_string,*) prtk0 
+                           labstr(i) = 'prtk0'
+                           para(i) = prtk0
+                       case('prtk1') ! 15
+                           i = i + 1 
+                           read( value_string,*) prtk1 
+                           labstr(i) = 'prtk1'
+                           para(i) = prtk1
+                       case('prtk2') ! 16
+                           i = i + 1 
+                           read( value_string,*) prtk2 
+                           labstr(i) = 'prtk2'
+                           para(i) = prtk2
+                       case('phi0') ! 17
+                           i = i + 1 
+                           read( value_string,*) phi0 
+                           labstr(i) = 'phi0'
+                           para(i) = phi0
+                       case('phi1') ! 18
+                           i = i + 1 
+                           read( value_string,*) phi1 
+                           labstr(i) = 'phi1'
+                           para(i) = phi1
+                       case('phi2') ! 19
+                           i = i + 1 
+                           read( value_string,*) phi2 
+                           labstr(i) = 'phi2'
+                           para(i) = phi2
+                       case('phi3') ! 20
+                           i = i + 1 
+                           read( value_string,*) phi3 
+                           labstr(i) = 'phi3'
+                           para(i) = phi3
+                       case('beta') ! 21
+                           i = i + 1 
+                           read( value_string,*) beta 
+                           labstr(i) = 'beta'
+                           para(i) = beta
+                       case('zbar') ! 22
+                           i = i + 1 
+                           read( value_string,*) zbar 
+                           labstr(i) = 'zbar'
+                           para(i) = zbar
+                       case('zlow') ! 23
+                           i = i + 1 
+                           read( value_string,*) zlow 
+                           labstr(i) = 'zlow'
+                           para(i) = zlow
+                       case('hmin') ! 24
+                           i = i + 1 
+                           read( value_string,*) hmin 
+                           labstr(i) = 'hmin'
+                           para(i) = hmin
+                       case('hmax') ! 25
+                           i = i + 1 
+                           read( value_string,*) hmax 
+                           labstr(i) = 'hmax'
+                           para(i) = hmax
+                       case('amin') ! 26
+                           i = i + 1 
+                           read( value_string,*) amin 
+                           labstr(i) = 'amin'
+                           para(i) = amin
+                       case('amax') ! 27
+                           i = i + 1 
+                           read( value_string,*) amax 
+                           labstr(i) = 'amax'
+                           para(i) = amax
+                       case('dfrac') ! 28
+                           i = i + 1 
+                           read( value_string,*) dfrac 
+                           labstr(i) = 'dfrac'
+                           para(i) = dfrac 
+                       case('gfrac') ! 29
+                           i = i + 1 
+                           read( value_string,*) gfrac 
+                           labstr(i) = 'gfrac'
+                           para(i) = gfrac
+                       case('taubal') ! 30
+                           i = i + 1 
+                           read( value_string,*) taubal 
+                           labstr(i) = 'taubal'
+                           para(i) = taubal
+                       case('CorpLabFrac') ! 31 
+                           i = i + 1 
+                           read( value_string,*) CorpLabFrac 
+                           labstr(i) = 'CorpLabFrac'
+                           para(i) = CorpLabFrac
+                       case('CorpOutFrac') ! 32
+                           i = i + 1 
+                           read( value_string,*) CorpOutFrac 
+                           labstr(i) = 'CorpOutFrac'
+                           para(i) = CorpOutFrac
+                       case('btaxw') ! 33
+                           i = i + 1 
+                           read( value_string,*) btaxw 
+                           labstr(i) = 'btaxw'
+                           para(i) = btaxw
+                       case('ptaxw') ! 34
+                           i = i + 1 
+                           read( value_string,*) ptaxw 
+                           labstr(i) = 'ptaxw'
+                           para(i) = ptaxw
+                       case('staxw') ! 35
+                           i = i + 1 
+                           read( value_string,*) staxw 
+                           labstr(i) = 'staxw'
+                           para(i) = staxw
+                       case('btaxe') ! 36
+                           i = i + 1 
+                           read( value_string,*) btaxe 
+                           labstr(i) = 'btaxe'
+                           para(i) = btaxe
+                       case('ptaxe') ! 37
+                           i = i + 1 
+                           read( value_string,*) ptaxe 
+                           labstr(i) = 'ptaxe'
+                           para(i) = ptaxe
+                       case('staxe') ! 38
+                           i = i + 1 
+                           read( value_string,*) staxe 
+                           labstr(i) = 'staxe'
+                           para(i) = staxe
+                       case('tauss') ! 39
+                           i = i + 1 
+                           read( value_string,*) tauss 
+                           labstr(i) = 'tauss'
+                           para(i) = tauss
+                       case('PropHouseCapital') ! 40
+                           i = i + 1 
+                           read( value_string,*) PropHouseCapital 
+                           labstr(i) = 'PropHouseCapital'
+                           para(i) = PropHouseCapital
+                       case('BossPropPopu') ! 41
+                           i = i + 1 
+                           read( value_string,*) BossPropPopu 
+                           labstr(i) = 'BossProfPopu'
+                           para(i) = BossPropPopu
+                       case('rl') ! 42
+                           i = i + 1 
+                           read( value_string,*) rl 
+                           labstr(i) = 'rl'
+                           para(i) = rl
+                       case('penalty') ! 43 
+                           i = i + 1 
+                           read( value_string,*) penalty 
+                           labstr(i) = 'penalty'
+                           para(i) = penalty
+                       case('epsilon') ! 44
+                           i = i + 1 
+                           read( value_string,*) epsilon 
+                           labstr(i) = 'epsilon'
+                           para(i) = epsilon
+                       case('err_dist') ! 45
+                           i = i + 1 
+                           read( value_string,*) err_dist 
+                           labstr(i) = 'err_dist'
+                           para(i) = err_dist
+                       case('gamma1') ! 46
+                           i = i + 1 
+                           read( value_string,*) gamma1 
+                           labstr(i) = 'gamma1'
+                           para(i) = gamma1
+                       case('mu1') ! 47
+                           i = i + 1 
+                           read( value_string,*) mu1 
+                           labstr(i) = 'mu1'
+                           para(i) = mu1
+                       case('mu2') ! 48
+                           i = i + 1 
+                           read( value_string,*) mu2 
+                           labstr(i) = 'mu2'
+                           para(i) = mu2
+                       case('rho1') ! 49
+                           i = i + 1 
+                           read( value_string,*) rho1 
+                           labstr(i) = 'rho1'
+                           para(i) = rho1
+                       case('rho2') ! 50
+                           i = i + 1 
+                           read( value_string,*) rho2 
+                           labstr(i) = 'rho2'
+                           para(i) = rho2
+                       case('nmc') ! 51
+                           i = i + 1 
+                           read( value_string,*) nmc 
+                           labstr(i) = 'nmc'
+                           para(i) = nmc
+                       case('hdim') ! 52
+                           i = i + 1 
+                           read( value_string,*) hdim 
+                           labstr(i) = 'hdim'
+                           para(i) = hdim
+                       case('adim') ! 53
+                           i = i + 1 
+                           read( value_string,*) adim 
+                           labstr(i) = 'adim'
+                           para(i) = adim
+                       case('fnadim') ! 54
+                           i = i + 1 
+                           read( value_string,*) fnadim 
+                           labstr(i) = 'fnadim'
+                           para(i) = fnadim
+                       case('kdim') ! 55
+                           i = i + 1 
+                           read( value_string,*) kdim 
+                           labstr(i) = 'kdim'
+                           para(i) = kdim
+                       case('length') ! 56
+                           i = i + 1 
+                           read( value_string,*) length 
+                           labstr(i) = 'length'
+                           para(i) = length
+                       case('radjust') ! 57
+                           i = i + 1 
+                           read( value_string,*) radjust 
+                           labstr(i) = 'radjust'
+                           para(i) = radjust
+                       case('rweight') ! 58
+                           i = i + 1 
+                           read( value_string,*) rweight 
+                           labstr(i) = 'rweight'
+                           para(i) = rweight
+                       case('epsirmin') ! 59
+                           i = i + 1 
+                           read( value_string,*) epsirmin 
+                           labstr(i) = 'epsirmin'
+                           para(i) = epsirmin
+                       case('iterarmax') ! 60
+                           i = i + 1 
+                           read( value_string,*) iterarmax 
+                           labstr(i) = 'iterarmax'
+                           para(i) = iterarmax
+                       case('rbar') ! 61
+                           i = i + 1 
+                           read( value_string,*) rbar 
+                           labstr(i) = 'rbar'
+                           para(i) = rbar
+                       case('tbalwidth') ! 62 
+                           i = i + 1 
+                           read( value_string,*) tbalwidth 
+                           labstr(i) = 'tbalwidth'
+                           para(i) = tbalwidth
+                       case('epsigovmin') ! 63
+                           i = i + 1 
+                           read( value_string,*) epsigovmin 
+                           labstr(i) = 'epsigovmin'
+                           para(i) = epsigovmin
+                       case('iteragovmax') ! 64
+                           i = i + 1 
+                           read( value_string,*) iteragovmax 
+                           labstr(i) = 'iteragovmax'
+                           para(i) = iteragovmax
+                       case('taubalmin') ! 65
+                           i = i + 1 
+                           read( value_string,*) taubalmin 
+                           labstr(i) = 'taubalmin'
+                           para(i) = taubalmin
+                       case('taubalmax') ! 66
+                           i = i + 1 
+                           read( value_string,*) taubalmax 
+                           labstr(i) = 'taubalmax'
+                           para(i) = taubalmax
+                       case('pertgov') ! 67
+                           i = i + 1 
+                           read( value_string,*) pertgov 
+                           labstr(i) = 'pertgov'
+                           para(i) = pertgov
+                       case('b2gratio') ! 68
+                           i = i + 1
+                           read( value_string,*) b2gratio
+                           labstr(i) = 'b2gratio'
+                           para(i) = b2gratio
+                       case('btax') ! 69
+                           i = i + 1
+                           read( value_string,*) btax
+                           labstr(i) = 'btax'
+                           para(i) = btax
+                       case('ptax') ! 70
+                           i = i + 1
+                           read( value_string,*) ptax
+                           labstr(i) = 'ptax'
+                           para(i) = ptax
+                       case('stax') ! 71
+                           i = i + 1
+                           read( value_string,*) stax
+                           labstr(i) = 'stax'
+                           para(i) = stax     
+                       case('nmul') ! 72
+                           i = i + 1
+                           read( value_string,*) nmul
+                           labstr(i) = 'nmul'
+                           para(i) = nmul   
+                       case('ndim') ! 73
+                           i = i + 1
+                           read( value_string,*) ndim
+                           labstr(i) = 'ndim'
+                           para(i) = ndim    
+                       case('tauk') ! 74
+                           i = i + 1
+                           read( value_string,*) tauk
+                           labstr(i) = 'tauk'
+                           para(i) = tauk    
+                       case('fnhdim') ! 75
+                           i = i + 1
+                           read( value_string,*) fnhdim
+                           labstr(i) = 'fnhdim'
+                           para(i) = fnhdim    
+                       case('sdim') ! 76
+                           i = i + 1
+                           read( value_string,*) sdim
+                           labstr(i) = 'sdim'
+                           para(i) = sdim     
+                       case('err_svdist') ! 77
+                           i = i + 1
+                           read( value_string,*) err_svdist
+                           labstr(i) = 'err_svdist'
+                           para(i) = err_svdist  
+                       case('iterasvmax') ! 78
+                           i = i + 1
+                           read( value_string,*) iterasvmax
+                           labstr(i) = 'iterasvmax'
+                           para(i) = iterasvmax   
+                       case('nsdim') ! 79
+                           i = i + 1
+                           read( value_string,*) nsdim
+                           labstr(i) = 'nsdim'
+                           para(i) = nsdim ! iterabrent    
+                       case('gsdim') ! 80
+                           i = i + 1
+                           read( value_string,*) gsdim
+                           labstr(i) = 'gsdim'
+                           para(i) = gsdim ! iterabrent 
+                       case('trsld') ! 81
+                           i = i + 1
+                           read( value_string,*) trsld
+                           labstr(i) = 'trsld'
+                           para(i) = trsld     
+                       case('iterainvdist') ! 82
+                           i = i + 1
+                           read( value_string,*) iterainvdist
+                           labstr(i) = 'iterainvdist'
+                           para(i) = iterainvdist                        
+                       case('tausv') ! 83
+                           i = i + 1
+                           read( value_string,*) tausv
+                           labstr(i) = 'tausv'
+                           para(i) = tausv
+                       case('taubp') ! 84
+                           i = i + 1
+                           read( value_string,*) taubp
+                           labstr(i) = 'taubp'
+                           para(i) = taubp   
+                       case('target1') ! 85
+                           i = i + 1
+                           read( value_string,*) targetv(1) 
+                           labstr(i) = 'capital in corporate'                         
+                           para(i) = targetv(1)
+                       case('target2') ! 86
+                           i = i + 1
+                           read( value_string,*) targetv(2) 
+                           labstr(i) = 'small biz projects  '
+                           para(i) = targetv(2)
+                       case('target3') ! 87
+                           i = i + 1
+                           read( value_string,*) targetv(3) 
+                           labstr(i) = 'median biz projects '                                                
+                           para(i) = targetv(3)
+                       case('target4') ! 88
+                           i = i + 1
+                           read( value_string,*) targetv(4) 
+                           labstr(i) = 'large biz projects  '                                                
+                           para(i) = targetv(4)
+                       case('target5') ! 89
+                           i = i + 1
+                           read( value_string,*) targetv(5) 
+                           labstr(i) = 'bizmen size         '                                                
+                           para(i) = targetv(5)
+                       case('target6') ! 90
+                           i = i + 1
+                           read( value_string,*) targetv(6) 
+                           labstr(i) = 'financial capital   '                                                
+                           para(i) = targetv(6)
+                       case('target7') ! 91
+                           i = i + 1
+                           read( value_string,*) targetv(7) 
+                           labstr(i) = 'housing capital     '
+                           para(i) = targetv(7)
+                       case('target8') ! 92
+                           i = i + 1
+                           read( value_string,*) targetv(8) 
+                           labstr(i) = 'bizmen capital      '
+                           para(i) = targetv(8)
+                       case('target9') ! 93
+                           i = i + 1
+                           read( value_string,*) targetv(9) 
+                           labstr(i) = 'bizmen income       '
+                           para(i) = targetv(9)
+                       case('target10') ! 94
+                           i = i + 1
+                           read( value_string,*) targetv(10) 
+                           labstr(i) = 'ratio of med assets '                       
+                           para(i) = targetv(10)
+                       case('lower1') ! 95
+                           i = i + 1
+                           read( value_string,*) range_guess(1,1) 
+                           labstr(i) = 'lower size of the smallest project'                         
+                           para(i) = range_guess(1,1)
+                       case('upper1') ! 96
+                           i = i + 1
+                           read( value_string,*) range_guess(1,2) 
+                           labstr(i) = 'upper size of the smallest project'                         
+                           para(i) = range_guess(1,2)                       
+                       case('lower2') ! 97
+                           i = i + 1
+                           read( value_string,*) range_guess(2,1) 
+                           labstr(i) = 'lower prtk0 prob of new ideas'                         
+                           para(i) = range_guess(2,1)
+                       case('upper2') ! 98
+                           i = i + 1
+                           read( value_string,*) range_guess(2,2) 
+                           labstr(i) = 'upper prtk0 prob of new ideas'                         
+                           para(i) = range_guess(2,2)       
+                       case('lower3') ! 99
+                           i = i + 1
+                           read( value_string,*) range_guess(3,1) 
+                           labstr(i) = 'lower prtk1 prob of new ideas'                         
+                           para(i) = range_guess(3,1)
+                       case('upper3') ! 100
+                           i = i + 1
+                           read( value_string,*) range_guess(3,2) 
+                           labstr(i) = 'upper prtk1 prob of new ideas'                         
+                           para(i) = range_guess(3,2)   
+                       case('lower4') ! 101
+                           i = i + 1
+                           read( value_string,*) range_guess(4,1) 
+                           labstr(i) = 'lower prtk2 prob of new ideas'                         
+                           para(i) = range_guess(4,1)
+                       case('upper4') ! 102
+                           i = i + 1
+                           read( value_string,*) range_guess(4,2) 
+                           labstr(i) = 'upper prtk2 prob of new ideas'                         
+                           para(i) = range_guess(4,2)   
+                       case('lower5') ! 103
+                           i = i + 1
+                           read( value_string,*) range_guess(5,1) 
+                           labstr(i) = 'lower average tech shock'                         
+                           para(i) = range_guess(5,1)
+                       case('upper5') ! 104
+                           i = i + 1
+                           read( value_string,*) range_guess(5,2) 
+                           labstr(i) = 'upper average tech shock'                         
+                           para(i) = range_guess(5,2)   
+                       case('lower6') ! 105
+                           i = i + 1
+                           read( value_string,*) range_guess(6,1) 
+                           labstr(i) = 'lower discount factor'                         
+                           para(i) = range_guess(6,1)
+                       case('upper6') ! 106
+                           i = i + 1
+                           read( value_string,*) range_guess(6,2) 
+                           labstr(i) = 'upper discount factor'                         
+                           para(i) = range_guess(6,2)   
+                       case('lower7') ! 107
+                           i = i + 1
+                           read( value_string,*) range_guess(7,1) 
+                           labstr(i) = 'lower housing utility parameter'                         
+                           para(i) = range_guess(7,1)
+                       case('upper7') ! 108
+                           i = i + 1
+                           read( value_string,*) range_guess(7,2) 
+                           labstr(i) = 'upper housing utility parameter'                         
+                           para(i) = range_guess(7,2)   
+                       case('lower8') ! 109
+                           i = i + 1
+                           read( value_string,*) range_guess(8,1) 
+                           labstr(i) = 'lower phi1'                         
+                           para(i) = range_guess(8,1)
+                       case('upper8') ! 110
+                           i = i + 1
+                           read( value_string,*) range_guess(8,2) 
+                           labstr(i) = 'upper phi1'                         
+                           para(i) = range_guess(8,2)   
+                       case('lower9') ! 111
+                           i = i + 1
+                           read( value_string,*) range_guess(9,1) 
+                           labstr(i) = 'lower phi2'                         
+                           para(i) = range_guess(9,1)
+                       case('upper9') ! 112
+                           i = i + 1
+                           read( value_string,*) range_guess(9,2) 
+                           labstr(i) = 'upper phi2'                         
+                           para(i) = range_guess(9,2)   
+                       case('lower10') ! 113
+                           i = i + 1
+                           read( value_string,*) range_guess(10,1) 
+                           labstr(i) = 'lower phi3'                         
+                           para(i) = range_guess(10,1)
+                       case('upper10') ! 114
+                           i = i + 1
+                           read( value_string,*) range_guess(10,2) 
+                           labstr(i) = 'upper phi3'                         
+                           para(i) = range_guess(10,2) 
+                       case('trylen') ! 115
+                           i = i + 1
+                           read( value_string,*) trylen 
+                           labstr(i) = 'trylen'                         
+                           para(i) = trylen    
+                       case('sblno1') ! 116
+                           i = i + 1
+                           read( value_string,*) sblno1 
+                           labstr(i) = 'sblno1'                         
+                           para(i) = sblno1 
+                       case('nrow') ! 117
+                           i = i + 1
+                           read( value_string,*) nrow 
+                           labstr(i) = 'nrow'                         
+                           para(i) = nrow 
+                       case('stepsize') ! 118
+                           i = i + 1
+                           read( value_string,*) stepsize 
+                           labstr(i) = 'stepsize'                         
+                           para(i) = stepsize 
+                       case('reinifac') ! 119
+                           i = i + 1
+                           read( value_string,*) reinifac 
+                           labstr(i) = 'reinifac'                         
+                           para(i) = reinifac 
+                       case('amoalp') ! 120
+                           i = i + 1
+                           read( value_string,*) amoalp 
+                           labstr(i) = 'amoalp'                         
+                           para(i) = amoalp 
+                       case('amogam') ! 121
+                           i = i + 1
+                           read( value_string,*) amogam 
+                           labstr(i) = 'amogam'                         
+                           para(i) = amogam 
+                       case('amobet') ! 122
+                           i = i + 1
+                           read( value_string,*) amobet 
+                           labstr(i) = 'amobet'                         
+                           para(i) = amobet 
+                       case('amotau') ! 123
+                           i = i + 1
+                           read( value_string,*) amotau 
+                           labstr(i) = 'amotau'                         
+                           para(i) = amotau 
+                       case('amoerrcrt') ! 124
+                           i = i + 1
+                           read( value_string,*) amoerrcrt 
+                           labstr(i) = 'amoerrcrt'                         
+                           para(i) = amoerrcrt 
+                       case('amoitrcrt') ! 125
+                           i = i + 1
+                           read( value_string,*) amoitrcrt  
+                           labstr(i) = 'amoitrcrt'                         
+                           para(i) = amoitrcrt 
+                       case('amoconvex') ! 126
+                           i = i + 1
+                           read( value_string,*) amoconvex 
+                           labstr(i) = 'amoconvex'                         
+                           para(i) = amoconvex 
+                       case('amoiniswitch') ! 127
+                           i = i + 1
+                           read( value_string,*) amoiniswitch  
+                           labstr(i) = 'amoiniswitch'                         
+                           para(i) = amoiniswitch  
+                       case('nsbq') ! 128
+                           i = i + 1
+                           read( value_string,*) nsbq  
+                           labstr(i) = 'nsbq'                         
+                           para(i) = nsbq       
+                       case('slist') ! 129
+                           i = i + 1
+                           read( value_string,*) slist
+                           labstr(i) = 'slist'
+                           para(i) = slist
+                       case('elist') ! 130
+                           i = i + 1
+                           read( value_string,*) elist
+                           labstr(i) = 'elist'
+                           para(i) = elist
+                       case('noamoeba') ! 131
+                           i = i + 1
+                           read( value_string,*) noamoeba
+                           labstr(i) = 'noamoeba'
+                           para(i) = noamoeba
+                       case('maxdist') ! 132
+                           i = i + 1
+                           read( value_string,*) maxdist
+                           labstr(i) = 'maxdist'
+                           para(i) = maxdist                    
+                       case('tinymass') ! 133
+                           i = i + 1
+                           read( value_string,*) tinymass
+                           labstr(i) = 'tinymass'
+                           para(i) = tinymass  
+                       case('chunkmass') ! 134
+                           i = i + 1
+                           read( value_string,*) chunkmass
+                           labstr(i) = 'chunkmass'
+                           para(i) = chunkmass       
+                       case('initau') ! 135
+                           i = i + 1
+                           read( value_string,*) initau
+                           labstr(i) = 'initau'
+                           para(i) = initau
+                       case('testfunc_idx') ! 136
+                           i = i + 1
+                           read( value_string,*) testfunc_idx
+                           labstr(i) = 'testfunc_idx'
+                           para(i) = testfunc_idx          
+                       case('accumass') ! 137
+                           i = i + 1
+                           read( value_string,*) accumass
+                           labstr(i) = 'accumass'
+                           para(i) = accumass  
+                       case('accupara') ! 138
+                           i = i + 1
+                           read( value_string,*) accupara
+                           labstr(i) = 'accupara'
+                           para(i) = accupara
+                       case('errvalfc') ! 139
+                           i = i + 1
+                           read( value_string,*) errvalfc
+                           labstr(i) = 'errvalfc'
+                           para(i) = errvalfc
+                       case('iota') ! 140
+                           i = i + 1
+                           read( value_string,*) iota
+                           labstr(i) = 'iota'
+                           para(i) = iota  
+                       case('momround') ! 141
+                           i = i + 1
+                           read( value_string,*) momround
+                           labstr(i) = 'momround'
+                           para(i) = momround   
+                       case('setindex') ! 142
+                           i = i + 1
+                           read( value_string,*) setindex
+                           labstr(i) = 'setindex'
+                           para(i) = setindex 
+                       case('listlength') ! 143
+                           i = i + 1
+                           read( value_string,*) listlength
+                           labstr(i) = 'listlength'
+                           para(i) = listlength      
+                       case('subdim') ! 144
+                           i = i + 1
+                           read( value_string,*) subdim
+                           labstr(i) = 'subdim'
+                           para(i) = subdim   
+                       case('obj_func_toggle') ! 145
+                           i = i + 1
+                           read( value_string,*) obj_func_toggle
+                           labstr(i) = 'obj_func_toggle'
+                           para(i) = obj_func_toggle    
+                       case('var7toggle') ! 146
+                           i = i + 1
+                           read( value_string,*) var7toggle
+                           labstr(i) = 'var7toggle'
+                           para(i) = var7toggle   
+                       case('mode4list') ! 147
+                           i = i + 1
+                           read( value_string,*) mode4list
+                           labstr(i) = 'mode4list'
+                           para(i) = mode4list    
+                       case('mode6taskid') ! 148
+                           i = i + 1
+                           read( value_string,*) mode6taskid
+                           labstr(i) = 'mode6taskid'
+                           para(i) = mode6taskid                         
+                    end select
+                enddo
+            else
+                write(*,'(a)') 'Failed to read ''para1''.'
+            endif
+        else ! present(trial_option). Any string passed by trial_option can trigue the following statement.
+            open( unit=10, file=input_file, status='old', action='read', iostat=iostat )    
+            if( iostat==0 )then
+                do 
+                    read( unit=10, fmt=*, iostat=iostat ) name_string, value_string
+                    if( iostat/=0 ) exit 
+                    if( scan( name_string, '!')>0 ) cycle
+                    select case( name_string )
+                        case('mode6taskid') ! 148
+                            read( value_string,*) mode6taskid
+                    end select ! name_string
+                enddo
+            endif !iostat
+        endif ! present(trial_option)
+            
     end subroutine read_parameter_model              
     
     subroutine set_markov_matrix( rhoy, vary, rhoyh, varyh, py, y, sy, pyh, yh, syh )

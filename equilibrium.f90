@@ -239,8 +239,7 @@ module equilibrium
         real(wp) :: sar, tar ! THESE DUMMY VARIABLES USED FOR MULTIPLE TESTING BLOCKS, SO DON'T UNCOMMENT MORE THAN ONE BLOCKS AT THE SAME TIME.
         real(wp), dimension(:), allocatable :: yvtemp
         integer :: colbnd1, colbnd2 ! FOR ILLUSTRATION        
-        integer :: tstart, tend, trate, tmax
-        
+        integer :: tstart, tend, trate, tmax        
         logical :: exit_bellman
         
         !exit_log1 = .false. ! Redundant. Was initialized in the evoking subroutine 'search_equilibrium' 
@@ -797,7 +796,7 @@ module equilibrium
                 
                 staxw = staxwbase*avgincw**(-ptaxw) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
                 staxe = staxebase*avgincw**(-ptaxe) ! that is the real denominator in the (inc/45000)**p, where 45000 is a rough estimate just for initialization
-                stax  = staxbase*(avgincw/50000._wp)**(-ptax) ! Obsolete. Naka uses average household income in 19990. unstable in my current model ! 1-31-2017 seems redundant
+                stax  = staxbase*(avgincw/50000._wp)**(-ptax) ! Obsolete. Naka uses average household income in 1999. unstable in my current model ! 1-31-2017 seems redundant
                 
                 write(my_id+1001,'((15x,"staxw",2x),(15x,"staxe",2x))') ! isye 
                 write(my_id+1001,'(2(e20.13,2x),/)') staxw, staxe ! isye
@@ -1318,6 +1317,7 @@ module equilibrium
             call compute_lorenz() 
             write(unit=my_id+2001,fmt='(3(2x,a))') 'csp_gini', 'axw_gini', 'xbi_gini'
             write(unit=my_id+2001,fmt='(3(2x,f8.4))') csp_gini, axw_gini, xbi_gini
+                        
         endif ! printout10                  
         
         ! 5-9-2017 feed back added here. 
