@@ -4181,7 +4181,7 @@ contains
         mean_wokhom = wokhom/woksize
 
         mean_entinc = entinc/entsize 
-        mean_wokinc = wokinc/woksize ! `mean_wokinc` is updated and will be used in equilibrium.f90's line 413.
+        mean_wokinc = wokinc/woksize ! 11.1.2017 Important!!! `mean_wokinc` is updated and will be used in equilibrium.f90's line 413. 
         mean_entcsp = entcsp/entsize
         mean_wokcsp = wokcsp/woksize
         mean_entaxw = entaxw/entsize
