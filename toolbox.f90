@@ -475,10 +475,12 @@ contains
         fname = y // '.txt'
         if(.not.present(opt))then
             write(fmt1,'(a,i8,a)') '(',n,'(i6))'
+            open(unit=0,file=fname,action="write",status="replace",recl=(6*n+10))
         else
             write(fmt1,'(a,i8,a,i8,a)') '(',n,'(i',opt,'))'
+            open(unit=0,file=fname,action="write",status="replace",recl=(opt*n+10))
         endif
-        open(unit=0,file=fname,action="write",status="replace",recl=(7*n+10))
+        
         do i = 1,m
             write(unit=0,fmt=fmt1) (x(i,j),j=1,n)    
         enddo 

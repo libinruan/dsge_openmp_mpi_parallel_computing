@@ -91,7 +91,10 @@ module variable
                 accumass = 1.e10, &
                 accupara = 1.e5, &
                 errvalfc = 2.e-3, &
-                momround = 1e3 ! round to the 3rd place to the right of decimal point
+                momround = 1e3, & ! round to the 3rd place to the right of decimal point
+                tottaxrev = 0._wp, &
+                tauwealth, &
+                benchrbar
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -213,10 +216,11 @@ module variable
     
     integer, dimension(:), allocatable :: sww, swk
     real(wp), dimension(:), allocatable :: swf, swa, swh, swc, sef, def, sef1, sef2, sef3! sef1 and sef2 stationary distribution used in subrtouine ability_transition of model.f90.
-    real(wp), dimension(:), allocatable :: sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan
-    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity
+    real(wp), dimension(:), allocatable :: sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, fsef
+    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom
     real(wp), dimension(:), allocatable :: sw_buzcap_notuse, sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! 3.27.2017 add savtax and biztax.
-    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx
+    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx, fcsp
+    real(wp), dimension(:), allocatable :: sw_wealth_tax
     real(wp), dimension(:), allocatable :: axw_lorenz, csp_lorenz, xbi_lorenz 
     
     integer, dimension(:), allocatable :: sww2, swk2

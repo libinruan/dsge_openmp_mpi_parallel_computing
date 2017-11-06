@@ -83,6 +83,22 @@ program MPI_sandbox
 
     if(mpi_exercise_mode == -2)then ! experiment zone
         
+        !mode6taskid = 0
+        !print*, "ttaxent-mode6taskid=1: ", ttaxent(1.2_wp)
+        !mode6taskid = 1
+        !print*, "ttaxent-mode6taskid=2: ", ttaxent(1.2_wp)
+        
+        call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
+        allocate(s3c(1018*fnadim*fnhdim,10), c3s(1:fnadim,1:fnhdim,0:kdim-1,0:1,0:nmc,0:kdim-1,0:nmc,0:2,1:14))
+        call serialindices_Map2_coordinates(s3c,c3s,fnadim,fnhdim)
+        call smi(s3c,'s3c2',8)
+        deallocate(s3c, c3s)
+        
+        allocate(temp1vertex(10))
+        temp1vertex = [(i,i=1,10)]
+        call ss(temp1vertex,'temp1vertex')
+        deallocate(temp1vertex)
+        
         if(my_id==0)then
             
             !real(wp), dimension(:), allocatable :: temp1vertex
@@ -985,10 +1001,9 @@ program MPI_sandbox
                         obj_val_vec(trial) = obj_val_1st
                         
                         ! Results That Are Collected by Individual Nodes (we are now in the my_id == 0 zone)
-                        if(i==1) write(my_id+1001,'(a,(12x,a),(x,a),(2x,a),(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"), &
+                        if(i==1) write(my_id+1001,'("MyID",(12x,"error"),(x,"   #trial"),(2x,"   #list"),(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"), &
                             & (10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"),(11x,"input1"),(11x,"input2"),(11x,"input3"), &
-                            & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') &
-                            & "MyID","error", "   #trial", "   #list"
+                            & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') 
                         
                         !write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 8-2-2017. Indexeries maps the basic index number to the index number for the shifted list.
                         !    & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_mixed(trial,:) ! 8-2-2017. "slave" is the node returunign the computing outcome.
@@ -1217,37 +1232,118 @@ program MPI_sandbox
         deallocate(pointlist, pts_ndim, pts_subdim, pt_input_ndim)
         
     elseif(mpi_exercise_mode==6)then
-        
-        !print*, 'mode6taskid: ', mode6taskid
-        !11.2.2017 printout final matrix (distribution, c, a, h, u)
-        
-        !call testsub('string1', i)
-        !write(*,*) '1: ', i
-        !call testsub('str2', i)
-        !write(*,*) '2: ', i   
-        
+               
+        allocate( fsef(adim*hdim*1018), fhom(adim*hdim*1018), fcsp(adim*hdim*1018) )
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
-        print*, 'mode6taskid1: ', mode6taskid
+        solution_string = 'Single_node_results.txt'   
+        open(unit=my_id+1001, file=solution_string, action='write', status="replace")
+        i = mode6taskid
+        write(msg,fmt='(i3.3)') i ! either 100 or 200
+        write(my_id+1001,'(a,i3,a,/)') " ================================ ", i, " ================================="
+        open( unit=4000+i, file="output_parameter_inspection_"//trim(msg)//".txt", action="write", status="replace")        
         
-        call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
-        print*, 'mode6taskid2: ', mode6taskid
+        !print*, 'mode6taskid1: ', mode6taskid
+        guessv(1) = kv1   
+        guessv(2) = prtk0 
+        guessv(3) = prtk1 
+        guessv(4) = prtk2 
+        guessv(5) = zbar  
+        guessv(6) = beta  
+        guessv(7) = theta 
+        guessv(8) = phi1  
+        guessv(9) = phi2  
+        guessv(10)= phi3  
+        
+        tottaxrev = 0._wp        
+        
+        modelmsg = 0
+        momvec   = inf
+        obj_val_1st = inf        
+        call search_equilibrium( guessv, momvec, obj_val_1st, mode6taskid, mode6taskid, modelmsg )        
+        
+        if( modelmsg == 0 )then
+            write(4000+i, '(a,<ndim>f15.7)') '1guess  : ', guessv
+            write(4000+i, '(a,<ndim>f15.7)') '1targetv: ', targetv
+            write(4000+i, '(a,<ndim>f15.7)') '1moment : ', momvec
+            write(4000+i, '(a,f15.7)') '1penalty:  ', obj_val_1st             
+            write(4000+i, '(a,f15.7)') 'tottaxrev: ', tottaxrev  
+        else
+            write(4000+i, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
+        endif ! modelmsg       
+        close(4000+i)
         
         if(printout26)then
             
-            print*, 'mode6taskid: ', mode6taskid
             write(idmode6,'(i3.3)') mode6taskid
             
-            stringmode6 = 'sef_'//trim(idmode6)//'.txt'
+            stringmode6 = 'sef_'//trim(idmode6)
             !print*, '1: ', stringmode6
-            call ss(sef,stringmode6,20,8)
-            stringmode6 = 'hom_'//trim(idmode6)//'.txt'
+            call ss(fsef,stringmode6,20,8)
+            stringmode6 = 'hom_'//trim(idmode6)
             !print*, '2: ', stringmode6
-            call ss(sw_ini_house,stringmode6,20,8)
-            stringmode6 = 'csp_'//trim(idmode6)//'.txt'
+            call ss(fhom,stringmode6,20,8)
+            stringmode6 = 'csp_'//trim(idmode6)
             !print*, '3: ', stringmode6
-            call ss(sw_consumption,stringmode6,20,8)
+            call ss(fcsp,stringmode6,20,8)
             
         endif !mpi_exercise_mode     
+
+        !=========================================== experiment zone
+        
+        call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
+        !print*, 'mode6taskid2: ', mode6taskid
+        !mode6taskid is updated after the second read_parameter_model ! <--- important
+        !tottaxrev should be updated in the benchmark model
+        i = mode6taskid
+        write(msg,fmt='(i3.3)') i ! either 100 or 200
+        write(my_id+1001,'(a,i3,a,/)') " ================================ ", i, " ================================="
+        open( unit=4000+i, file="output_parameter_inspection_"//trim(msg)//".txt", action="write", status="replace")   
+        
+        guessv(1) = kv1   
+        guessv(2) = prtk0 
+        guessv(3) = prtk1 
+        guessv(4) = prtk2 
+        guessv(5) = zbar  
+        guessv(6) = beta  
+        guessv(7) = theta 
+        guessv(8) = phi1  
+        guessv(9) = phi2  
+        guessv(10)= phi3         
+        
+        modelmsg = 0
+        momvec = inf
+        obj_val_1st = inf        
+        call search_equilibrium( guessv, momvec, obj_val_1st, mode6taskid, mode6taskid, modelmsg )
+        
+        if( modelmsg == 0 )then
+            write(4000+i, '(a,<ndim>f15.7)') '2guess  : ', guessv
+            write(4000+i, '(a,<ndim>f15.7)') '2targetv: ', targetv
+            write(4000+i, '(a,<ndim>f15.7)') '2moment : ', momvec
+            write(4000+i, '(a,f15.7)') '2penalty: ', obj_val_1st 
+            write(4000+i, '(3(a,f15.7))') 'tottaxrev: ', tottaxrev, 'taubal: ', taubal, 'tausv: ', tausv 
+        else
+            write(4000+i, '(a,a,<ndim>f15.7)') ' === Failure === ', 'guess  : ', guessv
+        endif ! modelmsg     
+        close(4000+i)
+        close(my_id+1001)          
+        
+        if(printout26)then
+            
+            write(idmode6,'(i3.3)') mode6taskid
+            
+            stringmode6 = 'sef_'//trim(idmode6)
+            !print*, '1: ', stringmode6
+            call ss(fsef, stringmode6, 20, 8)
+            stringmode6 = 'hom_'//trim(idmode6)
+            !print*, '2: ', stringmode6
+            call ss(fhom, stringmode6, 20, 8)
+            stringmode6 = 'csp_'//trim(idmode6)
+            !print*, '3: ', stringmode6
+            call ss(fcsp, stringmode6, 20, 8)
+            
+        endif !mpi_exercise_mode    
+        
+        deallocate( fsef, fhom, fcsp )
         
     endif ! mpi_exercise_mode
     

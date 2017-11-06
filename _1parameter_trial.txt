@@ -1,1 +1,2 @@
 mode6taskid         1   ! used for mpi_exercise_mode==6, represents the task index.
+tausv               0.  ! tax on capital income tax
