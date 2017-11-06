@@ -316,6 +316,7 @@ module equilibrium
                   sw_entpre_savtax(adim*hdim*1018), &
                   sw_entpre_biztax(adim*hdim*1018), &
                   sw_totinc_bx(adim*hdim*1018), &
+                  sw_wealth_tax(adim*hdim*1018), &
                   !tid(fnadim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &
                   wf(adim,hdim,0:(kdim-1),0:1,0:nmc,1:14), &
                   !ww(adim,hdim,0:(kdim-1),0:1,0:nmc,1:14), &
@@ -608,8 +609,13 @@ module equilibrium
         govbal2gdpmin=0.0_wp
         govbal2gdpmax=0.0_wp        
         ! outer loop --> inner loop
-        taubalrbarmax=taubalmax
-        taubalrbarmin=taubalmin
+        if(mode6taskid==0)then
+            taubalrbarmax=taubalmax ! By default, the value is 0.08
+            taubalrbarmin=taubalmin ! By default, the value is 0.07
+        elseif(mode6taskid==1)then
+            taubalrbarmax=tauwealth+0.01_wp
+            taubalrbarmin=tauwealth-0.01_wp            
+        endif
         
         !write(4000+trial_id,fmt='("#8",13x,10(e21.14,x))') staxebase, staxwbase, staxbase, AggEffLab, hv(1), hv(hdim), av(1), av(adim), taubalrbarmax, taubalrbarmin
         call make_next_period_index_combination() ! 3.15.2017 checked. keep it. moved here from the inner loop. KEEP IT!! THE OPERATION CONTAINS COMBINATION INFO.
@@ -641,13 +647,19 @@ module equilibrium
             bracketgov = 1
             noneedtaubalmax = 0  
             
+            if(mode6taskid==0)then
+                benchrbar = rbar ! passed down the equilibrium interest rate in the last iteration of solving "benchmark" model.
+            else
+                if(iterar==1) rbar = benchrbar ! benchmark equilibirum interest rate as the initial price of capital.
+            endif !mode6taskid
+            
             ! To make the conversion to five year basis for "prices"
             rd = rbar*length ! updated. See equilibrium 534: rbarimplied are rbar are one year interest rates. "rd" and "rimplied" are five year interest rates.
             rl = (rbar+gamma1)*length
             gamma5  = rl - rd        
             
             ! "five-year" rental rate of labor efficiency. formular is checked 1-30-2017
-            wage    = (1._wp - alpha)*((rd+deltak)/(alpha))**(alpha/(alpha - 1._wp)) ! # 2' 08272016 See proof in housing_v9.lyx or pdf.        
+            wage = (1._wp - alpha)*((rd+deltak)/(alpha))**(alpha/(alpha - 1._wp)) ! # 2' 08272016 See proof in housing_v9.lyx or pdf.        
             
             !write(4000+trial_id,fmt='("#9",13x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsir, epsirmin, iterar, iterarmax, iteragov, epsigov, bracketgov, noneedtaubalmax, rd, rl, gamma5, wage
             
@@ -674,8 +686,13 @@ module equilibrium
                 
                 
                 write(unit=my_id+1001,fmt='(a,i4,x,a,i4,x,a)') 'iterar ', iterar, ', iteragov ', iteragov, '----------------------------------------------------------------------- '                
-                write(my_id+1001,'((12x,"old-hmin",2x),(12x,"old-hmax",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(14x,"taubal",2x))') 
-                write(my_id+1001,'((e20.5,2x),(e20.5,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') hmin, hmax, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, taubal
+                if(mode6taskid>0.and.iterar==1.and.iteragov==1)then
+                    write(my_id+1001,'((12x,"old-hmin",2x),(12x,"old-hmax",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(11x,"tauwealth",2x))') 
+                    write(my_id+1001,'((e20.5,2x),(e20.5,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') hmin, hmax, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, tauwealth
+                else
+                    write(my_id+1001,'((12x,"old-hmin",2x),(12x,"old-hmax",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(14x,"taubal",2x))') 
+                    write(my_id+1001,'((e20.5,2x),(e20.5,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') hmin, hmax, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, taubal
+                endif
                 
                 !write(4000+trial_id,fmt='("#11",12x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsigov, epsigovmin, iteragov, iteragovmax, bracketgov, taubal, iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax
                 
@@ -684,17 +701,26 @@ module equilibrium
                     
                     ! 1-28-2017
                     ! procedure to obtain the initial guess on GDP for getting the estimate of lump sum transfer and average income of working class households.
-                    kndata   = ((rd+deltak)/alpha)**(1._wp/(alpha-1._wp))  
-                    crplab   = AggEffLab*CorpLabFrac ! Bold assumption # 1         
-                    crpcap   = kndata*crplab ! one period. Determined by the guessed AggCorpLab
-                    crpprd   = crpcap**alpha*crplab**(1._wp-alpha) ! one period         
-                    gdp      = crpprd/CorpOutFrac ! one period, aggregate output. Needs to be updated. # 3 
                     
-                    transbeq = b2gratio*gdp ! 9-30-2017 ! <------------------------------------------------------------ should be revised 10132016.       
-                    !transbeq_new = b2gratio*gdp ! 9-30-2017
-                    
-                    avgincw  = wage*dot_product(yv,sy)/5._wp ! wage*AggEffLab/0.73_wp ! *0.86_wp ! initial guess. assume #retiree/(#worker+#retiree+#entrepreneur) = 0.15 and #entrepreneur/(#worker+#retiree+#entrepreneur)=0.12, so population share of worker is 0.73, work force share of worker is 0.73/(0.73+0.12)=0.86
-                    benefit  = tauss*wage*AggEffLab/sum(popfrac(10:14))
+                    if(mode6taskid==0)then
+                        kndata   = ((rd+deltak)/alpha)**(1._wp/(alpha-1._wp))  
+                        crplab   = AggEffLab*CorpLabFrac ! Bold assumption # 1         
+                        crpcap   = kndata*crplab ! one period. Determined by the guessed AggCorpLab
+                        crpprd   = crpcap**alpha*crplab**(1._wp-alpha) ! one period         
+                        gdp      = crpprd/CorpOutFrac ! one period, aggregate output. Needs to be updated. # 3 
+                        
+                        transbeq = b2gratio*gdp ! 9-30-2017 ! <------------------------------------------------------------ should be revised 10132016.       
+                        !transbeq_new = b2gratio*gdp ! 9-30-2017
+                        
+                        avgincw  = wage*dot_product(yv,sy)/5._wp ! wage*AggEffLab/0.73_wp ! *0.86_wp ! initial guess. assume #retiree/(#worker+#retiree+#entrepreneur) = 0.15 and #entrepreneur/(#worker+#retiree+#entrepreneur)=0.12, so population share of worker is 0.73, work force share of worker is 0.73/(0.73+0.12)=0.86
+                        benefit  = tauss*wage*AggEffLab/sum(popfrac(10:14))
+                    elseif(mode6taskid==1)then
+                        
+                        transbeq = transbeqimplied !transbeq
+                        avgincw  = mean_wokinc/5._wp !avgincw
+                        benefit  = benefitimplied !benefit
+                        
+                    endif
                     !if(printout5) write(unit=104,fmt='(3i3,a)') iterar, iteragov, iteratot, ' 1 '
                     
                     !write(4000+trial_id,fmt='("#12-1",10x,8(e21.14,x))') kndata, crplab, crpcap, crpprd, gdp, transbeq, avgincw, benefit
@@ -1423,7 +1449,7 @@ module equilibrium
         deallocate( s1c, c1s, cwf, cwa, cwh, cwk, cww, sww, swf, swa, swh, swk, swc, sww2, swf2, swa2, swh2, swk2 ) ! 3.31.2017 s2c and c2s is removed.
         deallocate( sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, sw_ini_asset, sw_ini_house, sw_nonlineartax )
         deallocate( sw_worker_turned, sw_boss_turned, sw_aftertaxwealth, sw_taxableincome, sw_socialsecurity, sw_buzcap_notuse, sw_consumption ) ! csp_lorenz, xbi_lorenz
-        deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax,sw_totinc_bx) ! 3.27.2017
+        deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax, sw_totinc_bx, sw_wealth_tax) ! 3.27.2017
         deallocate( cww2, cwf2, cwc2, cwa2, cwh2, cwk2, rhv, rav, c_lab_vec, c_opt_vec, cwc, cef, ced, cvv, dcef, sef, def ) ! remove scef 8-24-2017 ! remeber to bring it back 10042016
         deallocate( s3c, c3s, swc2, id1 )
         deallocate( term_2, term_3, term_4, term_5, term_6, term_7, term_8, term_9 ) ! debug 9-17-2017
