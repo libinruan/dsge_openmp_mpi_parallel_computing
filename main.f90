@@ -35,7 +35,7 @@ program MPI_sandbox
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
     
-    !call start_files_for_writing() ! open files. 8-26-2017 turned on
+    call start_files_for_writing() ! open files. 8-26-2017 turned on ! 11-14-2017
     
     call fmpi_init() ! USER-DEFINED SUBROUTINE IN TOOLBOX.F90 <------------------------
     call infinity_setting(inf)
@@ -43,12 +43,13 @@ program MPI_sandbox
     if( MY_ID == 0 .and. MPI_PROVIDED<MPI_THREAD_FUNNELED ) write(*,'(a,/)') '! [ WARNING ] The Only-Master-makes-MPI-calls setup fails.' 
     
     allocate(range_guess(ndim,2)) ! 10.21.2017 Warning: it has to be placed prior to read parameters of the model (_parameter1.txt)
+
     call read_parameter_model(para,'_1parameter.txt')
     
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,148) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,149) ! works. 
             write(*,*) ' '
             write(*,*) "printout17 everyone recevies bequests: ", printout17
             write(*,*) "printout18 housing upper limit extended based on consumer need: ", printout18
@@ -201,8 +202,8 @@ program MPI_sandbox
         
         solution_string = 'SingleNode_1001.txt'   
         concisesolution_string = 'SingleNode_2001.txt'
-        open(unit=my_id+1001, file=solution_string, action='write', position='append')
-        open(unit=my_id+2001, file=concisesolution_string, action='write', position='append')
+        open(unit=my_id+1001, file=solution_string, action='write') !, position='append') ! 11-14-2017
+        open(unit=my_id+2001, file=concisesolution_string, action='write') !, position='append') ! 11-14-2017
         !if(printout3) write(unit=my_id+1001,fmt='(a)') ' ------------------------------------------------- '
         
         ! Directly use the parameter setting in _1parameter.txt
@@ -221,6 +222,9 @@ program MPI_sandbox
         modelmsg = 0
         momvec = inf
         obj_val_1st = inf
+        
+        write(*,'((5x,"kv1"),(3x,"prtk0"),(3x,"prtk1"),(3x,"prtk2"),(4x,"zbar"),(4x,"beta"),(3x,"theta"),(4x,"phi1"),(4x,"phi2"),(4x,"phi3"),(2x,"totrev"))') 
+        write(*,'(11(f8.3))') kv1, prtk0, prtk1, prtk2, zbar, beta, theta, phi1, phi2, phi3, tottaxrev
         
         ! Don't update the parameter setting as do the other part of this program. Let's use the modified guessv array.
         call search_equilibrium( guessv, momvec, obj_val_1st, my_id, my_id, modelmsg )
@@ -1359,7 +1363,7 @@ program MPI_sandbox
     call system_clock(tend) 
     if(my_id==0) write(*,fmt='(/,a,f12.4,a,x,i3)') 'total time: ',real(tend-tstart,wp)/real(trate,wp), ' seconds', my_id
     
-    !call end_files_for_writing() ! close files ! 8-26-2017 
+    call end_files_for_writing() ! close files ! 8-26-2017 11-14-2017
         
     !! experiment good. ===========================================
     !! 3.8.2017 Brent can handle all types of tricky probelms I faces, and the user-defined subroutine brent_localizer is good. 

@@ -155,7 +155,7 @@ contains
                                   + (1._wp-deltah)*h - ttaxwok(inc) 
                         elseif(mode6taskid==1)then
                             inc = inc + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                                  + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(inc)                             
+                                  + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(inc)  
                         else 
                             print*, "error in taxation 1014-1"
                         endif !mode6taskid
@@ -3949,7 +3949,7 @@ contains
                 if(printout25)then
 
                     sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
-                    sw_taxableincome(idx) = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx)
+                    sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx)
                     sw_nonlineartax(idx)   = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
                     sw_worker_savtax(idx)  = merge(tausv*rd*a, 0._wp, a>0._wp) ! 10.27.2017 negative interest rate is acceptible.
                     sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
@@ -4118,8 +4118,6 @@ contains
         else
             print*, "error in govbal"
         endif !mode6taskid
-        
-        
         
         ! r_govbal = nint(govbal*10e14_wp)/10e14_wp
         !write(4000+trial_id,fmt='("macro-0",8x,11(e21.14,x))') totsvt, tottax, gfrac, gdp, rd, dfrac, crpcap, entcap, (totsvt + tottax), gfrac*gdp, rd*dfrac*(crpcap+entcap)
@@ -4369,12 +4367,14 @@ contains
                     msg = 'at least one momvec is not available'
                 endif
             enddo
+            
         else ! Divergence happends. Bad input. No sensible result is obtained.
-            momvec = penalty    
+            momvec = penalty 
+            write(my_id+1001,'(/,a,a,/)') '====== Exit message ====== ', msg
         endif 
         
         if(printout19)then          
-            write(my_id+1001,'(/,a)') ' ======================================= original '
+            write(my_id+1001,'(/,a)') ' ======================================= macrostatistics for each government loop '
             write(my_id+1001,'(8(4x,a,x))') 'netast', 'wokfin', 'entfin', 'wokhom', 'enthom', 'entcap', 'crpcap', '   gdp' 
             write(my_id+1001,'(8(e10.3,x))') totast, wokfin, entfin, wokhom, enthom, entcap, crpcap, gdp
             !write(my_id+1001,'(a)') ' ======================================= new      '
@@ -4383,11 +4383,20 @@ contains
             !write(my_id+1001,'(a)') ' --------------------------------------- original '
             write(my_id+1001,'(5(4x,a,x),2(x,a,x),2(3x,a,x))') 'hugPrj', 'medPrj', 'smlPrj', 'w2eRat', 'e2wRat', 'entIncRat', 'medWelRat', 'entSize', 'wokSize' 
             write(my_id+1001,'(9(e10.3,x))') hug_inv_per, med_inv_per, sml_inv_per, w2erat, e2wrat, ent_inc_per, med_wel_e2w, entsize, woksize
-            write(my_id+1001,'(5(2x,a,x),(x,a,x))') ' entCapR', 'asst2Gdp', 'home2Gdp', 'netAsstR', 'tottaxrv', 'txRwealth'
-            write(my_id+1001,'(6(e10.3,x))') momvec(1), momvec(6), momvec(7), momvec(8), tottaxrev, tauwealth
+            
+            if(mode6taskid==0)then
+                write(my_id+1001,'(5(2x,a,x),(x,a,x))') ' entCapR', 'asst2Gdp', 'home2Gdp', 'netAsstR', 'tottaxrv'
+                write(my_id+1001,'(6(e10.3,x))') momvec(1), momvec(6), momvec(7), momvec(8), tottaxrev
+            elseif(mode6taskid==1)then
+                write(my_id+1001,'(5(2x,a,x),(x,a,x))') ' entCapR', 'asst2Gdp', 'home2Gdp', 'netAsstR', 'tottaxrv', 'txRwealth'
+                write(my_id+1001,'(6(e10.3,x))') momvec(1), momvec(6), momvec(7), momvec(8), tottaxrev, taubal                
+            else
+                
+            endif
+            
             write(my_id+1001,'(2(8x,a,x),(6x,a,x),(2x,a,x),2(3x,a,x))') 'rd', 'rl', 'wage', 'transbeq', 'avgincw', 'benefit'
             write(my_id+1001,'(6(e10.3,x))') rd, rl, wage, transbeq, avgincw, benefit
-            write(my_id+1001,'(a,/)') ' =============================================================================================================== '
+            write(my_id+1001,'(a,/)') ' ==================================== End of macrostatistics for each government loop '
             
             fsef = sef
             fhom = sw_ini_house
