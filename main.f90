@@ -14,7 +14,7 @@ program MPI_sandbox
     integer :: tstart, tend, trate, tmax, i, j, index_pt, index_rcv
     ! character(len=200) :: msg
     character(:), allocatable :: msg
-    real(wp) :: temp(2), accu ! debug
+    real(wp) :: rd_return, temp(2), accu ! debug
     
     ! The mpi_exercise_mode == -2: experiment zone
     real(wp), dimension(:), allocatable :: temp1vertex
@@ -997,20 +997,23 @@ program MPI_sandbox
                                 & msgtype, mpi_comm_world, status, ierr)    
                         endif
                         
+                        call mpi_recv( rd_return, 1, mpi_double_precision, slave, &
+                            & msgtype, mpi_comm_world, status, ierr)                        
+                        
                         mpi_simmom_matrix(:,trial) = result ! Put it in column-major order to facilitate Fortran's operation; trial is the true index of the original loop, 1, ..., trylen.
                         obj_val_vec(trial) = obj_val_1st
                         
                         ! Results That Are Collected by Individual Nodes (we are now in the my_id == 0 zone)
                         if(i==1) write(my_id+1001,'("MyID",(12x,"error"),(x,"   #trial"),(2x,"   #list"),(10x,"moment1"),(10x,"moment2"),(10x,"moment3"),(10x,"moment4"),(10x,"moment5"), &
                             & (10x,"moment6"),(10x,"moment7"),(10x,"moment8"),(10x,"moment9"),(9x,"moment10"),(11x,"input1"),(11x,"input2"),(11x,"input3"), &
-                            & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"))') 
+                            & (11x,"input4"),(11x,"input5"),(11x,"input6"),(11x,"input7"),(11x,"input8"),(11x,"input9"),(10x,"input10"),(8x,"rd_return"))') 
                         
                         !write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 8-2-2017. Indexeries maps the basic index number to the index number for the shifted list.
                         !    & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mpi_sobol_mixed(trial,:) ! 8-2-2017. "slave" is the node returunign the computing outcome.
                         
                         if(printout21)then !10.17.2017
-                            write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 10-1-2017
-                                & slave, obj_val_1st, srnumber, indexseries(trial), mpi_simmom_matrix(:,trial), mat_stage1_inputs(trial,2:11)                                                 
+                            write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7),(x,f16.7))') & ! 10-1-2017
+                                & slave, obj_val_1st, srnumber, indexseries(trial), mpi_simmom_matrix(:,trial), mat_stage1_inputs(trial,2:11), rd_return                                                 
                         else
                             write(my_id+1001,'(i4,(x,f16.7),(2x,i8),(2x,i8),<ndim>(x,f16.7),<ndim>(x,f16.7))') & ! 10-1-2017
                                 & slave, obj_val_1st, trial, indexseries(trial), mpi_simmom_matrix(:,trial), mat_stage1_inputs(trial,2:11)                         
@@ -1076,7 +1079,7 @@ program MPI_sandbox
                 modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
                 call read_parameter_model(para,'_1parameter.txt') ! 7-9-2017
                 parcel = int(parcel*accupara)/accupara ! 9-24-2017
-                call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
+                call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg, rd_return ) ! result: simulated moments. 
                 
                 msgtype = 2 ! tag 2 is used for sending feedback.
                 ! Sending the info about the ID of the Slave Node ('my_id').
@@ -1094,7 +1097,9 @@ program MPI_sandbox
                 if(printout21)then !10.17.2017
                     call mpi_send( srnumber, 1, mpi_integer, 0, & ! 10.17.2017
                         & msgtype, mpi_comm_world, ierr)    
-                endif                 
+                endif    
+                call mpi_send( rd_return, 1, mpi_double_precision, 0, &
+                    & msgtype, mpi_comm_world, ierr )
                 
             enddo                
         endif ! [The Root and Slaves, case 1]       

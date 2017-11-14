@@ -6,7 +6,7 @@ module equilibrium
     implicit none ! August 27, 2016
     contains
     !subroutine search_equilibrium(exit_log1)
-    subroutine search_equilibrium( guessv, momvec, obj_val, node_id, trial_id, model_msg) ! node_id == my_id
+    subroutine search_equilibrium( guessv, momvec, obj_val, node_id, trial_id, model_msg, rbar_return) ! node_id == my_id
         implicit none
         real(wp), intent(out) :: obj_val
         real(wp), dimension(:), intent(in) :: guessv
@@ -17,6 +17,7 @@ module equilibrium
         !logical, intent(out) :: exit_log1
         logical :: exit_log1
         character(len=100) :: msg
+        real(wp), optional, intent(out) :: rbar_return
         ! Used for extension 04:00pm.
         
         
@@ -31,7 +32,11 @@ module equilibrium
         
         if(printout11)then ! .true. for running the real quantitative model
             !if(mpi_exercise_mode/=5)then
-                call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! defined in this module
+                if(present(rbar_return))then
+                    call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg, rbar_return ) ! defined in this module
+                else
+                    call solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg ) ! defined in this module
+                endif
             !else
             !    ! Make subdim dimensions be extended to ndim dimension so that we can use the usual routine to obtain the usual ndim moments instead of just a subset of the original moments.
             !    ! One rule to reach hopefully is that solve_model doesn't need to change anything. That is, its dimension remains 10 dimensions.
@@ -227,7 +232,7 @@ module equilibrium
         
     endsubroutine test_model
     
-    subroutine solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg) ! node_id == my_id
+    subroutine solve_model( guessv, momvec, node_id, trial_id, exit_log1, msg, rbar_return) ! node_id == my_id
         implicit none
         real(wp), dimension(:), intent(in) :: guessv
         real(wp), dimension(:), intent(out) :: momvec
@@ -241,6 +246,7 @@ module equilibrium
         integer :: colbnd1, colbnd2 ! FOR ILLUSTRATION        
         integer :: tstart, tend, trate, tmax        
         logical :: exit_bellman
+        real(wp), optional, intent(out) :: rbar_return
         
         !exit_log1 = .false. ! Redundant. Was initialized in the evoking subroutine 'search_equilibrium' 
         
@@ -521,10 +527,10 @@ module equilibrium
         delzh = 0._wp
         delzl = 0._wp
         
-        delzl    = 0.176_wp ! Set 
-        delzh(1) = 0.087_wp ! Set based on the result from Excel optimization solver Feb 13, 2017. 3.12.2017 checked.
-        delzh(2) = 0.103_wp ! Set 
-        delzh(3) = 0.107_wp ! Set 
+        delzl    = 0.095 !0.176_wp ! Set 
+        delzh(1) = 0.047 !0.087_wp ! Set based on the result from Excel optimization solver Feb 13, 2017. 3.12.2017 checked.
+        delzh(2) = 0.056 !0.103_wp ! Set 
+        delzh(3) = 0.058 !0.107_wp ! Set 
         
         ! ### 5 year basis Feb 13, 2017
         delzh  = delzh*length ! converted to be on five year basis
@@ -749,7 +755,11 @@ module equilibrium
                     else ! tranditional method
                         hmax = 15._wp*medwokinc ! 4.21.2017 The number 12. is eye-balled based on the SCF graph, figure 5 partial estimation of age profile based on SCF data in my dissertation. Yang seems to use 17 as the multiplier.
                     endif ! printout18
-                    hmin = iota*lowest_quintile_wokinc
+                    if(printout27)then
+                        hmin = iota*lowest_quintile_wokinc
+                    else ! 
+                        hmin = 0._wp
+                    endif ! printout27
                         
                     call grid(hv,hmin,hmax,2.5_wp) ! 09182016 
                     call grid(rhv,hmin,hmax,2.5_wp) ! keep it, not redundant or revision needed. 10102016
@@ -1083,7 +1093,8 @@ module equilibrium
                     
                     ! used for outer loop
                     rbarimplied = rimplied/5._wp ! rimplied is implied from marginal product of capital in line 3676 of model.f90
-                    fundiffnow = rbar - rbarimplied ! [image of outer loop] ! note: r with bar indicates the interest rate chosen/updated each round by the convgence algorithm; r without bar is the 5-year interest rate solved for by the model.
+                    fundiffnow  = rbar - rbarimplied ! [image of outer loop] ! note: r with bar indicates the interest rate chosen/updated each round by the convgence algorithm; r without bar is the 5-year interest rate solved for by the model.
+                    if(present(rbar_return)) rbar_return = rbar ! 11.6.2017
                     if(bracketr==1.or.bracketr==21.or.bracketr==22)then       
 		            	epsir=abs(fundiffnow)                              
                         if(printout5) write(unit=104,fmt='(3i3,a,f8.4)') iterar, iteragov, iteratot, ' epsir=abs(fundiffnow) ', epsir
