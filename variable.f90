@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(148)
-    real(wp) :: para(148), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(149)
+    real(wp) :: para(149), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -1110,7 +1110,12 @@ contains
                            i = i + 1
                            read( value_string,*) mode6taskid
                            labstr(i) = 'mode6taskid'
-                           para(i) = mode6taskid                         
+                           para(i) = mode6taskid    
+                       case('tottaxrev') ! 149
+                           i = i + 1
+                           read( value_string,*) tottaxrev
+                           labstr(i) = 'tottaxrev'
+                           para(i) = tottaxrev                         
                     end select
                 enddo
             else
