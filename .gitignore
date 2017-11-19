@@ -7,6 +7,7 @@
 *.sln.docstates
 *.u2d
 MPI_sandbox/
+result_experiment/
 Data/
 Readme/
 _full_list_startingpoint-old.csv

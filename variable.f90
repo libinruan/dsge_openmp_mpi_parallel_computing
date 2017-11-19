@@ -220,7 +220,7 @@ module variable
     real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom
     real(wp), dimension(:), allocatable :: sw_buzcap_notuse, sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! 3.27.2017 add savtax and biztax.
     real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx, fcsp
-    real(wp), dimension(:), allocatable :: sw_wealth_tax
+    real(wp), dimension(:), allocatable :: sw_wealth_tax, sw_totbxincome
     real(wp), dimension(:), allocatable :: axw_lorenz, csp_lorenz, xbi_lorenz 
     
     integer, dimension(:), allocatable :: sww2, swk2
@@ -1130,7 +1130,9 @@ contains
                     if( scan( name_string, '!')>0 ) cycle
                     select case( name_string )
                         case('mode6taskid') ! 148
-                            read( value_string,*) mode6taskid
+                            read(value_string,*) mode6taskid
+                        case('tausv') ! 83
+                            read(value_string,*) tausv
                     end select ! name_string
                 enddo
             endif !iostat

@@ -35,7 +35,7 @@ program MPI_sandbox
     call system_clock(tstart,trate,tmax)
     call system_clock(tstart)    
     
-    call start_files_for_writing() ! open files. 8-26-2017 turned on ! 11-14-2017
+    !call start_files_for_writing() ! open files. 8-26-2017 turned on ! 11-14-2017
     
     call fmpi_init() ! USER-DEFINED SUBROUTINE IN TOOLBOX.F90 <------------------------
     call infinity_setting(inf)
@@ -1244,12 +1244,15 @@ program MPI_sandbox
                
         allocate( fsef(adim*hdim*1018), fhom(adim*hdim*1018), fcsp(adim*hdim*1018) )
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
-        solution_string = 'Single_node_results.txt'   
+        solution_string = 'Single_node_moment.txt'   
         open(unit=my_id+1001, file=solution_string, action='write', status="replace")
+        solution_string = 'Single_node_macro.txt'   
+        open(unit=my_id+2001, file=solution_string, action='write', status="replace")        
         i = mode6taskid
         write(msg,fmt='(i3.3)') i ! either 100 or 200
         write(my_id+1001,'(a,i3,a,/)') " ================================ ", i, " ================================="
-        open( unit=4000+i, file="output_parameter_inspection_"//trim(msg)//".txt", action="write", status="replace")        
+        write(my_id+2001,'(a,i3,a,/)') " ================================ ", i, " ================================="
+        open( unit=4000+i, file="output_4000_inspection_"//trim(msg)//".txt", action="write", status="replace")        
         
         !print*, 'mode6taskid1: ', mode6taskid
         guessv(1) = kv1   
@@ -1263,7 +1266,7 @@ program MPI_sandbox
         guessv(9) = phi2  
         guessv(10)= phi3  
         
-        tottaxrev = 0._wp        
+        tottaxrev = 0._wp ! only in benchmark model        
         
         modelmsg = 0
         momvec   = inf
@@ -1298,26 +1301,27 @@ program MPI_sandbox
         endif !mpi_exercise_mode     
 
         !=========================================== experiment zone
-        
+        call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
         call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
         !print*, 'mode6taskid2: ', mode6taskid
         !mode6taskid is updated after the second read_parameter_model ! <--- important
         !tottaxrev should be updated in the benchmark model
         i = mode6taskid
         write(msg,fmt='(i3.3)') i ! either 100 or 200
-        write(my_id+1001,'(a,i3,a,/)') " ================================ ", i, " ================================="
-        open( unit=4000+i, file="output_parameter_inspection_"//trim(msg)//".txt", action="write", status="replace")   
+        write(my_id+1001,'(a,i3,a,f8.5,/)') " ================================ ", i, " ================================= tottaxrev = ", tottaxrev
+        write(my_id+2001,'(a,i3,a,f8.5,/)') " ================================ ", i, " ================================= tottaxrev = ", tottaxrev
+        open( unit=4000+i, file="output_4000_inspection_"//trim(msg)//".txt", action="write", status="replace")   
         
-        guessv(1) = kv1   
-        guessv(2) = prtk0 
-        guessv(3) = prtk1 
-        guessv(4) = prtk2 
-        guessv(5) = zbar  
-        guessv(6) = beta  
-        guessv(7) = theta 
-        guessv(8) = phi1  
-        guessv(9) = phi2  
-        guessv(10)= phi3         
+        !guessv(1) = kv1   
+        !guessv(2) = prtk0 
+        !guessv(3) = prtk1 
+        !guessv(4) = prtk2 
+        !guessv(5) = zbar  
+        !guessv(6) = beta  
+        !guessv(7) = theta 
+        !guessv(8) = phi1  
+        !guessv(9) = phi2  
+        !guessv(10)= phi3         
         
         modelmsg = 0
         momvec = inf
@@ -1335,6 +1339,7 @@ program MPI_sandbox
         endif ! modelmsg     
         close(4000+i)
         close(my_id+1001)          
+        close(my_id+2001)  
         
         if(printout26)then
             
@@ -1363,7 +1368,7 @@ program MPI_sandbox
     call system_clock(tend) 
     if(my_id==0) write(*,fmt='(/,a,f12.4,a,x,i3)') 'total time: ',real(tend-tstart,wp)/real(trate,wp), ' seconds', my_id
     
-    call end_files_for_writing() ! close files ! 8-26-2017 11-14-2017
+    !call end_files_for_writing() ! close files ! 8-26-2017 11-14-2017
         
     !! experiment good. ===========================================
     !! 3.8.2017 Brent can handle all types of tricky probelms I faces, and the user-defined subroutine brent_localizer is good. 
