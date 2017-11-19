@@ -257,7 +257,6 @@ module equilibrium
         zbar  = guessv(5)
         beta  = guessv(6)
         theta = guessv(7)
-        !iota  = guessv(7)
         phi1  = guessv(8)
         phi2  = guessv(9)
         phi3  = guessv(10)
@@ -326,6 +325,7 @@ module equilibrium
                   sw_entpre_biztax(adim*hdim*1018), &
                   sw_totinc_bx(adim*hdim*1018), &
                   sw_wealth_tax(adim*hdim*1018), &
+                  sw_totbxincome(adim*hdim*1018), &
                   !tid(fnadim,hdim,0:(kdim-1),0:1,0:nmc,0:(kdim-1),0:nmc,0:2,1:14), &
                   wf(adim,hdim,0:(kdim-1),0:1,0:nmc,1:14), &
                   !ww(adim,hdim,0:(kdim-1),0:1,0:nmc,1:14), &
@@ -597,11 +597,19 @@ module equilibrium
         
         rbar = 0.035_wp ! rbar hard-wired for the first run in r loop ! 9-14-2017 ! the reason why program can not replicate the result. 9-16-2017
         
-        taubalmin = 0.0345_wp ! 9-15-2017                                         ! the reason why program can not replicate the result. 9-16-2017
-        taubalmax = 0.0363_wp ! 9-15-2017                                         ! the reason why program can not replicate the result. 9-16-2017
-        taubal = 0.033_wp     ! 9-16-2017                                         ! the reason why program can not replicate the result. 9-16-2017
-        tauwealth = taubal    ! 0.003_wp ! 11-14-2017 should be borrowed from the benchmark model
-        
+        if(mode6taskid==0)then
+            taubalmin = 0.0345_wp ! 9-15-2017                                         ! the reason why program can not replicate the result. 9-16-2017
+            taubalmax = 0.0363_wp ! 9-15-2017                                         ! the reason why program can not replicate the result. 9-16-2017
+            taubal    = 0.035_wp  ! 9-16-2017                                         ! the reason why program can not replicate the result. 9-16-2017
+        elseif(mode6taskid==1)then ! for tauwealth
+            !tauwealth = taubal    ! 0.003_wp ! 11-14-2017 should be borrowed from the benchmark model
+            taubalmin = 0.0345_wp !0.13_wp
+            taubalmax = 0.0363_wp !0.17_wp
+            taubal    = 0.035_wp  !0.15_wp             
+        else
+            write(*,*) ' parameter setup error: taubalmin, taubalmax, taubal '
+        endif ! 
+            
         transbeq = 0._wp     ! 9-30-2017
         !transbeq_new = 0._wp ! 9-30-2017
         
@@ -660,12 +668,12 @@ module equilibrium
             bracketgov = 1
             noneedtaubalmax = 0  
             
-            if(mode6taskid==0)then
-                benchrbar = rbar ! passed down the equilibrium interest rate in the last iteration of solving "benchmark" model.
-            else
-                if(iterar==1) benchrbar = rbar ! 11-14-2017 should be removed.
-                if(iterar==1) rbar = benchrbar ! benchmark equilibirum interest rate as the initial price of capital.
-            endif !mode6taskid
+            !if(mode6taskid==0)then
+            !    benchrbar = rbar ! passed down the equilibrium interest rate in the last iteration of solving "benchmark" model.
+            !else
+            !    if(iterar==1) benchrbar = rbar ! 11-14-2017 should be removed.
+            !    if(iterar==1) rbar = benchrbar ! benchmark equilibirum interest rate as the initial price of capital.
+            !endif !mode6taskid
             
             ! To make the conversion to five year basis for "prices"
             rd = rbar*length ! updated. See equilibrium 534: rbarimplied are rbar are one year interest rates. "rd" and "rimplied" are five year interest rates.
@@ -699,13 +707,14 @@ module equilibrium
                 endif ! bracketgov  
                 
                 write(unit=my_id+1001,fmt='(a,i4,x,a,i4,x,a)') 'iterar ', iterar, ', iteragov ', iteragov, '----------------------------------------------------------------------- '                
-                if(mode6taskid>0.and.iterar==1.and.iteragov==1)then
-                    write(my_id+1001,'((12x,"old-hmin",2x),(12x,"old-hmax",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(11x,"tauwealth",2x))') 
-                    write(my_id+1001,'((e20.5,2x),(e20.5,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') hmin, hmax, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, tauwealth
-                else
+                
+                !if(mode6taskid>0.and.iterar==1.and.iteragov==1)then
+                !    write(my_id+1001,'((12x,"old-hmin",2x),(12x,"old-hmax",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(11x,"tauwealth",2x))') 
+                !    write(my_id+1001,'((e20.5,2x),(e20.5,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') hmin, hmax, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, tauwealth
+                !else
                     write(my_id+1001,'((12x,"old-hmin",2x),(12x,"old-hmax",2x),(11x,"taubalmin",2x),(11x,"taubalmax",2x),(7x,"govbal2gdpmin",2x),(7x,"govbal2gdpmax",2x),(14x,"taubal",2x))') 
                     write(my_id+1001,'((e20.5,2x),(e20.5,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x),(e20.13,2x))') hmin, hmax, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax, taubal
-                endif
+                !endif
                 
                 !write(4000+trial_id,fmt='("#11",12x,2(e21.14,x),3(18x,i3,x),(e21.14,x),2(18x,i3,x),4(e21.14,x))') epsigov, epsigovmin, iteragov, iteragovmax, bracketgov, taubal, iterar, iteragov, taubalmin, taubalmax, govbal2gdpmin, govbal2gdpmax
                 
@@ -1366,6 +1375,8 @@ module equilibrium
             call compute_lorenz() 
             write(unit=my_id+2001,fmt='(3(2x,a))') 'csp_gini', 'axw_gini', 'xbi_gini'
             write(unit=my_id+2001,fmt='(3(2x,f8.4))') csp_gini, axw_gini, xbi_gini
+            write(unit=my_id+2001,fmt='((8x,a),(4x,a),(4x,a))') 'rd','wage','taubal'
+            write(unit=my_id+2001,fmt='(3(2x,f8.4))') rd, wage, taubal
                         
         endif ! printout10                  
         
@@ -1472,7 +1483,7 @@ module equilibrium
         deallocate( s1c, c1s, cwf, cwa, cwh, cwk, cww, sww, swf, swa, swh, swk, swc, sww2, swf2, swa2, swh2, swk2 ) ! 3.31.2017 s2c and c2s is removed.
         deallocate( sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, sw_ini_asset, sw_ini_house, sw_nonlineartax )
         deallocate( sw_worker_turned, sw_boss_turned, sw_aftertaxwealth, sw_taxableincome, sw_socialsecurity, sw_buzcap_notuse, sw_consumption ) ! csp_lorenz, xbi_lorenz
-        deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax, sw_totinc_bx, sw_wealth_tax) ! 3.27.2017
+        deallocate( sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax, sw_totinc_bx, sw_wealth_tax, sw_totbxincome) ! 3.27.2017
         deallocate( cww2, cwf2, cwc2, cwa2, cwh2, cwk2, rhv, rav, c_lab_vec, c_opt_vec, cwc, cef, ced, cvv, dcef, sef, def ) ! remove scef 8-24-2017 ! remeber to bring it back 10042016
         deallocate( s3c, c3s, swc2, id1 )
         deallocate( term_2, term_3, term_4, term_5, term_6, term_7, term_8, term_9 ) ! debug 9-17-2017

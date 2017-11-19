@@ -201,6 +201,7 @@ tottaxrev        0.18   !
 !		specified in _1parameter.txt. No amoeba algorithm, no convergence involved.  	  
 !   MPI_exercise_mode: 0 
 !   Output: _SingleNodeInputs.txt (1001), and _SingleNodeDetails.txt (2001)
+!   If policy experiment is conducted using this mode, then in _parameter1.txt "mode6taskid" and "tottaxrev" has to be set up for the designated experiement.
 !  
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
 ! (Production) Setting #4. size of nodes: customary (MPI implementation, no amoeba algorithm) 

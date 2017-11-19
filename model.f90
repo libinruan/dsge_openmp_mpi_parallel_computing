@@ -3953,6 +3953,7 @@ contains
                     sw_nonlineartax(idx)   = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
                     sw_worker_savtax(idx)  = merge(tausv*rd*a, 0._wp, a>0._wp) ! 10.27.2017 negative interest rate is acceptible.
                     sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
+
                     if(mode6taskid==0)then
                         sw_wealth_tax(idx)     = (1._wp+rd)*a + (1._wp-deltah)*h ! used only for mode6taskid=1
                         sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
@@ -4112,7 +4113,7 @@ contains
         if(mode6taskid==0)then    
             govbal = (totsvt + tottax) - gfrac*gdp - rd*dfrac*(crpcap+entcap) ! 4.16.2017 TAUCfinal.f90 line 1280 + 1445.
             tottaxrev = totsvt + tottax ! used for mpi_exercise_mode=6
-            tauwealth = totsvt/sum(sef*sw_wealth_tax, sw_wealth_tax>0._wp .and. sef>0._wp) ! don't be confused with the name sw_wealth_tax. In the case of mode6taskid=0, it is the household net worth.
+            !tauwealth = totsvt/sum(sef*sw_wealth_tax, sw_wealth_tax>0._wp .and. sef>0._wp) ! don't be confused with the name sw_wealth_tax. In the case of mode6taskid=0, it is the household net worth.
         elseif(mode6taskid==1)then
             govbal = (sum(sef*sw_wealth_tax, sef>0._wp .and. sw_wealth_tax>0._wp) + tottax) - tottaxrev
         else
@@ -4644,7 +4645,8 @@ contains
         call lorenz(dvec,nvec,axw_lorenz,axw_gini)
         nvec = pack(sw_consumption,lvec)
         call lorenz(dvec,nvec,csp_lorenz,csp_gini) ! Note: lorenz(f,x,fx,gini)
-        nvec = pack(sw_taxableincome,lvec)
+        !nvec = pack(sw_taxableincome,lvec)
+        nvec = pack(sw_totinc_bx,lvec)
         call lorenz(dvec,nvec,xbi_lorenz,xbi_gini)
                 
         !print*, ' axw_gini ', axw_gini
