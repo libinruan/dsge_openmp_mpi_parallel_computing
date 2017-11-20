@@ -1305,7 +1305,6 @@ module equilibrium
                 exit ! exit the interest rate loop. 
             endif
             
-            
             !! 8-1-2017
             new_amin = amin
             new_amax = amax
@@ -1363,8 +1362,8 @@ module equilibrium
             !write(unit=127,fmt='(6f12.4)') mean_entcsp, mean_wokcsp, mean_entfin, mean_wokfin, mean_enthom, mean_wokhom        
             !write(unit=127,fmt='(6(2x,a))') 'avg.entinc', 'avg.wokinc', 'avg.entaxw', 'avg.wokaxw', 'GovBalance', 'govbal2Gdp'
             !write(unit=127,fmt='(6f12.4)') mean_entinc, mean_wokinc, mean_entaxw, mean_wokaxw, govbal, govbal2gdp    
-            write(unit=my_id+2001,fmt='(6(2x,a))') 'e2wrat    ', 'w2erat    ', 'entrat    ', 'wokrat   ', 'retiree   ', 'medwokinc '
-            write(unit=my_id+2001,fmt='(6f12.6)')  e2wrat, w2erat, entsize, woksize, (1._wp-entsize-woksize), medwokinc 
+            write(unit=my_id+2001,fmt='(7(2x,a))') 'e2wrat    ', 'w2erat    ', 'entrat    ', 'wokrat   ', 'retiree   ', 'medwokinc ', 'meanwokinc'
+            write(unit=my_id+2001,fmt='(7f12.6)')  e2wrat, w2erat, entsize, woksize, (1._wp-entsize-woksize), medwokinc, mean_wokinc 
             write(unit=my_id+2001,fmt='(7(2x,a))') 'totsvt    ', 'tottax    ', 'gfrac*gdp ', 'gfrac     ', 'gdp       ', 'poor20%wok', 'taubal    '
             write(unit=my_id+2001,fmt='(7f12.6)')  totsvt, tottax, gfrac*gdp, gfrac, gdp, lowest_quintile_wokinc,taubal
             write(unit=my_id+2001,fmt='(7(2x,a))') 'dfrac     ','crpcap    ','entcap    ', 'hmin      ', 'hmax      ', 'GovBalance', 'govbal2Gdp'
