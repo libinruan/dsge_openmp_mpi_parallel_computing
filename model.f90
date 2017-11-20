@@ -4402,6 +4402,11 @@ contains
             fsef = sef
             fhom = sw_ini_house
             fcsp = sw_consumption
+            finc = sw_totinc_bx
+            fast = sw_ini_asset
+            fbuz = sw_bizinvestment
+            faxw = sw_aftertaxwealth
+            
         endif ! printout19        
         
         !write(4000+trial_id,fmt='("macro-5",8x,8(e21.14,x))') rimplied, sumsstax, benefitimplied, momvec(1:5)

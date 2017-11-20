@@ -42,9 +42,10 @@ program MPI_sandbox
     
     if( MY_ID == 0 .and. MPI_PROVIDED<MPI_THREAD_FUNNELED ) write(*,'(a,/)') '! [ WARNING ] The Only-Master-makes-MPI-calls setup fails.' 
     
-    allocate(range_guess(ndim,2)) ! 10.21.2017 Warning: it has to be placed prior to read parameters of the model (_parameter1.txt)
-
+    allocate(range_guess(ndim,2)) !! 10.21.2017 Warning: it has to be placed prior to read parameters of the model (_parameter1.txt) ! 11-19-2017
+    
     call read_parameter_model(para,'_1parameter.txt')
+
     
     if(my_id==0)then ! General Operation Messages
         
@@ -1242,7 +1243,16 @@ program MPI_sandbox
         
     elseif(mpi_exercise_mode==6)then
                
-        allocate( fsef(adim*hdim*1018), fhom(adim*hdim*1018), fcsp(adim*hdim*1018) )
+        allocate( fsef(adim*hdim*1018), fhom(adim*hdim*1018), fcsp(adim*hdim*1018), finc(adim*hdim*1018), fast(adim*hdim*1018), fbuz(adim*hdim*1018), faxw(adim*hdim*1018) )
+        
+        fsef = 0._wp
+        fhom = 0._wp
+        fcsp = 0._wp
+        finc = 0._wp
+        fast = 0._wp
+        fbuz = 0._wp
+        faxw = 0._wp
+        
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
         solution_string = 'Single_node_moment.txt'   
         open(unit=my_id+1001, file=solution_string, action='write', status="replace")
@@ -1297,10 +1307,31 @@ program MPI_sandbox
             stringmode6 = 'csp_'//trim(idmode6)
             !print*, '3: ', stringmode6
             call ss(fcsp,stringmode6,20,8)
+            stringmode6 = 'inc_'//trim(idmode6)
+            !print*, '4: ', stringmode6
+            call ss(finc,stringmode6,20,8)
+            stringmode6 = 'ast_'//trim(idmode6)
+            !print*, '5: ', stringmode6
+            call ss(fast,stringmode6,20,8)      
+            stringmode6 = 'buz_'//trim(idmode6)
+            !print*, '6: ', stringmode6
+            call ss(fbuz,stringmode6,20,8)         
+            stringmode6 = 'axw_'//trim(idmode6)
+            !print*, '7: ', stringmode6
+            call ss(faxw,stringmode6,20,8)              
             
         endif !mpi_exercise_mode     
 
         !=========================================== experiment zone
+        
+        fsef = 0._wp
+        fhom = 0._wp
+        fcsp = 0._wp
+        finc = 0._wp
+        fast = 0._wp   
+        fbuz = 0._wp
+        faxw = 0._wp
+        
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
         call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
         !print*, 'mode6taskid2: ', mode6taskid
@@ -1354,10 +1385,22 @@ program MPI_sandbox
             stringmode6 = 'csp_'//trim(idmode6)
             !print*, '3: ', stringmode6
             call ss(fcsp, stringmode6, 20, 8)
+            stringmode6 = 'inc_'//trim(idmode6)
+            !print*, '4: ', stringmode6
+            call ss(finc, stringmode6, 20, 8)
+            stringmode6 = 'ast_'//trim(idmode6)
+            !print*, '5: ', stringmode6
+            call ss(fast, stringmode6, 20, 8)     
+            stringmode6 = 'buz_'//trim(idmode6)
+            !print*, '6: ', stringmode6
+            call ss(fbuz, stringmode6, 20, 8)  
+            stringmode6 = 'axw_'//trim(idmode6)
+            !print*, '7: ', stringmode6
+            call ss(faxw,stringmode6,20,8)              
             
         endif !mpi_exercise_mode    
         
-        deallocate( fsef, fhom, fcsp )
+        deallocate( fsef, fhom, fcsp, finc, fast, fbuz, faxw )
         
     endif ! mpi_exercise_mode
     

@@ -217,9 +217,9 @@ module variable
     integer, dimension(:), allocatable :: sww, swk
     real(wp), dimension(:), allocatable :: swf, swa, swh, swc, sef, def, sef1, sef2, sef3! sef1 and sef2 stationary distribution used in subrtouine ability_transition of model.f90.
     real(wp), dimension(:), allocatable :: sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, fsef
-    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom
+    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom, finc, fast, faxw
     real(wp), dimension(:), allocatable :: sw_buzcap_notuse, sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! 3.27.2017 add savtax and biztax.
-    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx, fcsp
+    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx, fcsp, fbuz
     real(wp), dimension(:), allocatable :: sw_wealth_tax, sw_totbxincome
     real(wp), dimension(:), allocatable :: axw_lorenz, csp_lorenz, xbi_lorenz 
     
