@@ -217,7 +217,7 @@ module variable
     integer, dimension(:), allocatable :: sww, swk
     real(wp), dimension(:), allocatable :: swf, swa, swh, swc, sef, def, sef1, sef2, sef3! sef1 and sef2 stationary distribution used in subrtouine ability_transition of model.f90.
     real(wp), dimension(:), allocatable :: sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, fsef
-    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom, finc, fast, faxw
+    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom, finc, fast, faxw, fnon, fsax
     real(wp), dimension(:), allocatable :: sw_buzcap_notuse, sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! 3.27.2017 add savtax and biztax.
     real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx, fcsp, fbuz
     real(wp), dimension(:), allocatable :: sw_wealth_tax, sw_totbxincome
@@ -276,7 +276,7 @@ module variable
     
     logical :: printout1, printout2, printout3, printout4, printout5, printout6, printout7, printout8, printout9, printout10, printout11, printout12 !, tausvflag
     logical :: printout13, printout14, printout15, printout16, printout17, printout18, printout19, printout20, printout21, printout22, printout23, printout24
-    logical :: printout25, printout26, printout27
+    logical :: printout25, printout26, printout27, printout28
     logical :: receiving, status(mpi_status_size)
     character(len=50) :: node_string, trylen_string, amoeba_x_y_string, bestvertex_file
     character(:), allocatable :: solution_string, io_string, concisesolution_string
@@ -362,7 +362,9 @@ contains
                        case ('printout26')     
                             read( value_string, * ) printout26
                        case ('printout27')     
-                            read( value_string, * ) printout27                            
+                            read( value_string, * ) printout27      
+                       case ('printout28')     
+                            read( value_string, * ) printout28                            
                        case ('listnumber')
                             read(value_string, *  ) listnumber
                        case ('bestvertex_file')

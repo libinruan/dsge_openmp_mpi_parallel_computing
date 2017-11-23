@@ -1511,11 +1511,15 @@ contains
         c_opt_vec = 0._wp ! 9-14-2017
         
         ! 3.26.2017 production and labor employment obtained here should be only used when business shock is postiive.
-        do n = 1, kdim-1
-            ! c_lab_vec(n) = (wage/(z2(n)*nu*(1._wp-alpha))*kv(n)**(-alpha*nu))**(1._wp/((1._wp-alpha)*nu-1._wp))            
-            c_lab_vec(n) = ((1._wp+tauss/2._wp)*wage/(z2(n)*nu*(1._wp-alpha))*kv(n)**(-alpha*nu))**(1._wp/((1._wp-alpha)*nu-1._wp)) ! condiser social security tax 3.3.2017             
-            c_opt_vec(n) = z2(n)*(kv(n)**(alpha)*c_lab_vec(n)**(1._wp-alpha))**nu ! production. should only be used when business shock is positive. 
-        enddo
+        if(printout28)then
+            ! Do nothing
+        else
+            do n = 1, kdim-1
+                ! c_lab_vec(n) = (wage/(z2(n)*nu*(1._wp-alpha))*kv(n)**(-alpha*nu))**(1._wp/((1._wp-alpha)*nu-1._wp))            
+                c_lab_vec(n) = ((1._wp+tauss/2._wp)*wage/(z2(n)*nu*(1._wp-alpha))*kv(n)**(-alpha*nu))**(1._wp/((1._wp-alpha)*nu-1._wp)) ! condiser social security tax 3.3.2017             
+                c_opt_vec(n) = z2(n)*(kv(n)**(alpha)*c_lab_vec(n)**(1._wp-alpha))**nu ! production. should only be used when business shock is positive. 
+            enddo
+        endif ! printout28
         
         do t = 1, 14
             do yx = 0, nmc ! the labor efficiency of the entrepreneur
@@ -3954,6 +3958,9 @@ contains
                     sw_worker_savtax(idx)  = merge(tausv*rd*a, 0._wp, a>0._wp) ! 10.27.2017 negative interest rate is acceptible.
                     sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
 
+                    fnon(idx) = sw_nonlineartax(idx)
+                    fsax(idx) = sw_worker_savtax(idx) 
+
                     if(mode6taskid==0)then
                         sw_wealth_tax(idx)     = (1._wp+rd)*a + (1._wp-deltah)*h ! used only for mode6taskid=1
                         sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
@@ -3993,9 +4000,12 @@ contains
                     sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
                     sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 10.26.2017 revision                    
                     sw_nonlineartax(idx)   = ttaxent(sw_taxableincome(idx)) ! 9-17-2017
-
                     sw_entpre_savtax(idx)  = merge( tausv*rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
                     sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge( rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
+                    
+                    fnon(idx) = sw_nonlineartax(idx)
+                    fsax(idx) = sw_entpre_savtax(idx)                    
+                    
                     if(mode6taskid==0)then
                         sw_wealth_tax(idx)     = (1._wp+rd)*a + (1._wp-deltah)*h ! used only for mode6taskid=1. Here, this variable is for saving the information of household net worth.
                         sw_aftertaxwealth(idx) = sw_taxableincome(idx) +  merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
@@ -4139,7 +4149,7 @@ contains
         
         all_inv_proj = hug_inv_proj + med_inv_proj + sml_inv_proj
         
-        if(all_inv_proj>0._wp)then
+        if(all_inv_proj>=0._wp)then
             hug_inv_per  = hug_inv_proj/all_inv_proj
             med_inv_per  = med_inv_proj/all_inv_proj
             sml_inv_per  = sml_inv_proj/all_inv_proj
@@ -4311,6 +4321,7 @@ contains
             exit_log1 = .true.
             msg = ' crplab<0 '
         endif
+        
         if(entlab<0._wp)then ! (3)
             exit_log1 = .true.
             msg = ' entlab<0 '

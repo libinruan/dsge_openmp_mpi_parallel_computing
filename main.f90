@@ -45,8 +45,8 @@ program MPI_sandbox
     allocate(range_guess(ndim,2)) !! 10.21.2017 Warning: it has to be placed prior to read parameters of the model (_parameter1.txt) ! 11-19-2017
     
     call read_parameter_model(para,'_1parameter.txt')
-
-    
+    if(printout28) zbar = 0._wp
+        
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
@@ -91,6 +91,7 @@ program MPI_sandbox
         !print*, "ttaxent-mode6taskid=2: ", ttaxent(1.2_wp)
         
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
+        if(printout28) zbar = 0._wp
         allocate(s3c(1018*fnadim*fnhdim,10), c3s(1:fnadim,1:fnhdim,0:kdim-1,0:1,0:nmc,0:kdim-1,0:nmc,0:2,1:14))
         call serialindices_Map2_coordinates(s3c,c3s,fnadim,fnhdim)
         call smi(s3c,'s3c2',8)
@@ -400,6 +401,7 @@ program MPI_sandbox
                 
                 modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
                 call read_parameter_model(para,'_1parameter.txt') ! 7-9-2017
+                if(printout28) zbar = 0._wp
                 parcel = int(parcel*accupara)/accupara ! 9-24-2017
                 call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg ) ! result: simulated moments. 
                 
@@ -808,6 +810,7 @@ program MPI_sandbox
         
         i = 100
         call read_parameter_model(para, '_1parameter.txt')
+        if(printout28) zbar = 0._wp
         guessv(1) = kv1   
         guessv(2) = prtk0 
         guessv(3) = prtk1 
@@ -838,6 +841,7 @@ program MPI_sandbox
         
         i = 200
         call read_parameter_model(para, '_1parameter.txt')
+        if(printout28) zbar = 0._wp
         guessv(1) = kv1   
         guessv(2) = prtk0 
         guessv(3) = prtk1 
@@ -1083,6 +1087,7 @@ program MPI_sandbox
                 
                 modelmsg = 0 ! 0, model is solved successfully; 1, otherwise.
                 call read_parameter_model(para,'_1parameter.txt') ! 7-9-2017
+                if(printout28) zbar = 0._wp
                 parcel = int(parcel*accupara)/accupara ! 9-24-2017
                 call search_equilibrium( parcel, result, obj_val_1st, my_id, trial, modelmsg, rd_return ) ! result: simulated moments. 
                 
@@ -1244,6 +1249,7 @@ program MPI_sandbox
     elseif(mpi_exercise_mode==6)then
                
         allocate( fsef(adim*hdim*1018), fhom(adim*hdim*1018), fcsp(adim*hdim*1018), finc(adim*hdim*1018), fast(adim*hdim*1018), fbuz(adim*hdim*1018), faxw(adim*hdim*1018) )
+        allocate( fnon(adim*hdim*1018), fsax(adim*hdim*1018) )
         
         fsef = 0._wp
         fhom = 0._wp
@@ -1252,8 +1258,11 @@ program MPI_sandbox
         fast = 0._wp
         fbuz = 0._wp
         faxw = 0._wp
+        fnon = 0._wp
+        fsax = 0._wp
         
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
+        if(printout28) zbar = 0._wp
         solution_string = 'Single_node_moment.txt'   
         open(unit=my_id+1001, file=solution_string, action='write', status="replace")
         solution_string = 'Single_node_macro.txt'   
@@ -1319,6 +1328,12 @@ program MPI_sandbox
             stringmode6 = 'axw_'//trim(idmode6)
             !print*, '7: ', stringmode6
             call ss(faxw,stringmode6,20,8)              
+            stringmode6 = 'non_'//trim(idmode6)
+            !print*, '8: ', stringmode6
+            call ss(fnon,stringmode6,20,8)  
+            stringmode6 = 'sax_'//trim(idmode6)
+            !print*, '9: ', stringmode6
+            call ss(fsax,stringmode6,20,8)              
             
         endif !mpi_exercise_mode     
 
@@ -1331,9 +1346,13 @@ program MPI_sandbox
         fast = 0._wp   
         fbuz = 0._wp
         faxw = 0._wp
+        fnon = 0._wp
+        fsax = 0._wp
         
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
+        if(printout28) zbar = 0._wp
         call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
+        if(printout28) zbar = 0._wp
         !print*, 'mode6taskid2: ', mode6taskid
         !mode6taskid is updated after the second read_parameter_model ! <--- important
         !tottaxrev should be updated in the benchmark model
@@ -1397,10 +1416,16 @@ program MPI_sandbox
             stringmode6 = 'axw_'//trim(idmode6)
             !print*, '7: ', stringmode6
             call ss(faxw,stringmode6,20,8)              
+            stringmode6 = 'non_'//trim(idmode6)
+            !print*, '8: ', stringmode6
+            call ss(fnon,stringmode6,20,8)  
+            stringmode6 = 'sax_'//trim(idmode6)
+            !print*, '9: ', stringmode6
+            call ss(fsax,stringmode6,20,8)                
             
         endif !mpi_exercise_mode    
         
-        deallocate( fsef, fhom, fcsp, finc, fast, fbuz, faxw )
+        deallocate( fsef, fhom, fcsp, finc, fast, fbuz, faxw, fnon, fsax )
         
     endif ! mpi_exercise_mode
     
@@ -1642,6 +1667,7 @@ contains
                     ! Core computation
                     modelmsg = 0
                     call read_parameter_model(para, '_1parameter.txt')
+                    if(printout28) zbar = 0._wp
                     call search_equilibrium( selected_input, sim_moments, sim_objval, my_id, trial, modelmsg )         
                     !if( contract_id == 1 ) modelmsg = 1 ! Used for debug. Comment out.
                     
@@ -1939,6 +1965,7 @@ contains
                         ! Core computation
                         modelmsg = 0
                         call read_parameter_model(para, '_1parameter.txt')
+                        if(printout28) zbar = 0._wp
                         !call search_equilibrium( try_vec, trymoms_vec, tryfun, my_id, my_id, modelmsg ) ! 9-23-2017 comment out
                         try_vec = int(try_vec*accupara)/accupara
                         call search_equilibrium( try_vec, trymoms_vec, tryfun, my_id, my_id, trymsg ) ! 9-23-2017
