@@ -171,6 +171,7 @@ printout24       true   ! True, keep points from running outside a specified ran
 printout25       true   ! True, transfer (accidental bequest) is counted towrad taxable income; False, otherwise.
 printout26       true   ! True, save the final distribution (in the format of s3c) of mass, c, a, h.
 printout27		 false  ! True, housing service has lower limit; Flase, it does have NO lower limit
+printout28       true   ! True, remove the role of entrepreneurs; False, otherwise.
 listnumber       _startingpoint_1.csv ! [Redundant] specify which starting point to read.       
 var7toggle          1   ! 1, iota for input7; 2, theta for input7
 bestvertex_file  1_001_restart_list.txt
@@ -201,7 +202,7 @@ tottaxrev        0.18   !
 !		specified in _1parameter.txt. No amoeba algorithm, no convergence involved.  	  
 !   MPI_exercise_mode: 0 
 !   Output: _SingleNodeInputs.txt (1001), and _SingleNodeDetails.txt (2001)
-!   If policy experiment is conducted using this mode, then in _parameter1.txt "mode6taskid" and "tottaxrev" has to be set up for the designated experiement.
+!   If policy experiment is conducted using this mode, then in _parameter1.txt "mode6taskid>0" and "tottaxrev" has to be set up for the designated experiement.
 !  
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------- 
 ! (Production) Setting #4. size of nodes: customary (MPI implementation, no amoeba algorithm) 
