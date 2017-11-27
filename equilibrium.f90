@@ -437,7 +437,7 @@ module equilibrium
         
         allocate( s3c(1018*fnadim*fnhdim,10), c3s(1:fnadim,1:fnhdim,0:kdim-1,0:1,0:nmc,0:kdim-1,0:nmc,0:2,1:14) ) ! 
         call serialindices_Map2_coordinates(s3c,c3s,fnadim,fnhdim) ! COMBINATION ON REFINED GRID FOR THE UNIUQE ONE DIMENSIONAL SERIES. 
-        
+        if(mpi_exercise_mode==6 .and. mode6taskid==0) call smi(s3c,'s3c',8)
         !print*, ' test location ', c3s(10,10,1,1,1,2,3,2,5) ! ok
         call system_clock(tend) 
             

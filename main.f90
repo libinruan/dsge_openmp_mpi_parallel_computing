@@ -14,7 +14,7 @@ program MPI_sandbox
     integer :: tstart, tend, trate, tmax, i, j, index_pt, index_rcv
     ! character(len=200) :: msg
     character(:), allocatable :: msg
-    real(wp) :: rd_return, temp(2), accu ! debug
+    real(wp) :: rd_return, temp(2), accu, tottaxrev_dup ! debug
     
     ! The mpi_exercise_mode == -2: experiment zone
     real(wp), dimension(:), allocatable :: temp1vertex
@@ -1349,6 +1349,7 @@ program MPI_sandbox
         fnon = 0._wp
         fsax = 0._wp
         
+        tottaxrev_dup = tottaxrev
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
         if(printout28) zbar = 0._wp
         call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
@@ -1357,6 +1358,7 @@ program MPI_sandbox
         !mode6taskid is updated after the second read_parameter_model ! <--- important
         !tottaxrev should be updated in the benchmark model
         i = mode6taskid
+        tottaxrev = tottaxrev_dup
         write(msg,fmt='(i3.3)') i ! either 100 or 200
         write(my_id+1001,'(a,i3,a,f8.5,/)') " ================================ ", i, " ================================= tottaxrev = ", tottaxrev
         write(my_id+2001,'(a,i3,a,f8.5,/)') " ================================ ", i, " ================================= tottaxrev = ", tottaxrev
