@@ -3969,7 +3969,8 @@ contains
                         sw_wealth_tax(idx)     = taubal*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
                                                & + taubal*(1._wp-deltah)*h
                         sw_aftertaxwealth(idx) = sw_taxableincome(idx) + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                                               & + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx))                        
+                                               & + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx))  
+                        fwtx(idx) = sw_wealth_tax(idx)
                     else
                         print*, "error in macro statistics-1"    
                     endif !mode6taskid
@@ -4014,7 +4015,8 @@ contains
                         sw_wealth_tax(idx)     = taubal*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
                                                & + taubal*(1._wp-deltah)*h
                         sw_aftertaxwealth(idx) = sw_taxableincome(idx) +  (1._wp-taubal)*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
-                                               & + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(sw_taxableincome(idx))                        
+                                               & + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(sw_taxableincome(idx))       
+                        fwtx(idx) = sw_wealth_tax(idx)
                     else
                         print*, "error in macro statistics-2"
                     endif

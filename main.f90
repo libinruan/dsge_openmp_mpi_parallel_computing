@@ -1249,7 +1249,7 @@ program MPI_sandbox
     elseif(mpi_exercise_mode==6)then
                
         allocate( fsef(adim*hdim*1018), fhom(adim*hdim*1018), fcsp(adim*hdim*1018), finc(adim*hdim*1018), fast(adim*hdim*1018), fbuz(adim*hdim*1018), faxw(adim*hdim*1018) )
-        allocate( fnon(adim*hdim*1018), fsax(adim*hdim*1018) )
+        allocate( fnon(adim*hdim*1018), fsax(adim*hdim*1018), fwtx(adim*hdim*1018) )
         
         fsef = 0._wp
         fhom = 0._wp
@@ -1260,6 +1260,8 @@ program MPI_sandbox
         faxw = 0._wp
         fnon = 0._wp
         fsax = 0._wp
+        fwtx = 0._wp
+        
         
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
         if(printout28) zbar = 0._wp
@@ -1333,7 +1335,10 @@ program MPI_sandbox
             call ss(fnon,stringmode6,20,8)  
             stringmode6 = 'sax_'//trim(idmode6)
             !print*, '9: ', stringmode6
-            call ss(fsax,stringmode6,20,8)              
+            call ss(fsax,stringmode6,20,8)     
+            stringmode6 = 'wtx_'//trim(idmode6)
+            !print*, '10: ', stringmode6
+            call ss(fwtx,stringmode6,20,8)              
             
         endif !mpi_exercise_mode     
 
@@ -1348,6 +1353,7 @@ program MPI_sandbox
         faxw = 0._wp
         fnon = 0._wp
         fsax = 0._wp
+        fwtx = 0._wp
         
         tottaxrev_dup = tottaxrev
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
@@ -1423,11 +1429,14 @@ program MPI_sandbox
             call ss(fnon,stringmode6,20,8)  
             stringmode6 = 'sax_'//trim(idmode6)
             !print*, '9: ', stringmode6
-            call ss(fsax,stringmode6,20,8)                
+            call ss(fsax,stringmode6,20,8)    
+            stringmode6 = 'wtx_'//trim(idmode6)
+            !print*, '10: ', stringmode6
+            call ss(fwtx,stringmode6,20,8)             
             
         endif !mpi_exercise_mode    
         
-        deallocate( fsef, fhom, fcsp, finc, fast, fbuz, faxw, fnon, fsax )
+        deallocate( fsef, fhom, fcsp, finc, fast, fbuz, faxw, fnon, fsax, fwtx )
         
     endif ! mpi_exercise_mode
     
