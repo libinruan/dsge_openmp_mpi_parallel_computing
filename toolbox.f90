@@ -5,7 +5,7 @@ module fmpi_header
 end module fmpi_header
 
 module fmpi_variable
-    integer :: MPI_ERR, NUM_PROCS, MY_ID, GROUP_ALL, MPI_PROVIDED = 0 
+    integer :: MPI_ERR, NUM_PROCS, MY_ID, GROUP_ALL, MPI_PROVIDED = 0  
     integer, parameter :: MY_ROOT = 0
 end module fmpi_variable
 
