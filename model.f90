@@ -3,10 +3,10 @@
     implicit none
     real(wp) :: inc, pzv(2) 
     real(wp), dimension(:,:,:), allocatable :: v2d
-    !real(wp), dimension(:,:,:,:), allocatable :: v2dypx
+    !real(wp), dimension(:,:,:,:), allocatable :: v2dypx   
     integer :: ax, hx, kx, zx, yx, kpx, ypx, opx, apx, hpx, zpx ! rearrange later.
     real(wp) :: a, h, k, z, y, kp, yp, dk, hp, ap
-    !$omp threadprivate(ax,hx,kx,zx,yx,kpx,ypx,opx,apx,hpx,zpx,a,h,k,z,y,kp,yp,dk,hp,inc,pzv,v2d,ap)
+    !$omp threadprivate(ax,hx,kx,zx,yx,kpx,ypx,opx,apx,hpx,zpx,a,h,k,z,y,kp,yp,dk,hp,inc,pzv,v2d,ap,net_worth)
     ! 3.11.2017 The area above is checked.
 contains
     real(wp) elemental function ymin(ki) result(y) ! Ymin(k). The minimum business return before paying back borrowing interest. 2016-6-23
@@ -41,7 +41,9 @@ contains
                 case(0)
                     y = length*ftaxwok(x/length) + taubal*x
                 case(1)
-                    y = length*ftaxent(x/length)
+                    y = length*ftaxwok(x/length)
+                case(2)
+                    y = length*ftaxwok(x/length)
             end select
         else
             y = 0._wp
@@ -56,6 +58,8 @@ contains
                     y = length*ftaxent(x/length) + taubal*x
                 case(1)
                     y = length*ftaxent(x/length)
+                case(2)
+                    y = length*ftaxent(x/length)                    
             end select
         else
             y = 0._wp
@@ -149,13 +153,26 @@ contains
                 if(kx==0)then
                     
                     if(printout25)then 
-                        inc = benefit + merge(transbeq,0._wp,printout17) ! 10.26.2017  
+                        !inc = benefit + merge(transbeq,0._wp,printout17) ! 10.26.2017  
                         if(mode6taskid==0)then
-                            inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                                  + (1._wp-deltah)*h - ttaxwok(inc) 
-                        elseif(mode6taskid==1)then
-                            inc = inc + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                                  + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(inc)  
+                            inc = benefit + merge(transbeq,0._wp,printout17) 
+                            inc = inc + merge((1._wp + rd) * a, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp) &
+                                  + (1._wp - deltah) * h - ttaxwok(inc) 
+                        elseif(mode6taskid==1)then ! tausv should be set to zero in this case.
+                            !inc = inc + (1._wp - taubal) * merge((1._wp + rd) * a, (1._wp + (1._wp - tausv) * rd) *a, a < 0._wp) &
+                            !      + (1._wp - taubal) * (1._wp - deltah) * h - ttaxwok(inc)  
+                            inc = benefit + merge(transbeq,0._wp,printout17) + (1._wp + rd) * a + (1._wp - deltah) * h 
+                            inc = (1._wp - taubal) * inc
+                            !inc = inc + (1._wp - taubal) * merge(0._wp, (1._wp + (1._wp - tausv) * rd) *a, a < 0._wp) & ! 3-1-2018 only tax on net wealth.
+                            !      + (1._wp - taubal) * (1._wp - deltah) * h - ttaxwok(inc) + merge(0._wp, (1._wp + (1._wp - tausv) * rd) *a, a > 0._wp) ! 3-1-2018 pay back loans                            
+                        elseif(mode6taskid==2)then
+                            net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + rd) * a, a < 0._wp)
+                            if(net_worth > shreshold_suprich)then
+                                inc = inc + (1._wp - taubal) * net_worth - ttaxwok(inc)
+                            else
+                                net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp)
+                                inc = inc + net_worth - ttaxwok(inc)
+                            endif
                         else 
                             print*, "error in taxation 1014-1"
                         endif !mode6taskid
@@ -173,8 +190,8 @@ contains
                     !inc = inc + a + rd*merge(a, 0._wp, a<0._wp) + (1._wp-tausv)*merge(capgain, 0._wp, tausvflag) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq ! "inc" hereafter stands for total wealth before the introduction of the adjustment costs of housing units
                 else ! 3.29.2017 This case can take care of the negative business shock.
                     labsup = 0._wp ! [3] ! 3.26.2017 useless in the current lifecycle stage.
-                    intfund = merge( a-k, 0._wp, a>k) !! savings: sources of interest income ! 3.26.2017                    
-                    inc = benefit              
+                    intfund = merge(a - k, 0._wp, a > k) !! savings: sources of interest income ! 3.26.2017                    
+                    !inc = benefit              
                     bgp = c_grs_mat(ax, kx, zx, yx, t)
                     
                     !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
@@ -182,13 +199,30 @@ contains
                     !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017
                     
                     if(printout25)then
-                        inc = inc + bgp  + merge(transbeq,0._wp,printout17)    
+                        !inc = inc + bgp  + merge(transbeq,0._wp,printout17)    
                         if(mode6taskid==0)then
+                            inc = benefit + bgp  + merge(transbeq,0._wp,printout17)    
                             inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
                                   + (1._wp-deltah)*h - ttaxent(inc)
                         elseif(mode6taskid==1)then
-                            inc = inc + (1._wp-taubal)*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
-                                  + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(inc)                            
+                            !inc = inc + bgp  + merge(transbeq,0._wp,printout17)    
+                            !inc = inc + (1._wp-taubal)*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
+                            !      + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(inc)  
+                            inc = benefit + bgp + merge(transbeq, 0._wp, printout17)    
+                            !inc = inc + (1._wp - taubal) * (merge(bgp, 0._wp, bgp>0._wp) + merge((1._wp + (1._wp - tausv) * rd) * intfund, 0._wp, intfund>0._wp)) & ! 3-1-2018 add bgp.
+                            !      + (1._wp - taubal) * (1._wp-deltah) * h - ttaxent(inc) + merge(bgp, 0._wp, bgp<=0._wp)                              
+                            inc = inc + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) + (1._wp-deltah) * h
+                            inc = (1._wp - taubal) * inc
+                        elseif(mode6taskid==2)then ! 3-1-2018 needs to be revised heavily.
+                            ! 2-25-2018 business asset is included in taxable net worth.
+                            inc = benefit + bgp + merge(transbeq, 0._wp, printout17) ! 3-1-2018 may be wrong.
+                            net_worth = (1._wp - deltah) * h + merge((1._wp + rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                            if(net_worth > shreshold_suprich)then
+                                inc = inc + (1._wp - taubal) * net_worth - ttaxent(inc)
+                            else
+                                net_worth = (1._wp - deltah) * h + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                                inc = inc + net_worth - ttaxent(inc)
+                            endif
                         else
                             print*, "error in taxation 1014-2"                            
                         endif !mode6askid
@@ -531,11 +565,24 @@ contains
                             if(kx==0)then
                                 if(printout25)then
                                     ! 10.26.2017 revision
-                                    inc = benefit + merge(transbeq,0._wp,printout17)
+                                    !inc = benefit + merge(transbeq, 0._wp, printout17)
                                     if(mode6taskid==0)then
+                                        inc = benefit + merge(transbeq, 0._wp, printout17)
                                         inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc)                                    
                                     elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                                        inc = inc + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(inc)                                         
+                                        !inc = inc + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(inc)  
+                                        inc = benefit + merge(transbeq, 0._wp, printout17) + (1._wp + rd) * a + (1._wp - deltah) * h 
+                                        inc = (1._wp - taubal) * inc
+                                        !inc = inc + (1._wp - taubal) * merge( 0._wp, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp) &
+                                        !    + (1._wp - taubal) * (1._wp - deltah) * h - ttaxwok(inc) + merge(0._wp, (1._wp + (1._wp - tausv) * rd) * a, a > 0._wp) 
+                                    elseif(mode6taskid==2)then
+                                        net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + rd) * a, a < 0._wp)
+                                        if(net_worth > shreshold_suprich)then
+                                            inc = inc + (1._wp - taubal) * net_worth - ttaxwok(inc)
+                                        else
+                                            net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp)
+                                            inc = inc + net_worth - ttaxwok(inc)
+                                        endif                                        
                                     else
                                         print*, "error in taxation 1014-3"    
                                     endif !mode6taskid
@@ -551,7 +598,7 @@ contains
                             else
                                 labsup = 0._wp ! [3] ! 3.26.2017 useless in this lifecycle stage.
                                 intfund = merge(a-k, 0._wp, a>k) ! excess internal fund bears 
-                                inc = benefit
+                                !inc = benefit
                                 bgp = c_grs_mat(ax, kx, zx, yx, t)
                                 
                                 !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), &
@@ -559,7 +606,7 @@ contains
                                 !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq ! 3.26.2017                            
                                 
                                 if(printout25)then
-                                    inc = inc + bgp + merge(transbeq, 0._wp, printout17) ! 10.26.2017      
+                                    !inc = inc + bgp + merge(transbeq, 0._wp, printout17) ! 10.26.2017      
                                     !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017  
                                     
                                     !!!10.13.2017
@@ -569,11 +616,24 @@ contains
                                     
                                     !10.13.2017
                                     if(mode6taskid==0)then
+                                        inc = benefit + bgp + merge(transbeq, 0._wp, printout17) ! 10.26.2017 
                                         inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
                                               + (1._wp-deltah)*h - ttaxent(inc)                           
                                     elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                                        inc = inc + (1._wp-taubal)*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
-                                              + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(inc)                                                                   
+                                        inc = benefit + bgp + merge(transbeq, 0._wp, printout17) ! 10.26.2017 
+                                        !inc = inc + (1._wp - taubal) * (merge(bgp, 0._wp, bgp>0._wp) + merge((1._wp + (1._wp - tausv) * rd) * intfund, 0._wp, intfund > 0._wp)) & ! 10.13.2017
+                                        !      + (1._wp - taubal) * (1._wp - deltah) * h - ttaxent(inc) + merge(bgp, 0._wp, bgp<=0._wp)    
+                                        inc = inc + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund > 0._wp) + (1._wp - deltah) * h
+                                        inc = (1._wp - taubal) * inc
+                                    elseif(mode6taskid==2)then
+                                        inc = benefit + bgp + merge(transbeq, 0._wp, printout17)
+                                        net_worth = (1._wp - deltah) * h + merge((1._wp + rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                                        if(net_worth > shreshold_suprich)then
+                                            inc = inc + (1._wp - taubal) * net_worth - ttaxent(inc)
+                                        else
+                                            net_worth = (1._wp - deltah) * h + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                                            inc = inc + net_worth - ttaxent(inc)
+                                        endif                                        
                                     else
                                         print*, "error in taxation 1014-4"    
                                     endif
@@ -992,7 +1052,8 @@ contains
         invscl = merge(0._wp, kv(kpx), kpx==0) ! next period investment scale
         ! house  = (1._wp-lambda)*lhpx ! 3.5.2017 this line shows that "lhpx" should be the known current level of housing asset holding. <<<<============= not yet.
         house = (1._wp-lambda)*h ! 3.6.2017 replace lhpx with h (the CURRENT period's level of housing asset holdings).
-        v1  = invscl - (bizret+labinc+sswel)/(1._wp+rl) - house ! borrowing constraints (silos) 3.5.2017 change rd to rl as used in Meh. <<<<========
+        !v1  = invscl - (bizret+labinc+sswel)/(1._wp+rl) - house ! borrowing constraints (silos) 3.5.2017 change rd to rl as used in Meh. <<<<========
+        v1  = invscl - (bizret)/(1._wp+rl) - house ! 3.4.2018
         !v2  = -(1._wp-deltah)*lhpx/(1._wp+rd) ! to rule out negative bequests, Yang 2009, pdf. 6. ! comment out 09282016
         v2  = -lhpx ! 09252016 Naka positive wealth. 10132016. 3.5.2017 agree that THROUGHOUT THE LIFECYCLE, total asset has to be nonnegative.
         lowap  = merge(v1, v2, v1>v2) ! lowap = max(v1,v2)
@@ -1080,12 +1141,28 @@ contains
                     labsup = efflab(t)*yv(yx)
                     if(kx==0)then
                         if(printout25)then
-                            ssbtax = tauss/2._wp*wage*labsup 
-                            inc = wage*labsup  + merge(transbeq,0._wp,printout17) - ssbtax !10.26.2017 a part of pre-tax income is not taxable by the current U.S. law
+
                             if(mode6taskid==0)then
+                                ssbtax = tauss/2._wp*wage*labsup 
+                                inc = wage*labsup  + merge(transbeq,0._wp,printout17) - ssbtax !10.26.2017 a part of pre-tax income is not taxable by the current U.S. law
                                 inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc)
                             elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                                inc = inc + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(inc)    
+                                ssbtax = tauss/2._wp*wage*labsup 
+                                inc = wage*labsup  + merge(transbeq,0._wp,printout17) - ssbtax !10.26.2017 a part of pre-tax income is not taxable by the current U.S. law                                
+                                !inc = inc + (1._wp - taubal) * merge(0._wp, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp) &
+                                !    + (1._wp - taubal) * (1._wp - deltah) * h - ttaxwok(inc) + merge(0._wp, (1._wp + (1._wp - tausv) * rd) * a, a > 0._wp)    
+                                inc = inc + (1._wp - deltah) * h + (1._wp + rd) * a
+                                inc = (1._wp - taubal) * inc
+                            elseif(mode6taskid==2)then
+                                ssbtax = tauss/2._wp*wage*labsup 
+                                inc = wage*labsup  + merge(transbeq,0._wp,printout17) - ssbtax !10.26.2017 a part of pre-tax income is not taxable by the current U.S. law                                
+                                net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + rd) * a, a < 0._wp)
+                                if(net_worth > shreshold_suprich)then
+                                    inc = inc + (1._wp - taubal) * net_worth - ttaxwok(inc)
+                                else
+                                    net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp)
+                                    inc = inc + net_worth - ttaxwok(inc)
+                                endif                                
                             else
                                 print*, "error in taxation 9-5"
                             endif 
@@ -1101,7 +1178,7 @@ contains
                         ! 3.12.2017 added "+ rd*merge(0._wp, a, a>=0._wp)"
                     else
                         intfund = merge(a-k, 0._wp, a>k) ! excess internal fund bears 
-                        inc = wage*labsup
+                        !inc = wage*labsup
                         bgp = c_grs_mat(ax, kx, zx, yx, t)
                         ssbtax = tauss/2._wp*wage*labsup 
                         
@@ -1111,7 +1188,7 @@ contains
                             !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                      0._wp, intfund>0._wp), zx==0) &
                             !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 3.26.2017                    
 
-                            inc = inc + bgp + merge(transbeq,0._wp,printout17) - ssbtax ! 4.10.2017
+                            !inc = inc + bgp + merge(transbeq,0._wp,printout17) - ssbtax ! 4.10.2017
                             !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
                             
                             !!!10.13.2017 comment out
@@ -1119,11 +1196,25 @@ contains
                             !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
                             !      + (1._wp-deltah)*h - ttaxent(inc) + merge(transbeq,0._wp,printout17) - ssbtax ! 4.10.2017
                             if(mode6taskid==0)then
+                                inc = wage*labsup + bgp + merge(transbeq,0._wp,printout17) - ssbtax ! 4.10.2017
                                 inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
                                       + (1._wp-deltah)*h - ttaxent(inc)                             
                             elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                                inc = inc + (1._wp-taubal)*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017
-                                      + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(inc)                                 
+                                inc = wage * labsup + bgp + merge(transbeq, 0._wp, printout17) - ssbtax ! 4.10.2017
+                                !inc = inc + (1._wp - taubal) * (merge(bgp, 0._wp, bgp > 0._wp) + merge((1._wp + (1._wp - tausv) * rd) * intfund, 0._wp, intfund>0._wp)) & ! 10.13.2017
+                                !      + (1._wp - taubal) * (1._wp - deltah) * h - ttaxent(inc) + merge(bgp, 0._wp, bgp <= 0._wp)   
+                                inc = inc + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) + (1._wp - deltah) * h
+                                inc = (1._wp - taubal) * inc
+                            elseif(mode6taskid==2)then    
+                                ! 2-25-2018 business asset is included in taxable net worth.
+                                inc = wage*labsup + bgp + merge(transbeq, 0._wp, printout17) - ssbtax
+                                net_worth = (1._wp - deltah) * h + merge((1._wp + rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                                if(net_worth > shreshold_suprich)then
+                                    inc = inc + (1._wp - taubal) * net_worth - ttaxent(inc)
+                                else
+                                    net_worth = (1._wp - deltah) * h + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                                    inc = inc + net_worth - ttaxent(inc)
+                                endif     
                             else
                                 print*, "error in taxation 9-6"    
                             endif !mode6taskid
@@ -1551,7 +1642,7 @@ contains
                                 
                             ! it covers the case where net financial position is negative. 3.4.2017
                             !extfund = merge(kv(kx)-av(ax), 0._wp, kv(kx)-av(ax)>0._wp) ! 3.25.2017 irrelevant to the level of zx.
-                            extfund = merge( merge(kv(kx)-av(ax), kv(kx), av(ax)>0._wp), 0._wp, kv(kx)-av(ax)>0._wp) ! 10.13.2017
+                            extfund = merge( merge(kv(kx)-av(ax), kv(kx), av(ax)>0._wp), 0._wp, kv(kx)-av(ax)>0._wp) ! 3-2-2018
                             
                             ! Checked with Kitao, 2008, pdf. 5; Meh, 2005, pdf. 9. Kitao considers capital interest into the profit; Meh doesn't. That's why the discrepancy arises.
                             ! Anyway, I don't add the capital gain (saving interest) obtained from own funds. <--------- Important!! 09282016
@@ -1748,12 +1839,28 @@ contains
                         labsup = efflab(t)*yv(yx)
                         if(kx==0)then
                             if(printout25)then
-                                ssbtax = tauss/2._wp*wage*labsup
-                                inc = wage*labsup + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 10.26.2017 revision 
+
                                 if(mode6taskid==0)then
-                                    inc = inc + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-deltah)*h - ttaxwok(inc)
+                                    ssbtax = tauss/2._wp*wage*labsup
+                                    inc = wage*labsup + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 10.26.2017 revision                                     
+                                    inc = inc + merge((1._wp + rd) * a, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp) + (1._wp - deltah) * h - ttaxwok(inc)
                                 elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                                    inc = inc + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(inc)
+                                    ssbtax = tauss/2._wp*wage*labsup
+                                    inc = wage*labsup + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 10.26.2017 revision                                     
+                                    !inc = inc + (1._wp - taubal) * merge( 0._wp, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp) &
+                                    !    + (1._wp - taubal) * (1._wp - deltah) * h - ttaxwok(inc) + merge(0._wp, (1._wp + (1._wp - tausv) * rd) * a, a > 0._wp)
+                                    inc = inc + (1._wp - deltah) * h + (1._wp + rd) * a
+                                    inc = (1._wp - taubal) * inc
+                                elseif(mode6taskid==2)then
+                                    ssbtax = tauss/2._wp*wage*labsup
+                                    inc = wage*labsup + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 10.26.2017 revision                                     
+                                    net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + rd) * a, a < 0._wp)
+                                    if(net_worth > shreshold_suprich)then
+                                        inc = inc + (1._wp - taubal) * net_worth - ttaxwok(inc)
+                                    else
+                                        net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp)
+                                        inc = inc + net_worth - ttaxwok(inc)
+                                    endif
                                 else
                                     print*, "error in taxation 18-7"
                                 endif
@@ -1768,7 +1875,7 @@ contains
                             !inc = inc + a + rd*merge(0._wp, a, a>=0._wp) + (1._wp-tausv)*merge(capgain,0._wp,tausvflag) + (1._wp-deltah)*h - ttaxwok(inc) + transbeq - ssbtax 
                         else ! entrepreneurs
                             intfund = merge(a-k,0._wp,a>k) ! excess internal fund bears 
-                            inc = wage*labsup
+                            !inc = wage*labsup
                             bgp = c_grs_mat(ax, kx, zx, yx, t)
                             ssbtax = tauss/2._wp*wage*labsup ! 3.14.2017 correct.
                             
@@ -1777,7 +1884,7 @@ contains
                             !      + merge((1._wp-taubp)*bgp, bgp, zx==1) + (1._wp-deltah)*h - ttaxent(inc) + transbeq - ssbtax ! 3.26.2017 
                             
                             if(printout25)then
-                                inc = inc + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017 
+                                !inc = inc + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017 
                                 !inc = inc + merge(merge((1._wp+(1._wp-tausv)*rd)*a,       (1._wp+(1._wp-tausv)*rd)*k, intfund>0._wp), & ! removed 9-12-2017
                                 
                                 !!!10.13.2017
@@ -1785,11 +1892,24 @@ contains
                                 !                  merge((1._wp+(1._wp-tausv)*rd)*intfund,                                                                               0._wp, intfund>0._wp), zx==0) &
                                 !      + (1._wp-deltah)*h - ttaxent(inc) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017                            
                                 if(mode6taskid==0)then
+                                    inc = wage*labsup + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017 
                                     inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017 
                                           + (1._wp-deltah)*h - ttaxent(inc)                                 
                                 elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                                    inc = inc + (1._wp-taubal)*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & ! 10.13.2017 
-                                          + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(inc)                                      
+                                    inc = wage * labsup + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 4.10.2017 
+                                    !inc = inc + (1._wp - taubal) * (merge(bgp, 0._wp, bgp > 0._wp) + merge((1._wp + (1._wp - tausv) * rd) * intfund, 0._wp, intfund > 0._wp)) & ! 10.13.2017 
+                                    !      + (1._wp - taubal) * (1._wp - deltah) * h - ttaxent(inc) + merge(bgp, 0._wp, bgp <= 0._wp)                                      
+                                    inc = inc + merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) + (1._wp - deltah) * h
+                                    inc = (1._wp - taubal) * inc
+                                elseif(mode6taskid==2)then
+                                    inc = wage*labsup + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - ssbtax ! 2-24-2018
+                                    net_worth = (1._wp - deltah) * h + merge((1._wp + rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                                    if(net_worth > shreshold_suprich)then
+                                        inc = inc + (1._wp - taubal) * net_worth - ttaxent(inc)
+                                    else
+                                        net_worth = (1._wp - deltah) * h + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                                        inc = inc + net_worth - ttaxent(inc)
+                                    endif                                     
                                 else
                                     print*, "error in taxation 18-8"    
                                 endif !mode6taskid
@@ -3944,6 +4064,7 @@ contains
                     endif ! zx
                 endif ! t
             endif ! kx == 0 or not (worker/retiree or entrepreneur)
+            flon(idx) = sw_bizloan(idx)
             
             ! ===================================Income section=============================================== 3.26.2017 4:51 pm stop here. 4.15.2017 stop here. 9:20 pm.
             if(kx==0)then ! worker or retirees.
@@ -3952,25 +4073,57 @@ contains
                 
                 if(printout25)then
 
-                    sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
-                    sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx)
-                    sw_nonlineartax(idx)   = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
-                    sw_worker_savtax(idx)  = merge(tausv*rd*a, 0._wp, a>0._wp) ! 10.27.2017 negative interest rate is acceptible.
-                    sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
-
-                    fnon(idx) = sw_nonlineartax(idx)
-                    fsax(idx) = sw_worker_savtax(idx) 
-
                     if(mode6taskid==0)then
-                        sw_wealth_tax(idx)     = (1._wp+rd)*a + (1._wp-deltah)*h ! used only for mode6taskid=1
-                        sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                                               & + (1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx))
+                        sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
+                        sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx)
+                        sw_nonlineartax(idx)   = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
+                        sw_worker_savtax(idx)  = merge(tausv*rd*a, 0._wp, a>0._wp) ! 10.27.2017 negative interest rate is acceptible.
+                        sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
+                        sw_net_worth(idx)      = (1._wp+rd)*a + (1._wp-deltah)*h + sw_taxableincome(idx) ! 3-1-2018 before tax net worth. Useless in this case.
+                        fnon(idx) = sw_nonlineartax(idx)
+                        fsax(idx) = sw_worker_savtax(idx)                         
+                        sw_wealth_tax(idx)     = (1._wp+rd)*a + (1._wp-deltah)*h ! useless in mode6taskid==0 case.
+                        sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge((1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
+                                               + (1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx))
                     elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                        sw_wealth_tax(idx)     = taubal*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                                               & + taubal*(1._wp-deltah)*h
-                        sw_aftertaxwealth(idx) = sw_taxableincome(idx) + (1._wp-taubal)*merge( (1._wp+rd)*a, (1._wp+(1._wp-tausv)*rd)*a, a<0._wp) &
-                                               & + (1._wp-taubal)*(1._wp-deltah)*h - ttaxwok(sw_taxableincome(idx))  
+                        sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
+                        sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) &
+                                               + merge(rd*a, 0._wp, a>0._wp) ! 3-1-2018
+                        sw_nonlineartax(idx)   = 0._wp ! 3-1-2018 ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
+                        sw_worker_savtax(idx)  = 0._wp ! merge(tausv*rd*a, 0._wp, a>0._wp) ! 10.27.2017 negative interest rate is acceptible.
+                        sw_totinc_bx(idx)      = sw_taxableincome(idx) ! + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
+                        sw_net_worth(idx)      = merge(a, (1._wp + rd) * a , a > 0._wp) + (1._wp-deltah)*h + sw_taxableincome(idx) ! 3-1-2018 a comprehensive amount of income except for the SS contribution.
+                        fnon(idx) = sw_nonlineartax(idx) ! 0._wp actually. 3-1-2018
+                        fsax(idx) = sw_worker_savtax(idx)                         
+                        !sw_wealth_tax(idx)     = taubal * merge( 0._wp, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp) &
+                        !                       & + taubal * (1._wp - deltah) * h 
+                        !sw_wealth_tax(idx)     = taubal * ((1._wp + (1._wp - tausv) * rd) * a + (1._wp - deltah) * h)                         
+                        !sw_aftertaxwealth(idx) = sw_taxableincome(idx) + (1._wp - taubal) * merge(0._wp, (1._wp + (1._wp - tausv) * rd) * a, a < 0._wp) &
+                        !                       & + (1._wp - taubal) * (1._wp - deltah) * h - ttaxwok(sw_taxableincome(idx)) + merge(0._wp, (1._wp + (1._wp - tausv) * rd) * a, a > 0._wp)  
+                        !sw_aftertaxwealth(idx) = sw_taxableincome(idx) + (1._wp - taubal) * (1._wp-deltah)*h &
+                        !                       - ttaxwok(sw_taxableincome(idx)) + merge(0._wp, (1._wp + (1._wp - tausv) * rd) * a, a > 0._wp) !  
+                        
+                        sw_wealth_tax(idx)     = taubal * sw_net_worth(idx) ! 3-3-2018
+                        sw_aftertaxwealth(idx) = merge((1._wp - taubal) * sw_net_worth(idx), sw_net_worth(idx), sw_wealth_tax(idx) > 0._wp) ! 3-1-2018
+                        sw_wealth_tax(idx)     = merge(sw_wealth_tax(idx), 0._wp, sw_wealth_tax(idx) > 0._wp)
                         fwtx(idx) = sw_wealth_tax(idx)
+                    elseif(mode6taskid==2)then
+                        sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
+                        sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx)
+                        sw_nonlineartax(idx)   = ttaxwok(sw_taxableincome(idx)) ! 9-17-2017
+                        sw_worker_savtax(idx)  = merge(tausv*rd*a, 0._wp, a>0._wp) ! 10.27.2017 negative interest rate is acceptible.
+                        sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge(rd*a, 0._wp, a>0._wp) !10.13.2017
+                        sw_net_worth(idx)      = (1._wp+rd)*a + (1._wp-deltah)*h + sw_taxableincome(idx) ! 3-1-2018 a comprehensive amount of income except for the SS contribution.
+                        fnon(idx) = sw_nonlineartax(idx)
+                        fsax(idx) = sw_worker_savtax(idx)                         
+                        net_worth = (1._wp - deltah) * h + merge((1._wp + rd)*a, (1._wp + rd) * a, a < 0._wp)
+                        if(net_worth > shreshold_suprich)then
+                            sw_wealth_tax(idx)    = taubal * net_worth  
+                            sw_worker_savtax(idx) = 0._wp !merge(0._wp, tausv * rd * a, a < 0._wp)
+                        else
+                            sw_wealth_tax(idx)    = 0._wp  
+                            sw_worker_savtax(idx) = merge(0._wp, tausv * rd * a, a < 0._wp)                           
+                        endif                        
                     else
                         print*, "error in macro statistics-1"    
                     endif !mode6taskid
@@ -3996,27 +4149,53 @@ contains
                 
                 bgp = c_grs_mat(ax, kx, zx, yx, t) 
 
-                if(printout25)then
-
-                    sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
-                    sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 10.26.2017 revision                    
-                    sw_nonlineartax(idx)   = ttaxent(sw_taxableincome(idx)) ! 9-17-2017
-                    sw_entpre_savtax(idx)  = merge( tausv*rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
-                    sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge( rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
-                    
-                    fnon(idx) = sw_nonlineartax(idx)
-                    fsax(idx) = sw_entpre_savtax(idx)                    
-                    
+                if(printout25)then                  
                     if(mode6taskid==0)then
-                        sw_wealth_tax(idx)     = (1._wp+rd)*a + (1._wp-deltah)*h ! used only for mode6taskid=1. Here, this variable is for saving the information of household net worth.
-                        sw_aftertaxwealth(idx) = sw_taxableincome(idx) +  merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
-                                               & + (1._wp-deltah)*h - ttaxent(sw_taxableincome(idx))
-                    elseif(mode6taskid==1)then ! wealth tax (not applied on period income but beginning capital, regardless of asset types).
-                        sw_wealth_tax(idx)     = taubal*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
-                                               & + taubal*(1._wp-deltah)*h
-                        sw_aftertaxwealth(idx) = sw_taxableincome(idx) +  (1._wp-taubal)*merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
-                                               & + (1._wp-taubal)*(1._wp-deltah)*h - ttaxent(sw_taxableincome(idx))       
+                        sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
+                        sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage * sw_laborsupply(idx) + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 10.26.2017 revision                    
+                        sw_nonlineartax(idx)   = ttaxent(sw_taxableincome(idx)) ! 9-17-2017
+                        sw_entpre_savtax(idx)  = merge( tausv*rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
+                        sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge( rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
+                        sw_net_worth(idx)      = merge((1._wp + rd) * intfund, 0._wp, intfund>0._wp) + (1._wp-deltah)*h + sw_taxableincome(idx) ! 3-1-2017 add bgp. Useless.                
+                        fnon(idx) = sw_nonlineartax(idx)
+                        fsax(idx) = sw_entpre_savtax(idx)                          
+                        sw_wealth_tax(idx)     = 0._wp ! 3-1-2018 Useless here. used only for mode6taskid=1. Here, this variable is for saving the information of household net worth.
+                        sw_aftertaxwealth(idx) = sw_taxableincome(idx) + merge((1._wp + (1._wp - tausv) * rd) * intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund > 0._wp) & !10.13.2017
+                                               + (1._wp - deltah) * h - ttaxent(sw_taxableincome(idx)) ! 3-1-2018
+                    elseif(mode6taskid==1)then ! wealth tax case. tausv should be set to zero, so we can ignore sw_XXX_savtax.
+                        sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
+                        sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage * sw_laborsupply(idx) + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) &
+                                               + merge(rd * intfund, 0._wp, intfund > 0._wp) ! 10.26.2017 revision                    
+                        sw_nonlineartax(idx)   = 0._wp ! ttaxent(sw_taxableincome(idx)) ! 3-1-2018 Useless in mode6taskid==1. 9-17-2017
+                        sw_entpre_savtax(idx)  = 0._wp ! 3-1-2018 merge( tausv*rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
+                        sw_totinc_bx(idx)      = sw_taxableincome(idx) !10.13.2017, 3-1-2018
+                        sw_net_worth(idx)      = sw_taxableincome(idx) + merge(intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund > 0._wp) + (1._wp-deltah)*h ! 3-1-2018 needs to be revised for the tax-on-toprich case in the future.
+                        fnon(idx) = sw_nonlineartax(idx)
+                        fsax(idx) = sw_entpre_savtax(idx)                          
+                        sw_wealth_tax(idx)     = taubal * sw_net_worth(idx) ! variable used in the conditional statement below 3-3-2018
+
+                        sw_aftertaxwealth(idx) = merge((1._wp - taubal) * sw_net_worth(idx), sw_net_worth(idx), sw_wealth_tax(idx) > 0._wp) ! 3-3-2018      
+                        sw_wealth_tax(idx)     = merge(sw_wealth_tax(idx), 0._wp, sw_wealth_tax(idx) > 0._wp)    
+                        
                         fwtx(idx) = sw_wealth_tax(idx)
+                    elseif(mode6taskid==2)then   
+                        sw_socialsecurity(idx) = tauss/2._wp*wage*sw_laborsupply(idx)
+                        sw_taxableincome(idx)  = merge(benefit, 0._wp, t>=10) + wage*sw_laborsupply(idx) + bgp + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 10.26.2017 revision                    
+                        sw_nonlineartax(idx)   = ttaxent(sw_taxableincome(idx)) ! 9-17-2017
+                        sw_entpre_savtax(idx)  = merge( tausv*rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
+                        sw_totinc_bx(idx)      = sw_taxableincome(idx) + merge( rd*intfund, 0._wp, intfund>0._wp) !10.13.2017
+                        sw_net_worth(idx)      = (1._wp+rd)*a + (1._wp-deltah)*h
+                        
+                        fnon(idx) = sw_nonlineartax(idx)
+                        fsax(idx) = sw_entpre_savtax(idx)                          
+                        net_worth = (1._wp - deltah) * h + merge((1._wp + rd) * intfund, merge(0._wp, (1._wp + rd) * a, a > 0._wp), intfund > 0._wp)
+                        if(net_worth > shreshold_suprich)then
+                            sw_wealth_tax(idx)     = taubal * net_worth
+                            sw_entpre_savtax(idx)  = 0._wp !merge(tausv * rd * intfund, 0._wp, intfund > 0._wp)                           
+                        else
+                            sw_wealth_tax(idx)     = 0._wp
+                            sw_entpre_savtax(idx)  = merge(tausv * rd * intfund, 0._wp, intfund > 0._wp)                           
+                        endif
                     else
                         print*, "error in macro statistics-2"
                     endif
@@ -4032,10 +4211,7 @@ contains
                     
                     sw_aftertaxwealth(idx)  = sw_taxableincome(idx) +  merge( (1._wp+(1._wp-tausv)*rd)*intfund, merge( 0._wp, (1._wp+rd)*a, a>0._wp), intfund>0._wp) & !10.13.2017
                                             & + (1._wp-deltah)*h - ttaxent(sw_taxableincome(idx)) + merge(0._wp, transbeq, printout17==.False. .and. t/=1) - sw_socialsecurity(idx) ! 4.16.2017 revision
-
                 endif
-                
-                
                 sw_boss_turned(idx) = merge( 1._wp, 0._wp, (s3c(idx,3)/=0.and.swk(idx)==0)) ! 3.27.2017 it is only a portion of the whole population exiting entrepreneurship.
                 
                 !! 3.25.2017 comment out.
@@ -4064,25 +4240,22 @@ contains
         
         ! 4.16.2017 12:05pm stop here.
         !totast = dot_product(sef,sw_ini_asset) ! 10.18.2017 It's net financial asset holdings (assets net of liabilities).
-        totast = sum(sef*sw_ini_asset,sef>=0._wp) ! 10.26.2017
-        
+        totast = sum(sef*sw_ini_asset, sef>=0._wp) ! 10.26.2017
         svec   = sef*sw_ini_asset
         !wokfin = sum(svec,s3c(:,3)==0.and.s3c(:,9)<=9) ! retirees are included into the working class household hereafter.
         if(printout22)then ! 10.18.2017
             wokfin = sum(svec, tvec==.false. .and. sw_ini_asset>0._wp .and. sef>=0._wp)  
             entfin = sum(svec, tvec==.true.  .and. sw_ini_asset>0._wp .and. sef>=0._wp)   
         else
-            wokfin = sum(svec,tvec==.false. .and. sef>=0._wp)
-            entfin = sum(svec,tvec==.true. .and. sef>=0._wp)             
+            wokfin = sum(svec, tvec==.false. .and. sef>=0._wp)
+            entfin = sum(svec, tvec==.true.  .and. sef>=0._wp)             
         endif 
-            
-            
         svec   = sef*sw_ini_house
         !wokhom = sum(svec,s3c(:,3)==0.and.s3c(:,9)<=9)
         wokhom = sum(svec, tvec==.false. .and. sef>0._wp) ! 3.27.2017 added s3c condition. 7-2-2017 Including retired people.
-        enthom = sum(svec, tvec==.true. .and. sef>0._wp) ! 3.27.2017 added s3c condition.
+        enthom = sum(svec, tvec==.true.  .and. sef>0._wp) ! 3.27.2017 added s3c condition.
         
-        svec   = sef*(sw_bizinvestment+sw_buzcap_notuse) ! 9-13-2017 definition of bizinvestment defined above is updated. only z>0 people have positive bizinvestment.
+        svec   = sef*(sw_bizinvestment + sw_buzcap_notuse) ! 9-13-2017 definition of bizinvestment defined above is updated. only z>0 people have positive bizinvestment.
         entcap = sum(svec, tvec==.true. .and. sef>0._wp ) ! 3.27.2017 Only sum up those figures not coming from idle capital. ! 8-14-2017 ok.
         if(printout22)then
             crpcap = (wokfin+entfin)/(1._wp+dfrac)-entcap
@@ -4118,7 +4291,7 @@ contains
         ! 3.27.2017 corporate tax and capital income tax needs to be added into the tax revenue. Stop here. 4:09 pm <---------------
         !sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! There is no business taxes right?!
         
-        totsvt = sum(sef*sw_worker_savtax, sef>0._wp) + sum(sef*sw_entpre_savtax, sef>0._wp)
+        totsvt = sum(sef*sw_worker_savtax, sef>0._wp .and. sw_worker_savtax>0._wp) + sum(sef*sw_entpre_savtax, sef>0._wp .and. sw_entpre_savtax>0._wp)
         !totbpt = sum(sef*sw_entpre_biztax) ! 4.16.2017 comment out
         !govbal = (totsvt + totbpt + tottax) - gfrac*gdp - rd*dfrac*(crpcap+entcap) ! 3.27.2017 excluding SS benefit, because it runs in the way like pay as you go.
 
@@ -4127,7 +4300,10 @@ contains
             tottaxrev = totsvt + tottax ! used for mpi_exercise_mode=6
             !tauwealth = totsvt/sum(sef*sw_wealth_tax, sw_wealth_tax>0._wp .and. sef>0._wp) ! don't be confused with the name sw_wealth_tax. In the case of mode6taskid=0, it is the household net worth.
         elseif(mode6taskid==1)then
-            govbal = (sum(sef*sw_wealth_tax, sef>0._wp .and. sw_wealth_tax>0._wp) + tottax) - tottaxrev
+            govbal = sum(sef*sw_wealth_tax, sef>0._wp .and. sw_wealth_tax>0._wp) - tottaxrev ! 2-24-2018 tausv is set to zero, so we don't need sw_XXX_savtax here (and totsvt).
+        elseif(mode6taskid==2)then    
+            ! needs to be revised 2-24-2018
+            govbal = (sum(sef*sw_wealth_tax, sef>0._wp .and. sw_wealth_tax>0._wp) + tottax + totsvt) - tottaxrev
         else
             print*, "error in govbal"
         endif !mode6taskid
@@ -4252,11 +4428,25 @@ contains
                 rvec(j) = sw_ini_asset(i) + sw_ini_house(i)
             endif
         enddo
-        call weighted_percentile(rvec,svec,0.5_wp,medentwel)      
+        call weighted_percentile(rvec,svec,0.5_wp,medentwel)    
+        !call weighted_percentile(rvec,svec,suprich_prop,wealth_suprich)    
+        
         deallocate(svec,rvec)
+            
+        szwok = count(sef>0._wp)
+        allocate(svec(szwok), rvec(szwok))
+        j = 0
+        do i = 1, sz
+            if(sef(i)>0._wp)then
+                j = j + 1
+                svec(j) = sef(i)
+                rvec(j) = sw_net_worth(i)
+            endif    
+        enddo
+        call weighted_percentile(rvec,svec,suprich_prop,wealth_suprich)    
+        deallocate(svec, rvec)
         
         med_wel_e2w = medentwel/medwokwel
-        
         !write(4000+trial_id,fmt='("macro-3",8x,8(e21.14,x))') entsize, chge2w, e2wrat, medwokinc, lowest_quintile_wokinc, medwokwel, medentwel, med_wel_e2w
         
         entcsp = sum(sef*sw_consumption, lvece.and.sw_consumption>0._wp.and.sef>=0._wp) ! 4.17.2017 It excludes bad luck entrepreneurs.
@@ -4404,8 +4594,9 @@ contains
             elseif(mode6taskid==1)then
                 write(my_id+1001,'(5(2x,a,x),(x,a,x))') ' entCapR', 'asst2Gdp', 'home2Gdp', 'netAsstR', 'tottaxrv', 'txRwealth'
                 write(my_id+1001,'(6(e10.3,x))') momvec(1), momvec(6), momvec(7), momvec(8), tottaxrev, taubal                
-            else
-                
+            elseif(mode6taskid==2)then
+                write(my_id+1001,'(5(2x,a,x),(x,a,x))') ' entCapR', 'asst2Gdp', 'home2Gdp', 'netAsstR', 'tottaxrv', 'txRwealth'
+                write(my_id+1001,'(6(e10.3,x))') momvec(1), momvec(6), momvec(7), momvec(8), tottaxrev, taubal                                
             endif
             
             write(my_id+1001,'(2(8x,a,x),(6x,a,x),(2x,a,x),2(3x,a,x))') 'rd', 'rl', 'wage', 'transbeq', 'avgincw', 'benefit'
@@ -4419,6 +4610,7 @@ contains
             fast = sw_ini_asset
             fbuz = sw_bizinvestment
             faxw = sw_aftertaxwealth
+            fnwr = sw_net_worth
             
         endif ! printout19        
         

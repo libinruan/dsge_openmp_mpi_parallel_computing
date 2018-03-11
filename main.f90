@@ -50,7 +50,8 @@ program MPI_sandbox
     if(my_id==0)then ! General Operation Messages
         
         if(printout12)then
-            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,149) ! works. 
+            !write(*,'(a,f20.8)') (labstr(i),para(i),i=1,149) ! works. 
+            write(*,'(a,f20.8)') (labstr(i),para(i),i=1,size(labstr)) ! works. 
             write(*,*) ' '
             write(*,*) "printout17 everyone recevies bequests: ", printout17
             write(*,*) "printout18 housing upper limit extended based on consumer need: ", printout18
@@ -1249,7 +1250,7 @@ program MPI_sandbox
     elseif(mpi_exercise_mode==6)then
                
         allocate( fsef(adim*hdim*1018), fhom(adim*hdim*1018), fcsp(adim*hdim*1018), finc(adim*hdim*1018), fast(adim*hdim*1018), fbuz(adim*hdim*1018), faxw(adim*hdim*1018) )
-        allocate( fnon(adim*hdim*1018), fsax(adim*hdim*1018), fwtx(adim*hdim*1018) )
+        allocate( fnon(adim*hdim*1018), fsax(adim*hdim*1018), fwtx(adim*hdim*1018), flon(adim*hdim*1018), fnwr(adim*hdim*1018) )
         
         fsef = 0._wp
         fhom = 0._wp
@@ -1261,7 +1262,8 @@ program MPI_sandbox
         fnon = 0._wp
         fsax = 0._wp
         fwtx = 0._wp
-        
+        flon = 0._wp
+        fnwr = 0._wp
         
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
         if(printout28) zbar = 0._wp
@@ -1338,11 +1340,16 @@ program MPI_sandbox
             call ss(fsax,stringmode6,20,8)     
             stringmode6 = 'wtx_'//trim(idmode6)
             !print*, '10: ', stringmode6
-            call ss(fwtx,stringmode6,20,8)              
+            call ss(fwtx,stringmode6,20,8)    
+            stringmode6 = 'lon_'//trim(idmode6)
+            !print*, '10: ', stringmode6
+            call ss(flon,stringmode6,20,8)   
+            stringmode6 = 'nwr_'//trim(idmode6)
+            call ss(fnwr,stringmode6,20,8)
             
         endif !mpi_exercise_mode     
 
-        !=========================================== experiment zone
+        !=========================================== experiment zone ---------------------------------
         
         fsef = 0._wp
         fhom = 0._wp
@@ -1354,8 +1361,10 @@ program MPI_sandbox
         fnon = 0._wp
         fsax = 0._wp
         fwtx = 0._wp
+        flon = 0._wp
+        fnwr = 0._wp
         
-        tottaxrev_dup = tottaxrev
+        tottaxrev_dup = tottaxrev ! backup tottaxrev so that it won't be overwritten by read_parameter_model subroutine. 2-23-2018.
         call read_parameter_model(para,'_1parameter.txt') ! parameter for benchmark model
         if(printout28) zbar = 0._wp
         call read_parameter_model(para,'_1parameter_trial.txt','_1parameter_trial.txt') ! parameter for policy experiment
@@ -1364,7 +1373,7 @@ program MPI_sandbox
         !mode6taskid is updated after the second read_parameter_model ! <--- important
         !tottaxrev should be updated in the benchmark model
         i = mode6taskid
-        tottaxrev = tottaxrev_dup
+        tottaxrev = tottaxrev_dup ! retrieve the backuped quantity.
         write(msg,fmt='(i3.3)') i ! either 100 or 200
         write(my_id+1001,'(a,i3,a,f8.5,/)') " ================================ ", i, " ================================= tottaxrev = ", tottaxrev
         write(my_id+2001,'(a,i3,a,f8.5,/)') " ================================ ", i, " ================================= tottaxrev = ", tottaxrev
@@ -1406,37 +1415,42 @@ program MPI_sandbox
             stringmode6 = 'sef_'//trim(idmode6)
             !print*, '1: ', stringmode6
             call ss(fsef, stringmode6, 20, 8)
-            stringmode6 = 'hom_'//trim(idmode6)
+            stringmode6 = 'hom_'//trim(idmode6) ! home equity
             !print*, '2: ', stringmode6
             call ss(fhom, stringmode6, 20, 8)
-            stringmode6 = 'csp_'//trim(idmode6)
+            stringmode6 = 'csp_'//trim(idmode6) ! consumption
             !print*, '3: ', stringmode6
             call ss(fcsp, stringmode6, 20, 8)
-            stringmode6 = 'inc_'//trim(idmode6)
+            stringmode6 = 'inc_'//trim(idmode6) ! ?
             !print*, '4: ', stringmode6
             call ss(finc, stringmode6, 20, 8)
-            stringmode6 = 'ast_'//trim(idmode6)
+            stringmode6 = 'ast_'//trim(idmode6) ! liquid asset
             !print*, '5: ', stringmode6
             call ss(fast, stringmode6, 20, 8)     
-            stringmode6 = 'buz_'//trim(idmode6)
+            stringmode6 = 'buz_'//trim(idmode6) 
             !print*, '6: ', stringmode6
             call ss(fbuz, stringmode6, 20, 8)  
-            stringmode6 = 'axw_'//trim(idmode6)
+            stringmode6 = 'axw_'//trim(idmode6) ! 
             !print*, '7: ', stringmode6
             call ss(faxw,stringmode6,20,8)              
-            stringmode6 = 'non_'//trim(idmode6)
+            stringmode6 = 'non_'//trim(idmode6) ! 
             !print*, '8: ', stringmode6
             call ss(fnon,stringmode6,20,8)  
-            stringmode6 = 'sax_'//trim(idmode6)
+            stringmode6 = 'sax_'//trim(idmode6) !
             !print*, '9: ', stringmode6
             call ss(fsax,stringmode6,20,8)    
-            stringmode6 = 'wtx_'//trim(idmode6)
+            stringmode6 = 'wtx_'//trim(idmode6) !
             !print*, '10: ', stringmode6
             call ss(fwtx,stringmode6,20,8)             
+            stringmode6 = 'lon_'//trim(idmode6)
+            !print*, '10: ', stringmode6
+            call ss(flon,stringmode6,20,8)  
+            stringmode6 = 'nwr_'//trim(idmode6)
+            call ss(fnwr,stringmode6,20,8)            
             
         endif !mpi_exercise_mode    
         
-        deallocate( fsef, fhom, fcsp, finc, fast, fbuz, faxw, fnon, fsax, fwtx )
+        deallocate( fsef, fhom, fcsp, finc, fast, fbuz, faxw, fnon, fsax, fwtx, flon, fnwr )
         
     endif ! mpi_exercise_mode
     
