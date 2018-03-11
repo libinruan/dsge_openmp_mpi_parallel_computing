@@ -1,8 +1,8 @@
 module variable
     use toolbox
     implicit none
-    character(len=30) :: labstr(149)
-    real(wp) :: para(149), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
+    character(len=30) :: labstr(153)
+    real(wp) :: para(153), & ! total number of parameters in _lparameter.txt excluding boolin variables (printout1, etc).
                 targetv(10), & ! target vector
                 guessv(10), & ! a guess on the parameter setting mainly for mpi_exercise_mode == 0 case.
                 momvec(10), & ! simulated moment vector
@@ -94,7 +94,9 @@ module variable
                 momround = 1e3, & ! round to the 3rd place to the right of decimal point
                 tottaxrev = 0._wp, &
                 tauwealth, &
-                benchrbar
+                benchrbar, &
+                net_worth, &
+                suprich_prop = 0.5_wp
                 
     integer ::  nmc = 3, &   
                 itert = 1, &
@@ -160,6 +162,14 @@ module variable
     real(wp) :: pertgov = 0.04_wp
     real(wp) :: rbarimplied
     
+    real(wp) :: shreshold_suprich
+    real(wp) :: wealth_suprich
+    real(wp) :: epsisuprich
+    real(wp) :: epsisuprichmin ! _1parameter para.
+    integer  :: iterasuprich
+    integer  :: iterasuprichmax ! _1parameter para.
+    real(wp) :: update_suprich
+    
     ! real(wp) :: penalty = -1e+7 
     real(wp) :: inf ! defined in toolbox.f90's function 'infinity_setting'.
     
@@ -217,10 +227,10 @@ module variable
     integer, dimension(:), allocatable :: sww, swk
     real(wp), dimension(:), allocatable :: swf, swa, swh, swc, sef, def, sef1, sef2, sef3! sef1 and sef2 stationary distribution used in subrtouine ability_transition of model.f90.
     real(wp), dimension(:), allocatable :: sw_laborsupply, sw_labordemand, sw_production, sw_bizinvestment, sw_bizloan, fsef
-    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom, finc, fast, faxw, fnon, fsax, fwtx
+    real(wp), dimension(:), allocatable :: sw_ini_asset, sw_ini_house, sw_nonlineartax, sw_aftertaxwealth, sw_socialsecurity, fhom, finc, fast, faxw, fnon, fsax, fwtx, flon
     real(wp), dimension(:), allocatable :: sw_buzcap_notuse, sw_worker_savtax, sw_entpre_savtax, sw_entpre_biztax ! 3.27.2017 add savtax and biztax.
-    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx, fcsp, fbuz
-    real(wp), dimension(:), allocatable :: sw_wealth_tax, sw_totbxincome
+    real(wp), dimension(:), allocatable :: sw_worker_turned, sw_boss_turned, sw_taxableincome, sw_consumption, sw_totinc_bx, fcsp, fbuz, fnwr
+    real(wp), dimension(:), allocatable :: sw_wealth_tax, sw_totbxincome, sw_net_worth
     real(wp), dimension(:), allocatable :: axw_lorenz, csp_lorenz, xbi_lorenz 
     
     integer, dimension(:), allocatable :: sww2, swk2
@@ -1117,7 +1127,27 @@ contains
                            i = i + 1
                            read( value_string,*) tottaxrev
                            labstr(i) = 'tottaxrev'
-                           para(i) = tottaxrev                         
+                           para(i) = tottaxrev  
+                       case('epsisuprichmin') ! 150
+                           i = i + 1
+                           read( value_string,*) epsisuprichmin
+                           labstr(i) = 'epsisuprichmin'
+                           para(i) = epsisuprichmin 
+                       case('iterasuprichmax') ! 151
+                           i = i + 1
+                           read( value_string,*) iterasuprichmax
+                           labstr(i) = 'iterasuprichmax'
+                           para(i) = iterasuprichmax   
+                       case('update_suprich') ! 152
+                           i = i + 1
+                           read( value_string,*) update_suprich
+                           labstr(i) = 'update_suprich'
+                           para(i) = update_suprich  
+                       case('suprich_prop') ! 153
+                           i = i + 1
+                           read( value_string,*) suprich_prop
+                           labstr(i) = 'suprich_prop'
+                           para(i) = suprich_prop                             
                     end select
                 enddo
             else
