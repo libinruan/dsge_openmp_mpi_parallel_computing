@@ -1446,7 +1446,7 @@ program MPI_sandbox
             !print*, '10: ', stringmode6
             call ss(flon,stringmode6,20,8)  
             stringmode6 = 'nwr_'//trim(idmode6)
-            call ss(fnwr,stringmode6,20,8)            
+            call ss(fnwr,stringmode6,20,8)             
             
         endif !mpi_exercise_mode    
         
