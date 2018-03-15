@@ -162,8 +162,8 @@ module variable
     real(wp) :: pertgov = 0.04_wp
     real(wp) :: rbarimplied
     
-    real(wp) :: shreshold_suprich
-    real(wp) :: wealth_suprich
+    real(wp) :: exempbar
+    real(wp) :: medallinc
     real(wp) :: epsisuprich
     real(wp) :: epsisuprichmin ! _1parameter para.
     integer  :: iterasuprich
