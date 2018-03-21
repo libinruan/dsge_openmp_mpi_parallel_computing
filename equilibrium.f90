@@ -694,10 +694,11 @@ module equilibrium
                 
                 ! 2-24-2018
                 if(iterar==1.and.iterasuprich==1)then ! 2-24-2018
-                    shreshold_suprich = 10._wp*wage*dot_product(yv,sy) ! avearge worker income earch period (5 years)
+                    exempbar = 26._wp*wage*dot_product(yv,sy) ! avearge worker income earch period (5 years)
                 else
                     if(mode6taskid==2)then                        
-                        shreshold_suprich = update_suprich * shreshold_suprich + (1._wp - update_suprich) * wealth_suprich
+                        !exempbar = update_suprich * exempbar + (1._wp - update_suprich) * medallinc
+                        exempbar = 26._wp*medallinc
                     else
                         print*, 'something wrong in suprich loop''s update'
                     endif 
@@ -1157,15 +1158,15 @@ module equilibrium
                 enddo ! loop on epsigov and iteragov ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [2]
                 
                 iterasuprich = iterasuprich + 1
-                epsisuprich = abs(shreshold_suprich - wealth_suprich)
-                write(*,fmt='(3(a,i3,x),2(a,f8.3))') 'iterar', iterar, 'iterasuprich', iterasuprich, 'iteragov', iteragov, 'shreshold_suprich', shreshold_suprich, 'epsisuprich', epsisuprich
+                epsisuprich = abs(exempbar - medallinc)
+                write(*,fmt='(3(a,i3,x),2(a,f8.3))') 'iterar', iterar, 'iterasuprich', iterasuprich, 'iteragov', iteragov, 'exempbar', exempbar, 'epsisuprich', epsisuprich
                 
                 
-                if(mode6taskid<=1)then ! To make run just once in suprich loop once for mode6taskid<=1. 2-24-2018
+                if(mode6taskid<=2)then ! To make run just once in suprich loop once for mode6taskid<=1. 2-24-2018 3-12-2018
                     epsisuprich = 0._wp
                 else
-                    write(unit=my_id+1001,fmt='(3(a,i3,x),3(a,f8.3))') 'iterar', iterar, 'iterasuprich', iterasuprich, 'iteragov', iteragov, 'shreshold_suprich', shreshold_suprich, 'epsisuprich', epsisuprich, 'wealth_suprich', wealth_suprich
-                    write(*,fmt='(3(a,i3,x),3(a,f8.3))') 'iterar', iterar, 'iterasuprich', iterasuprich, 'iteragov', iteragov, 'shreshold_suprich', shreshold_suprich, 'epsisuprich', epsisuprich, 'wealth_suprich', wealth_suprich
+                    write(unit=my_id+1001,fmt='(3(a,i3,x),3(a,f8.3))') '-- iterar', iterar, 'iterasuprich', iterasuprich, 'iteragov', iteragov, 'exempbar', exempbar, 'epsisuprich', epsisuprich, 'medallinc', medallinc
+                    write(*,fmt='(3(a,i3,x),3(a,f8.3))') '-- iterar', iterar, 'iterasuprich', iterasuprich, 'iteragov', iteragov, 'exempbar', exempbar, 'epsisuprich', epsisuprich, 'medallinc', medallinc
                 endif
             enddo ! loop on epsisuprich
             

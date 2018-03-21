@@ -1005,14 +1005,14 @@ contains
         end do
         ! stop 'brent: exceed maximum iterations'
         if(present(flag))then ! 8-13-2017
-            flag = .true.     ! 
+            !flag = .true.    !  3-20-2018 to turn off the premature termination of the program due to brent exceeding maximum iterations.
             xmax = x          ! 
             brentmax = -fx    ! 
         endif                 ! 
 
         xmax = x
         brentmax = -fx
-        write(*,'(a)') 'brent: exceed maximum iterations'
+        !write(*,'(a)') 'brent: exceed maximum iterations' ! 3-20-2018 turn off as well
     end function brentmax
     
     ! Function: set up a proper interval that corresponds to a concave function which Brent can only work for. 3.7.2017
